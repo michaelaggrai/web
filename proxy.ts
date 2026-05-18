@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const PASSWORD = process.env.SITE_PASSWORD ?? "aggrai";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   // Skip auth for the login page and API routes
   const { pathname } = req.nextUrl;
   if (pathname === "/login" || pathname.startsWith("/api/")) {

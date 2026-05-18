@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const MODELS = [
   { id: "anthropic/claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
@@ -144,7 +146,9 @@ export default function Home() {
               {/* Summary */}
               <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Summary</p>
-                <p className="text-sm leading-7 text-gray-800 whitespace-pre-wrap">{result.summary}</p>
+                <div className="prose prose-sm prose-gray max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
+                </div>
               </div>
 
               {/* Per-model answers */}
@@ -159,7 +163,9 @@ export default function Home() {
                         {a.cost_usd && <span>${a.cost_usd.toFixed(4)}</span>}
                       </div>
                     </div>
-                    <p className="text-sm leading-6 text-gray-700 whitespace-pre-wrap">{a.answer}</p>
+                    <div className="prose prose-sm prose-gray max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{a.answer}</ReactMarkdown>
+                    </div>
                   </div>
                 ))}
               </div>
