@@ -145,8 +145,10 @@ export default function Home() {
 
               {/* Summary */}
               <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Summary</p>
-                <div className="prose prose-sm prose-gray max-w-none">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Summary</p>
+                <div className="prose prose-sm prose-gray max-w-none
+                  prose-h2:text-sm prose-h2:font-semibold prose-h2:text-gray-900 prose-h2:mt-4 prose-h2:mb-2
+                  prose-ul:my-1 prose-li:my-0.5 prose-p:my-2">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
                 </div>
               </div>
