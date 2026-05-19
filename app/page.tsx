@@ -19,11 +19,9 @@ type Answer = {
   cost_usd: number | null;
 };
 
-type Result = {
-  summary: string;
-  answers: Answer[];
-  failed?: { model: string; error: string }[];
-};
+type Result =
+  | { type: "product"; answer: string; question: string }
+  | { type: "compare"; summary: string; answers: Answer[]; question: string; failed?: { model: string; error: string }[] };
 
 function modelLabel(id: string) {
   return MODELS.find(m => m.id === id)?.label ?? id.split("/").pop() ?? id;
@@ -143,40 +141,52 @@ export default function Home() {
           {result && !loading && (
             <div className="space-y-6">
 
-              {/* Summary */}
-              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Summary</p>
-                <div className="prose prose-sm prose-gray max-w-none
-                  prose-h2:text-sm prose-h2:font-semibold prose-h2:text-gray-900 prose-h2:mt-4 prose-h2:mb-2
-                  prose-ul:my-1 prose-li:my-0.5 prose-p:my-2">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
+              {result.type === "product" ? (
+                /* Product answer */
+                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Aggrai</p>
+                  <div className="prose prose-sm prose-gray max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
+                  </div>
                 </div>
-              </div>
-
-              {/* Per-model answers */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {result.answers.map(a => (
-                  <div key={a.model} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-gray-700">{modelLabel(a.model)}</span>
-                      <div className="flex gap-3 text-xs text-gray-400">
-                        <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>
-                        <span>{a.tokens} tok</span>
-                        {a.cost_usd && <span>${a.cost_usd.toFixed(4)}</span>}
-                      </div>
-                    </div>
-                    <div className="prose prose-sm prose-gray max-w-none">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{a.answer}</ReactMarkdown>
+              ) : (
+                <>
+                  {/* Summary */}
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Summary</p>
+                    <div className="prose prose-sm prose-gray max-w-none
+                      prose-h2:text-sm prose-h2:font-semibold prose-h2:text-gray-900 prose-h2:mt-4 prose-h2:mb-2
+                      prose-ul:my-1 prose-li:my-0.5 prose-p:my-2">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
                     </div>
                   </div>
-                ))}
-              </div>
 
-              {/* Failed models */}
-              {result.failed && result.failed.length > 0 && (
-                <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-700">
-                  Failed: {result.failed.map(f => modelLabel(f.model)).join(", ")}
-                </div>
+                  {/* Per-model answers */}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {result.answers.map(a => (
+                      <div key={a.model} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                        <div className="mb-3 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-700">{modelLabel(a.model)}</span>
+                          <div className="flex gap-3 text-xs text-gray-400">
+                            <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>
+                            <span>{a.tokens} tok</span>
+                            {a.cost_usd && <span>${a.cost_usd.toFixed(4)}</span>}
+                          </div>
+                        </div>
+                        <div className="prose prose-sm prose-gray max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{a.answer}</ReactMarkdown>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Failed models */}
+                  {result.failed && result.failed.length > 0 && (
+                    <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-700">
+                      Failed: {result.failed.map(f => modelLabel(f.model)).join(", ")}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
