@@ -6,22 +6,23 @@ import { Button } from "@/components/ui/button"
 function Logo() {
   return (
     <div className="flex items-center gap-2.5">
-      <svg width="34" height="28" viewBox="0 0 52 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="38" height="26" viewBox="0 0 76 44" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="lg" x1="26" y1="4" x2="26" y2="38" gradientUnits="userSpaceOnUse">
+          <linearGradient id="lg" x1="38" y1="3" x2="38" y2="41" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#2DD4BF" />
             <stop offset="100%" stopColor="#00B5A3" />
           </linearGradient>
         </defs>
-        {/* Left C */}
-        <path d="M 28,4 C 14,4 7,12 7,21 C 7,30 14,38 28,38"
-          stroke="url(#lg)" strokeWidth="5" strokeLinecap="round" fill="none" />
-        {/* Right C */}
-        <path d="M 24,4 C 38,4 45,12 45,21 C 45,30 38,38 24,38"
-          stroke="url(#lg)" strokeWidth="5" strokeLinecap="round" fill="none" />
-        {/* Dots */}
-        <circle cx="17" cy="21" r="3" fill="url(#lg)" />
-        <circle cx="35" cy="21" r="3" fill="url(#lg)" />
+        {/* Left C — opens to the right */}
+        <path d="M 30,3 C 16,3 4,11 4,22 C 4,33 16,41 30,41"
+          stroke="url(#lg)" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+        {/* Right C — opens to the left */}
+        <path d="M 46,3 C 60,3 72,11 72,22 C 72,33 60,41 46,41"
+          stroke="url(#lg)" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+        {/* Left dot — inside left C */}
+        <circle cx="19" cy="22" r="3.5" fill="url(#lg)" />
+        {/* Right dot — inside right C */}
+        <circle cx="57" cy="22" r="3.5" fill="url(#lg)" />
       </svg>
       <span className="text-2xl font-semibold tracking-tight">
         <span className="text-white">aggr</span>
