@@ -3,12 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 const PASSWORD = process.env.SITE_PASSWORD ?? "aggrai";
 
 export function proxy(req: NextRequest) {
-  // Skip auth for the login page and API routes
   const { pathname } = req.nextUrl;
-  if (pathname === "/login" || pathname.startsWith("/api/")) {
+
+  // Public routes — landing page, login, API
+  if (
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname.startsWith("/api/")
+  ) {
     return NextResponse.next();
   }
 
+  // Protected routes — /app and everything else
   const cookie = req.cookies.get("auth")?.value;
   if (cookie === PASSWORD) return NextResponse.next();
 
