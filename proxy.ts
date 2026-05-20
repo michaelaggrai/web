@@ -5,12 +5,8 @@ const PASSWORD = process.env.SITE_PASSWORD ?? "aggrai";
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Public routes — landing page, login, API
-  if (
-    pathname === "/" ||
-    pathname === "/login" ||
-    pathname.startsWith("/api/")
-  ) {
+  // Public routes — login and API only
+  if (pathname === "/login" || pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 
