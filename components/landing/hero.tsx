@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { ArrowRight, Sparkles } from "lucide-react"
 
 export function Hero() {
   const [query, setQuery] = useState("")
+  const router = useRouter()
 
   return (
     <section className="relative min-h-[92vh] flex items-center bg-gradient-to-b from-navy via-navy to-[#252547] overflow-hidden">
@@ -32,9 +34,11 @@ export function Hero() {
           
           {/* Chat input */}
           <div className="mt-10 max-w-xl mx-auto">
-            <form 
+            <form
               onSubmit={(e) => {
                 e.preventDefault()
+                const params = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""
+                router.push(`/app${params}`)
               }}
               className="relative"
             >
@@ -61,7 +65,7 @@ export function Hero() {
                   <button
                     key={prompt}
                     type="button"
-                    onClick={() => setQuery(prompt)}
+                    onClick={() => router.push(`/app?q=${encodeURIComponent(prompt)}`)}
                     className="text-sm text-white/40 hover:text-white/70 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
                   >
                     {prompt}

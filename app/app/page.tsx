@@ -1,5 +1,7 @@
 "use client";
-import { useState } from "react";
+import { Suspense } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -27,12 +29,31 @@ function modelLabel(id: string) {
   return MODELS.find(m => m.id === id)?.label ?? id.split("/").pop() ?? id;
 }
 
-export default function Home() {
-  const [question, setQuestion] = useState("");
+export default function Page() {
+  return (
+    <Suspense>
+      <Home />
+    </Suspense>
+  );
+}
+
+function Home() {
+  const searchParams = useSearchParams();
+  const [question, setQuestion] = useState(searchParams.get("q") ?? "");
   const [selected, setSelected] = useState<Set<string>>(new Set(MODELS.map(m => m.id)));
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
+  const autoSubmitted = useRef(false);
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q && !autoSubmitted.current) {
+      autoSubmitted.current = true;
+      setQuestion(q);
+      submitQuestion(q, new Set(MODELS.map(m => m.id)));
+    }
+  }, []);
 
   function toggleModel(id: string) {
     setSelected(prev => {
@@ -46,9 +67,7 @@ export default function Home() {
     });
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!question.trim()) return;
+  async function submitQuestion(q: string, models: Set<string>) {
     setLoading(true);
     setResult(null);
     setError("");
@@ -56,7 +75,7 @@ export default function Home() {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: question.trim(), models: [...selected] }),
+        body: JSON.stringify({ question: q.trim(), models: [...models] }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Request failed");
@@ -66,6 +85,12 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!question.trim()) return;
+    await submitQuestion(question, selected);
   }
 
   return (

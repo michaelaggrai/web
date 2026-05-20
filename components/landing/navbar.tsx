@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 function Logo() {
@@ -18,16 +19,18 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           <Logo />
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="text-white/60 hover:text-white hover:bg-white/5 font-normal text-sm"
+              asChild
             >
-              Log in
+              <Link href="/login">Log in</Link>
             </Button>
-            <Button 
+            <Button
               className="bg-white/10 hover:bg-white/15 text-white font-medium text-sm rounded-full px-5 border border-white/10"
+              asChild
             >
-              Get started
+              <Link href="/app">Get started</Link>
             </Button>
           </div>
         </div>
