@@ -98,9 +98,7 @@ function Home() {
       {/* Header */}
       <header className="border-b border-gray-100 bg-white px-6 py-4">
         <div className="mx-auto max-w-4xl flex items-center justify-between">
-          <div className="overflow-hidden" style={{ height: 40, width: 540 }}>
-            <img src="/logo.svg" alt="aggrai" style={{ height: 200, width: 'auto', maxWidth: 'none' }} />
-          </div>
+          <img src="/logo.png" alt="aggrai" style={{ height: 36, width: 'auto' }} />
           <span className="text-xs text-gray-400">Ask every AI at once</span>
         </div>
       </header>

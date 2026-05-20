@@ -4,19 +4,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 function Logo() {
-  // SVG is 3120×800 HD sheet with 5 stacked variants.
-  // Rendered at height=200 → 780×200, so each row = 40px.
-  // Clip container to 40px height → shows only palette 1 (top row).
-  // Width 540px shows symbol + full "aggrai" wordmark.
-  // White bg needed because the wordmark uses dark navy ink.
   return (
-    <div className="bg-white rounded-lg overflow-hidden" style={{ height: 40, width: 540 }}>
-      <img
-        src="/logo.svg"
-        alt="aggrai"
-        style={{ height: 200, width: 'auto', maxWidth: 'none' }}
-      />
-    </div>
+    <img src="/logo.png" alt="aggrai" style={{ height: 36, width: 'auto' }} />
   )
 }
 
