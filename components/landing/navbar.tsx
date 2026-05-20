@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 
 function Logo() {
   return (
-    <img src="/logo.png" alt="aggrai" style={{ height: 36, width: 'auto' }} />
+    <img src="/logo-light.svg" alt="aggrai" style={{ height: 36, width: 'auto' }} />
   )
 }
 
