@@ -283,19 +283,10 @@ function Home() {
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
   const [selected, setSelected] = useState<Set<string>>(new Set(FALLBACK_DEFAULTS));
   const [loading, setLoading] = useState(false);
-  const [showFullSkeleton, setShowFullSkeleton] = useState(false);
+  const [intentHint, setIntentHint] = useState<"compare" | "product" | "direct" | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const autoSubmitted = useRef(false);
-
-  useEffect(() => {
-    if (!loading) {
-      setShowFullSkeleton(false);
-      return;
-    }
-    const t = setTimeout(() => setShowFullSkeleton(true), 1500);
-    return () => clearTimeout(t);
-  }, [loading]);
 
   useEffect(() => {
     fetch("/api/models")
@@ -326,6 +317,7 @@ function Home() {
     setLoading(true);
     setResult(null);
     setError("");
+    setIntentHint(null);
     setQuestion("");
     try {
       const res = await fetch("/api/ask", {
@@ -333,19 +325,56 @@ function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q.trim(), models: [...models] }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Request failed");
-      // For cached responses, hold the loading state to at least 2s so it doesn't feel jarring
-      if (data.cached) {
-        const elapsed = Date.now() - startedAt;
-        const remaining = 2000 - elapsed;
-        if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+      if (!res.ok || !res.body) {
+        const fallback = await res.json().catch(() => ({ error: "Request failed" }));
+        throw new Error(fallback.error ?? "Request failed");
       }
-      setResult(data);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let pendingResult: (Result & { cached?: boolean; failed?: { model: string; error: string }[] }) | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) !== -1) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line) continue;
+          let evt: { stage?: string; intent?: string; error?: string; [k: string]: unknown };
+          try { evt = JSON.parse(line); } catch { continue; }
+
+          if (evt.stage === "intent" && (evt.intent === "compare" || evt.intent === "product" || evt.intent === "direct")) {
+            setIntentHint(evt.intent);
+          } else if (evt.stage === "result") {
+            const { stage: _s, ...rest } = evt;
+            void _s;
+            pendingResult = rest as typeof pendingResult;
+          } else if (evt.stage === "error") {
+            throw new Error(evt.error ?? "Request failed");
+          }
+        }
+      }
+
+      if (pendingResult) {
+        if (pendingResult.cached) {
+          const elapsed = Date.now() - startedAt;
+          const remaining = 2000 - elapsed;
+          if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+        }
+        setResult(pendingResult);
+      } else {
+        throw new Error("Empty response from server");
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
+      setIntentHint(null);
     }
   }
 
@@ -414,7 +443,7 @@ function Home() {
 
           {/* Loading state — skeleton blocks mirroring the real layout */}
           {loading && (
-            showFullSkeleton && selected.size > 1 ? (
+            intentHint === "compare" && selected.size > 1 ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full" />
