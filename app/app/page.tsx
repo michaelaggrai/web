@@ -274,6 +274,7 @@ function Home() {
     setLoading(true);
     setResult(null);
     setError("");
+    setQuestion("");
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
@@ -382,6 +383,11 @@ function Home() {
           {/* Results */}
           {result && !loading && (
             <div className="space-y-6">
+              {/* Asked question */}
+              <div className="text-sm text-white/50">
+                <span className="text-white/30">You asked:</span>{" "}
+                <span className="text-white/80">{result.question}</span>
+              </div>
 
               {result.type === "product" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
