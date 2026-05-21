@@ -283,9 +283,19 @@ function Home() {
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
   const [selected, setSelected] = useState<Set<string>>(new Set(FALLBACK_DEFAULTS));
   const [loading, setLoading] = useState(false);
+  const [showFullSkeleton, setShowFullSkeleton] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const autoSubmitted = useRef(false);
+
+  useEffect(() => {
+    if (!loading) {
+      setShowFullSkeleton(false);
+      return;
+    }
+    const t = setTimeout(() => setShowFullSkeleton(true), 1500);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   useEffect(() => {
     fetch("/api/models")
@@ -404,8 +414,8 @@ function Home() {
 
           {/* Loading state — skeleton blocks mirroring the real layout */}
           {loading && (
-            <div className="space-y-4">
-              {selected.size > 1 && (
+            showFullSkeleton && selected.size > 1 ? (
+              <div className="space-y-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full" />
                   <div className="space-y-4">
@@ -413,13 +423,15 @@ function Home() {
                     <LoadingBlock title="Quality scores" gradientId="ld-q" />
                   </div>
                 </div>
-              )}
-              <div className={`grid grid-cols-1 gap-4 ${selected.size > 1 ? "sm:grid-cols-2" : ""}`}>
-                {[...selected].map(id => (
-                  <ModelLoadingBlock key={id} modelId={id} />
-                ))}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {[...selected].map(id => (
+                    <ModelLoadingBlock key={id} modelId={id} />
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <LoadingBlock title="Thinking…" gradientId="ld-initial" />
+            )
           )}
 
           {/* Results */}
@@ -434,7 +446,7 @@ function Home() {
               {result.type === "product" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
                   <div className="mb-3">
-                    <Logo height={28} gradientId="product-g" />
+                    <Logo height={28} symbolOnly gradientId="product-g" />
                   </div>
                   <div className="prose prose-sm prose-invert max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
