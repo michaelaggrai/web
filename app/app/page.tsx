@@ -170,11 +170,9 @@ function QualityScores({ answers }: { answers: Answer[] }) {
             <div className="text-xs font-medium text-white/80 truncate">{modelLabel(a.model)}</div>
             <div className="grid grid-cols-2 gap-3">
               {SCORE_KEYS.map(({ key, label }) => (
-                <div key={key}>
-                  <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
-                    <span>{label}</span>
-                    <span className="text-white/70">{a.scores[key].toFixed(1)}</span>
-                  </div>
+                <div key={key} className="min-w-0">
+                  <div className="text-[10px] text-white/40 truncate">{label}</div>
+                  <div className="text-xs text-white/70 mb-1 truncate">{a.scores[key].toFixed(1)}</div>
                   <ScoreBar
                     value={a.scores[key]}
                     accent={winners.find(w => w.key === key)?.model === a.model}
@@ -234,28 +232,22 @@ function MetricsCompare({ answers }: { answers: Answer[] }) {
           <div key={a.model} className="grid grid-cols-1 sm:grid-cols-[130px_1fr] gap-2 sm:gap-4 items-center">
             <div className="text-xs font-medium text-white/80 truncate">{modelLabel(a.model)}</div>
             <div className="grid grid-cols-3 gap-3">
-              <div>
-                <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
-                  <span>Speed</span>
-                  <span className="text-white/70">{(a.runtime_ms / 1000).toFixed(1)}s</span>
-                </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-white/40 truncate">Speed</div>
+                <div className="text-xs text-white/70 mb-1 truncate">{(a.runtime_ms / 1000).toFixed(1)}s</div>
                 <Bar pct={1 - a.runtime_ms / maxRuntime} accent={a.model === fastest.model} />
               </div>
-              <div>
-                <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
-                  <span>Readability</span>
-                  <span className="text-white/70">{readabilityLabel(a.readability)}</span>
-                </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-white/40 truncate">Readability</div>
+                <div className="text-xs text-white/70 mb-1 truncate">{readabilityLabel(a.readability)}</div>
                 <Bar
                   pct={maxRead > 0 ? Math.max(0, a.readability) / maxRead : 0}
                   accent={a.model === mostReadable.model}
                 />
               </div>
-              <div>
-                <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
-                  <span>Detail</span>
-                  <span className="text-white/70">{a.words}w</span>
-                </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-white/40 truncate">Detail</div>
+                <div className="text-xs text-white/70 mb-1 truncate">{a.words}w</div>
                 <Bar pct={a.words / maxWords} />
               </div>
             </div>
