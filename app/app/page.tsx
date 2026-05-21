@@ -342,7 +342,8 @@ function Home() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let pendingResult: (Result & { cached?: boolean; failed?: { model: string; error: string }[] }) | null = null;
+      type StreamedResult = Result & { cached?: boolean; failed?: { model: string; error: string }[] };
+      let pendingResult: StreamedResult | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -362,7 +363,7 @@ function Home() {
           } else if (evt.stage === "result") {
             const { stage: _s, ...rest } = evt;
             void _s;
-            pendingResult = rest as typeof pendingResult;
+            pendingResult = rest as unknown as StreamedResult;
           } else if (evt.stage === "error") {
             throw new Error(evt.error ?? "Request failed");
           }
