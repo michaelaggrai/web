@@ -45,3 +45,13 @@ body {
 .logo-spinning .logo-symbol {
   animation: logo-spin 1.2s linear infinite;
 }
+
+@keyframes brand-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50%      { opacity: 1;    transform: scale(1.06); }
+}
+
+.brand-pulse {
+  animation: brand-pulse 1.4s ease-in-out infinite;
+  display: inline-flex;
+}

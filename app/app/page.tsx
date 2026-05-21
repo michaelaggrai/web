@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowRight, Zap, BookOpen, FileText, Sparkles } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { ModelLoader } from "@/components/model-loader";
 
 const MODELS = [
   { id: "anthropic/claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
@@ -72,8 +73,17 @@ function readabilityLabel(score: number): string {
 function LoadingBlock({ title, gradientId, compact }: { title: string; gradientId: string; compact?: boolean }) {
   return (
     <div className={`rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-3 ${compact ? "min-h-[140px] p-5" : "min-h-[180px] p-6"}`}>
-      <Logo height={compact ? 24 : 32} spinning gradientId={gradientId} />
+      <Logo height={compact ? 22 : 30} spinning symbolOnly gradientId={gradientId} />
       <p className="text-xs text-white/40">{title}</p>
+    </div>
+  );
+}
+
+function ModelLoadingBlock({ modelId }: { modelId: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-3 min-h-[140px] p-5">
+      <ModelLoader modelId={modelId} size={28} />
+      <p className="text-xs text-white/40">{modelLabel(modelId)}</p>
     </div>
   );
 }
@@ -362,8 +372,8 @@ function Home() {
               </div>
               <LoadingBlock title="Quality scores" gradientId="ld-q" />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {[...selected].map((id, i) => (
-                  <LoadingBlock key={id} title={modelLabel(id)} gradientId={`ld-m-${i}`} compact />
+                {[...selected].map(id => (
+                  <ModelLoadingBlock key={id} modelId={id} />
                 ))}
               </div>
             </div>

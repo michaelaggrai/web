@@ -1,12 +1,47 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Sparkles } from "lucide-react"
 
+const EXAMPLE_POOL = [
+  "Should I learn Rust or Go in 2026?",
+  "Explain CRISPR like I'm five",
+  "Compare React Server Components vs Astro Islands",
+  "What's the best way to invest £10k right now?",
+  "How does GPS actually work?",
+  "Compare Python and TypeScript for a small startup",
+  "What makes a great manager?",
+  "Why does entropy always increase?",
+  "Should I do a PhD or join a startup?",
+  "Explain the difference between AI and AGI",
+  "How do I learn a new language fast?",
+  "What's the strongest argument against free will?",
+  "Compare electric vs hybrid cars for daily commuting",
+  "How should a junior engineer use AI tools?",
+  "What's the best way to learn to draw as an adult?",
+  "Is intermittent fasting actually effective?",
+  "Explain transformer attention in plain English",
+  "What's wrong with the standard model of physics?",
+]
+
+function pickThree<T>(arr: T[]): T[] {
+  const copy = [...arr]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy.slice(0, 3)
+}
+
 export function Hero() {
   const [query, setQuery] = useState("")
+  const [examples, setExamples] = useState<string[]>([])
   const router = useRouter()
+
+  useEffect(() => {
+    setExamples(pickThree(EXAMPLE_POOL))
+  }, [])
 
   return (
     <section className="relative min-h-[92vh] flex items-center bg-gradient-to-b from-navy via-navy to-[#252547] overflow-hidden">
@@ -61,7 +96,7 @@ export function Hero() {
               
               {/* Example prompts */}
               <div className="mt-5 flex flex-wrap justify-center gap-2">
-                {["Explain quantum computing", "Compare programming languages", "What is machine learning?"].map((prompt) => (
+                {examples.map((prompt) => (
                   <button
                     key={prompt}
                     type="button"
