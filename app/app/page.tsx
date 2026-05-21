@@ -433,7 +433,9 @@ function Home() {
 
               {result.type === "product" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-teal-300/80">Aggrai</p>
+                  <div className="mb-3">
+                    <Logo height={28} gradientId="product-g" />
+                  </div>
                   <div className="prose prose-sm prose-invert max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
                   </div>
