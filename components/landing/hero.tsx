@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Sparkles } from "lucide-react"
+import { ModelPicker, type ModelEntry } from "@/components/model-picker"
+import { FALLBACK_MODELS, FALLBACK_DEFAULTS, MAX_MODELS_PER_TIER } from "@/lib/models"
 
 // Static pool — mirrors backend EXAMPLE_PROMPTS. Renders instantly without
 // waiting on a network roundtrip. Backend is still the source of truth for
@@ -41,7 +43,26 @@ export function Hero() {
   const [query, setQuery] = useState("")
   // Initialise immediately on mount — no network wait
   const [examples, setExamples] = useState<string[]>(() => pickThree(EXAMPLE_POOL))
+  const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS)
+  const [selected, setSelected] = useState<Set<string>>(new Set(FALLBACK_DEFAULTS))
   const router = useRouter()
+
+  useEffect(() => {
+    fetch("/api/models")
+      .then(r => r.json())
+      .then((d: { models?: ModelEntry[]; defaults?: string[] }) => {
+        if (Array.isArray(d.models) && d.models.length > 0) setAllModels(d.models)
+      })
+      .catch(() => {})
+  }, [])
+
+  // Navigate to /app carrying both the question and the model selection
+  function goToApp(prompt: string) {
+    const parts: string[] = []
+    if (prompt.trim()) parts.push(`q=${encodeURIComponent(prompt.trim())}`)
+    parts.push(`models=${encodeURIComponent([...selected].join(","))}`)
+    router.push(`/app?${parts.join("&")}`)
+  }
 
   return (
     <section className="relative min-h-[92vh] flex items-center bg-gradient-to-b from-navy via-navy to-[#252547] overflow-hidden">
@@ -72,8 +93,7 @@ export function Hero() {
             <form
               onSubmit={(e) => {
                 e.preventDefault()
-                const params = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""
-                router.push(`/app${params}`)
+                goToApp(query)
               }}
               className="relative"
             >
@@ -93,14 +113,24 @@ export function Hero() {
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
-              
+
+              {/* Model selector */}
+              <div className="mt-4 flex justify-center">
+                <ModelPicker
+                  all={allModels}
+                  selected={selected}
+                  onChange={setSelected}
+                  max={MAX_MODELS_PER_TIER}
+                />
+              </div>
+
               {/* Example prompts */}
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {examples.map((prompt) => (
                   <button
                     key={prompt}
                     type="button"
-                    onClick={() => router.push(`/app?q=${encodeURIComponent(prompt)}`)}
+                    onClick={() => goToApp(prompt)}
                     className="text-sm text-white/40 hover:text-white/70 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
                   >
                     {prompt}

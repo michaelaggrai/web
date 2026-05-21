@@ -9,17 +9,7 @@ import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3 } from
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
 import { ModelPicker, type ModelEntry } from "@/components/model-picker";
-
-const FALLBACK_MODELS: ModelEntry[] = [
-  { id: "anthropic/claude-sonnet-4-6",                  label: "Claude Sonnet 4.6", provider: "Anthropic", default: true },
-  { id: "openai/gpt-4o",                                label: "GPT-4o",            provider: "OpenAI",    default: true },
-  { id: "google/gemini-2.5-flash",                      label: "Gemini 2.5 Flash",  provider: "Google",    default: true },
-  { id: "mistralai/mistral-small-3.2-24b-instruct",     label: "Mistral Small",     provider: "Mistral",   default: true },
-  { id: "meta-llama/llama-3.1-8b-instruct",             label: "Llama 3.1 8B",      provider: "Meta",      default: true },
-];
-const FALLBACK_DEFAULTS = FALLBACK_MODELS.map(m => m.id);
-
-const MAX_MODELS_PER_TIER = 5;
+import { FALLBACK_MODELS, FALLBACK_DEFAULTS, MAX_MODELS_PER_TIER, parseModelsParam } from "@/lib/models";
 
 type Scores = {
   comprehension: number;
@@ -279,9 +269,10 @@ export default function Page() {
 
 function Home() {
   const searchParams = useSearchParams();
+  const modelsParam = parseModelsParam(searchParams.get("models"));
   const [question, setQuestion] = useState(searchParams.get("q") ?? "");
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
-  const [selected, setSelected] = useState<Set<string>>(new Set(FALLBACK_DEFAULTS));
+  const [selected, setSelected] = useState<Set<string>>(modelsParam ?? new Set(FALLBACK_DEFAULTS));
   const [loading, setLoading] = useState(false);
   const [intentHint, setIntentHint] = useState<"compare" | "product" | "direct" | null>(null);
   const [result, setResult] = useState<Result | null>(null);
@@ -295,7 +286,8 @@ function Home() {
         if (Array.isArray(d.models) && d.models.length > 0) {
           setAllModels(d.models);
           setModelLabels(d.models);
-          if (Array.isArray(d.defaults) && d.defaults.length > 0) {
+          // Only fall back to catalog defaults if the URL didn't specify models
+          if (!modelsParam && Array.isArray(d.defaults) && d.defaults.length > 0) {
             setSelected(new Set(d.defaults.slice(0, MAX_MODELS_PER_TIER)));
           }
         }
@@ -308,7 +300,7 @@ function Home() {
     if (q && !autoSubmitted.current) {
       autoSubmitted.current = true;
       setQuestion(q);
-      submitQuestion(q, new Set(FALLBACK_DEFAULTS));
+      submitQuestion(q, modelsParam ?? new Set(FALLBACK_DEFAULTS));
     }
   }, []);
 
