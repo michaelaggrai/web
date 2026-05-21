@@ -326,8 +326,17 @@ function Home() {
         body: JSON.stringify({ question: q.trim(), models: [...models] }),
       });
       if (!res.ok || !res.body) {
-        const fallback = await res.json().catch(() => ({ error: "Request failed" }));
-        throw new Error(fallback.error ?? "Request failed");
+        let errorMsg = `Request failed (HTTP ${res.status})`;
+        try {
+          const text = await res.text();
+          if (text) {
+            try {
+              const parsed = JSON.parse(text);
+              if (parsed?.error) errorMsg = parsed.error;
+            } catch { /* not JSON, keep generic */ }
+          }
+        } catch { /* body unreadable, keep generic */ }
+        throw new Error(errorMsg);
       }
 
       const reader = res.body.getReader();
