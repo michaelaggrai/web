@@ -1,14 +1,31 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Sparkles } from "lucide-react"
 
-// Fallback if the backend can't be reached
-const FALLBACK_EXAMPLES = [
+// Static pool — mirrors backend EXAMPLE_PROMPTS. Renders instantly without
+// waiting on a network roundtrip. Backend is still the source of truth for
+// cache lookups (same exact strings), so click-through still hits the cache.
+const EXAMPLE_POOL = [
+  "Should I learn Rust or Go in 2026?",
   "Explain CRISPR like I'm five",
+  "Compare React Server Components vs Astro Islands",
+  "What's the best way to invest £10k right now?",
   "How does GPS actually work?",
+  "Compare Python and TypeScript for a small startup",
   "What makes a great manager?",
+  "Why does entropy always increase?",
+  "Should I do a PhD or join a startup?",
+  "Explain the difference between AI and AGI",
+  "How do I learn a new language fast?",
+  "What's the strongest argument against free will?",
+  "Compare electric vs hybrid cars for daily commuting",
+  "How should a junior engineer use AI tools?",
+  "What's the best way to learn to draw as an adult?",
+  "Is intermittent fasting actually effective?",
+  "Explain transformer attention in plain English",
+  "What's wrong with the standard model of physics?",
 ]
 
 function pickThree<T>(arr: T[]): T[] {
@@ -22,18 +39,9 @@ function pickThree<T>(arr: T[]): T[] {
 
 export function Hero() {
   const [query, setQuery] = useState("")
-  const [examples, setExamples] = useState<string[]>([])
+  // Initialise immediately on mount — no network wait
+  const [examples, setExamples] = useState<string[]>(() => pickThree(EXAMPLE_POOL))
   const router = useRouter()
-
-  useEffect(() => {
-    fetch("/api/examples")
-      .then(r => r.json())
-      .then(d => {
-        const pool: string[] = Array.isArray(d.examples) && d.examples.length > 0 ? d.examples : FALLBACK_EXAMPLES
-        setExamples(pickThree(pool))
-      })
-      .catch(() => setExamples(pickThree(FALLBACK_EXAMPLES)))
-  }, [])
 
   return (
     <section className="relative min-h-[92vh] flex items-center bg-gradient-to-b from-navy via-navy to-[#252547] overflow-hidden">
