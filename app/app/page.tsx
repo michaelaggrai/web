@@ -1,9 +1,12 @@
 "use client";
 import { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ArrowRight } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 const MODELS = [
   { id: "anthropic/claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
@@ -94,28 +97,46 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="relative min-h-screen bg-gradient-to-b from-navy via-navy to-[#252547] overflow-hidden">
+      {/* Soft gradient orbs */}
+      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
+
       {/* Header */}
-      <header className="border-b border-gray-100 bg-white px-6 py-4">
-        <div className="mx-auto max-w-4xl flex items-center justify-between">
-          <img src="/logo.svg" alt="aggrai" style={{ height: 36, width: 'auto' }} />
-          <span className="text-xs text-gray-400">Ask every AI at once</span>
+      <header className="relative z-10 border-b border-white/5 bg-navy/60 backdrop-blur-xl">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/">
+              <Logo height={36} gradientId="app-logo-g" />
+            </Link>
+            <span className="text-xs text-white/40">Ask every AI at once</span>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-10">
+      <main className="relative z-10 px-4 py-10">
         <div className="mx-auto max-w-4xl space-y-8">
 
           {/* Input */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <textarea
-              value={question}
-              onChange={e => setQuestion(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSubmit(e); }}
-              placeholder="Ask anything…"
-              rows={3}
-              className="w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gray-400 shadow-sm"
-            />
+            <div className="flex items-center bg-white/[0.08] backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 transition-colors shadow-2xl shadow-black/20">
+              <textarea
+                value={question}
+                onChange={e => setQuestion(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
+                placeholder="What would you like to know?"
+                rows={2}
+                className="flex-1 resize-none bg-transparent text-white placeholder:text-white/30 px-6 py-4 text-base focus:outline-none rounded-2xl"
+              />
+              <button
+                type="submit"
+                disabled={loading || !question.trim()}
+                className="m-2 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Submit"
+              >
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
 
             {/* Model selector */}
             <div className="flex flex-wrap gap-2">
@@ -124,41 +145,29 @@ function Home() {
                   key={m.id}
                   type="button"
                   onClick={() => toggleModel(m.id)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition border ${
+                  className={`rounded-full px-4 py-1.5 text-xs font-medium transition border ${
                     selected.has(m.id)
-                      ? "bg-gray-900 text-white border-gray-900"
-                      : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
+                      ? "bg-white/15 text-white border-white/20"
+                      : "bg-white/5 text-white/40 border-white/5 hover:text-white/70 hover:border-white/10"
                   }`}
                 >
                   {m.label}
                 </button>
               ))}
             </div>
-
-            <button
-              type="submit"
-              disabled={loading || !question.trim()}
-              className="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700 disabled:opacity-40"
-            >
-              {loading ? "Comparing…" : "Compare"}
-            </button>
           </form>
 
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+            <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
               {error}
             </div>
           )}
 
-          {/* Loading skeleton */}
+          {/* Loading state — big spinning logo */}
           {loading && (
-            <div className="space-y-4 animate-pulse">
-              <div className="h-24 rounded-xl bg-gray-100" />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {[...selected].map(id => (
-                  <div key={id} className="h-32 rounded-xl bg-gray-100" />
-                ))}
-              </div>
+            <div className="flex flex-col items-center justify-center py-24 gap-6">
+              <Logo height={80} spinning gradientId="loading-g" />
+              <p className="text-sm text-white/50">Asking every model…</p>
             </div>
           )}
 
@@ -167,21 +176,20 @@ function Home() {
             <div className="space-y-6">
 
               {result.type === "product" ? (
-                /* Product answer */
-                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Aggrai</p>
-                  <div className="prose prose-sm prose-gray max-w-none">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-teal-300/80">Aggrai</p>
+                  <div className="prose prose-sm prose-invert max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
                   </div>
                 </div>
               ) : (
                 <>
                   {/* Summary */}
-                  <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Summary</p>
-                    <div className="prose prose-sm prose-gray max-w-none
-                      prose-h2:text-sm prose-h2:font-semibold prose-h2:text-gray-900 prose-h2:mt-4 prose-h2:mb-2
-                      prose-ul:my-1 prose-li:my-0.5 prose-p:my-2">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
+                    <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+                    <div className="prose prose-sm prose-invert max-w-none
+                      prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
+                      prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
                     </div>
                   </div>
@@ -189,16 +197,16 @@ function Home() {
                   {/* Per-model answers */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {result.answers.map(a => (
-                      <div key={a.model} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                      <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5">
                         <div className="mb-3 flex items-center justify-between">
-                          <span className="text-xs font-semibold text-gray-700">{modelLabel(a.model)}</span>
-                          <div className="flex gap-3 text-xs text-gray-400">
+                          <span className="text-xs font-semibold text-white/90">{modelLabel(a.model)}</span>
+                          <div className="flex gap-3 text-xs text-white/40">
                             <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>
                             <span>{a.tokens} tok</span>
                             {a.cost_usd && <span>${a.cost_usd.toFixed(4)}</span>}
                           </div>
                         </div>
-                        <div className="prose prose-sm prose-gray max-w-none">
+                        <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{a.answer}</ReactMarkdown>
                         </div>
                       </div>
@@ -207,7 +215,7 @@ function Home() {
 
                   {/* Failed models */}
                   {result.failed && result.failed.length > 0 && (
-                    <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-700">
+                    <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-xs text-amber-300">
                       Failed: {result.failed.map(f => modelLabel(f.model)).join(", ")}
                     </div>
                   )}
