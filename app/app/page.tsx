@@ -157,8 +157,8 @@ function QualityScores({ answers }: { answers: Answer[] }) {
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
-      <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
+      <div className="mb-5">
+        <div className="flex items-center gap-2 mb-3">
           <Sparkles className="w-3.5 h-3.5 text-teal-300" />
           <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Quality scores</p>
           <span className="text-[10px] text-white/30">judged by Haiku · 0–5</span>
@@ -220,8 +220,8 @@ function MetricsCompare({ answers }: { answers: Answer[] }) {
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
-      <div className="flex items-center justify-between mb-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Comparison</p>
+      <div className="mb-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80 mb-3">Comparison</p>
         <div className="flex flex-wrap gap-2 text-[10px]">
           <span className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
             <Zap className="w-3 h-3" /> Fastest: {modelLabel(fastest.model)}
