@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Zap, DollarSign, FileText } from "lucide-react";
 import { Logo } from "@/components/logo";
 
 const MODELS = [
@@ -30,6 +30,87 @@ type Result =
 
 function modelLabel(id: string) {
   return MODELS.find(m => m.id === id)?.label ?? id.split("/").pop() ?? id;
+}
+
+function wordCount(s: string) {
+  return s.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function MetricsCompare({ answers }: { answers: Answer[] }) {
+  const enriched = answers.map(a => ({ ...a, words: wordCount(a.answer) }));
+  const fastest = enriched.reduce((p, c) => (c.runtime_ms < p.runtime_ms ? c : p));
+  const cheapest = enriched
+    .filter(a => a.cost_usd != null)
+    .reduce<typeof enriched[number] | null>((p, c) => (!p || (c.cost_usd ?? 0) < (p.cost_usd ?? 0) ? c : p), null);
+  const longest = enriched.reduce((p, c) => (c.words > p.words ? c : p));
+
+  const maxRuntime = Math.max(...enriched.map(a => a.runtime_ms));
+  const maxWords   = Math.max(...enriched.map(a => a.words));
+  const maxCost    = Math.max(...enriched.map(a => a.cost_usd ?? 0));
+
+  const Bar = ({ pct, accent }: { pct: number; accent?: boolean }) => (
+    <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+      <div
+        className={`h-full rounded-full ${accent ? "bg-gradient-to-r from-teal-400 to-teal-300" : "bg-white/30"}`}
+        style={{ width: `${Math.max(4, pct * 100)}%` }}
+      />
+    </div>
+  );
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
+      <div className="flex items-center justify-between mb-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Comparison</p>
+        <div className="flex flex-wrap gap-2 text-[10px]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
+            <Zap className="w-3 h-3" /> Fastest: {modelLabel(fastest.model)}
+          </span>
+          {cheapest && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
+              <DollarSign className="w-3 h-3" /> Cheapest: {modelLabel(cheapest.model)}
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/10 text-white/70 border border-white/10 px-2 py-0.5">
+            <FileText className="w-3 h-3" /> Longest: {modelLabel(longest.model)}
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {enriched.map(a => (
+          <div key={a.model} className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-3 sm:gap-6 items-center">
+            <div className="text-xs font-medium text-white/80 truncate">{modelLabel(a.model)}</div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
+                  <span>Speed</span>
+                  <span className="text-white/70">{(a.runtime_ms / 1000).toFixed(1)}s</span>
+                </div>
+                <Bar pct={1 - a.runtime_ms / maxRuntime} accent={a.model === fastest.model} />
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
+                  <span>Length</span>
+                  <span className="text-white/70">{a.words}w</span>
+                </div>
+                <Bar pct={a.words / maxWords} />
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
+                  <span>Cost</span>
+                  <span className="text-white/70">{a.cost_usd != null ? `$${a.cost_usd.toFixed(4)}` : "—"}</span>
+                </div>
+                <Bar
+                  pct={a.cost_usd != null && maxCost > 0 ? 1 - a.cost_usd / maxCost : 0}
+                  accent={cheapest != null && a.model === cheapest.model}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function Page() {
@@ -193,6 +274,9 @@ function Home() {
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
                     </div>
                   </div>
+
+                  {/* Comparison metrics */}
+                  {result.answers.length > 1 && <MetricsCompare answers={result.answers} />}
 
                   {/* Per-model answers */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
