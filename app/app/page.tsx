@@ -1,5 +1,5 @@
 "use client";
-import { Suspense } from "react";
+import React, { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -40,6 +40,40 @@ type Result =
 function modelLabel(id: string) {
   return MODELS.find(m => m.id === id)?.label ?? id.split("/").pop() ?? id;
 }
+
+// Longest patterns first so "Claude Sonnet 4.6" wins over "Claude"
+const MODEL_NAME_PATTERN = /\b(Claude Sonnet 4\.6|Gemini 2\.5 Flash|Llama 3\.1 8B|Mistral Small|GPT-4o|ChatGPT|Claude|Gemini|Mistral|Llama|OpenAI|Anthropic)\b/g;
+
+function ModelChip({ name }: { name: string }) {
+  return <span className="text-teal-300 font-medium">{name}</span>;
+}
+
+function highlightString(text: string): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  const re = new RegExp(MODEL_NAME_PATTERN.source, "g");
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(<ModelChip key={`${m.index}-${m[0]}`} name={m[0]} />);
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+function highlightNode(node: React.ReactNode, keyPrefix = ""): React.ReactNode {
+  if (typeof node === "string") return highlightString(node);
+  if (Array.isArray(node)) return node.map((n, i) => <React.Fragment key={`${keyPrefix}-${i}`}>{highlightNode(n, `${keyPrefix}-${i}`)}</React.Fragment>);
+  return node;
+}
+
+const MARKDOWN_COMPONENTS = {
+  p: ({ children }: { children?: React.ReactNode }) => <p>{highlightNode(children, "p")}</p>,
+  li: ({ children }: { children?: React.ReactNode }) => <li>{highlightNode(children, "li")}</li>,
+  strong: ({ children }: { children?: React.ReactNode }) => <strong>{highlightNode(children, "s")}</strong>,
+  em: ({ children }: { children?: React.ReactNode }) => <em>{highlightNode(children, "e")}</em>,
+};
 
 function wordCount(s: string) {
   return s.trim().split(/\s+/).filter(Boolean).length;
@@ -407,7 +441,7 @@ function Home() {
                       <div className="prose prose-sm prose-invert max-w-none
                         prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
                         prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>{result.summary}</ReactMarkdown>
                       </div>
                     </div>
                     {result.answers.length > 1 && (
