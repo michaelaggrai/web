@@ -8,14 +8,18 @@ import remarkGfm from "remark-gfm";
 import { ArrowRight, Zap, BookOpen, FileText, Sparkles } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
+import { ModelPicker, type ModelEntry } from "@/components/model-picker";
 
-const MODELS = [
-  { id: "anthropic/claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-  { id: "openai/gpt-4o", label: "GPT-4o" },
-  { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  { id: "mistralai/mistral-small-3.2-24b-instruct", label: "Mistral Small" },
-  { id: "meta-llama/llama-3.1-8b-instruct", label: "Llama 3.1 8B" },
+const FALLBACK_MODELS: ModelEntry[] = [
+  { id: "anthropic/claude-sonnet-4-6",                  label: "Claude Sonnet 4.6", provider: "Anthropic", default: true },
+  { id: "openai/gpt-4o",                                label: "GPT-4o",            provider: "OpenAI",    default: true },
+  { id: "google/gemini-2.5-flash",                      label: "Gemini 2.5 Flash",  provider: "Google",    default: true },
+  { id: "mistralai/mistral-small-3.2-24b-instruct",     label: "Mistral Small",     provider: "Mistral",   default: true },
+  { id: "meta-llama/llama-3.1-8b-instruct",             label: "Llama 3.1 8B",      provider: "Meta",      default: true },
 ];
+const FALLBACK_DEFAULTS = FALLBACK_MODELS.map(m => m.id);
+
+const MAX_MODELS_PER_TIER = 5;
 
 type Scores = {
   comprehension: number;
@@ -37,8 +41,12 @@ type Result =
   | { type: "product"; answer: string; question: string; cached?: boolean }
   | { type: "compare"; summary: string; answers: Answer[]; question: string; failed?: { model: string; error: string }[]; cached?: boolean };
 
+let _modelLabels: Record<string, string> = Object.fromEntries(FALLBACK_MODELS.map(m => [m.id, m.label]));
+function setModelLabels(catalog: ModelEntry[]) {
+  _modelLabels = Object.fromEntries(catalog.map(m => [m.id, m.label]));
+}
 function modelLabel(id: string) {
-  return MODELS.find(m => m.id === id)?.label ?? id.split("/").pop() ?? id;
+  return _modelLabels[id] ?? id.split("/").pop() ?? id;
 }
 
 // Longest patterns first so "Claude Sonnet 4.6" wins over "Claude"
@@ -269,32 +277,36 @@ export default function Page() {
 function Home() {
   const searchParams = useSearchParams();
   const [question, setQuestion] = useState(searchParams.get("q") ?? "");
-  const [selected, setSelected] = useState<Set<string>>(new Set(MODELS.map(m => m.id)));
+  const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
+  const [selected, setSelected] = useState<Set<string>>(new Set(FALLBACK_DEFAULTS));
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const autoSubmitted = useRef(false);
 
   useEffect(() => {
+    fetch("/api/models")
+      .then(r => r.json())
+      .then((d: { models?: ModelEntry[]; defaults?: string[] }) => {
+        if (Array.isArray(d.models) && d.models.length > 0) {
+          setAllModels(d.models);
+          setModelLabels(d.models);
+          if (Array.isArray(d.defaults) && d.defaults.length > 0) {
+            setSelected(new Set(d.defaults.slice(0, MAX_MODELS_PER_TIER)));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const q = searchParams.get("q");
     if (q && !autoSubmitted.current) {
       autoSubmitted.current = true;
       setQuestion(q);
-      submitQuestion(q, new Set(MODELS.map(m => m.id)));
+      submitQuestion(q, new Set(FALLBACK_DEFAULTS));
     }
   }, []);
-
-  function toggleModel(id: string) {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        if (next.size > 1) next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
 
   async function submitQuestion(q: string, models: Set<string>) {
     const startedAt = Date.now();
@@ -373,22 +385,12 @@ function Home() {
             </div>
 
             {/* Model selector */}
-            <div className="flex flex-wrap gap-2">
-              {MODELS.map(m => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => toggleModel(m.id)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-medium transition border ${
-                    selected.has(m.id)
-                      ? "bg-white/15 text-white border-white/20"
-                      : "bg-white/5 text-white/40 border-white/5 hover:text-white/70 hover:border-white/10"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
+            <ModelPicker
+              all={allModels}
+              selected={selected}
+              onChange={setSelected}
+              max={MAX_MODELS_PER_TIER}
+            />
           </form>
 
           {error && (
