@@ -9,7 +9,9 @@ type LogoProps = {
 }
 
 export function Logo({ height = 36, spinning = false, className = "", gradientId = "logo-grad", symbolOnly = false }: LogoProps) {
-  const viewBox = symbolOnly ? "35 0 170 135" : "0 0 620 135"
+  // Symbol-only viewBox is a square centred on the symbol bbox center (~120, 68)
+  // with radius 100 so the symbol can spin without being clipped at the corners.
+  const viewBox = symbolOnly ? "20 -32 200 200" : "0 0 620 135"
   return (
     <svg
       height={height}

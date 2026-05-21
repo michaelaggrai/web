@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Zap, BookOpen, FileText, Sparkles } from "lucide-react";
+import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
 import { ModelPicker, type ModelEntry } from "@/components/model-picker";
@@ -112,10 +112,10 @@ function readabilityLabel(score: number): string {
   return "Complex";
 }
 
-function LoadingBlock({ title, gradientId, compact }: { title: string; gradientId: string; compact?: boolean }) {
+function LoadingBlock({ title, gradientId }: { title: string; gradientId: string }) {
   return (
-    <div className={`rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-3 ${compact ? "min-h-[140px] p-5" : "min-h-[180px] p-6"}`}>
-      <Logo height={compact ? 22 : 30} spinning symbolOnly gradientId={gradientId} />
+    <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4">
+      <Logo height={26} spinning symbolOnly gradientId={gradientId} />
       <p className="text-xs text-white/40">{title}</p>
     </div>
   );
@@ -123,8 +123,8 @@ function LoadingBlock({ title, gradientId, compact }: { title: string; gradientI
 
 function ModelLoadingBlock({ modelId }: { modelId: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-3 min-h-[140px] p-5">
-      <ModelLoader modelId={modelId} size={28} />
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4">
+      <ModelLoader modelId={modelId} size={24} />
       <p className="text-xs text-white/40">{modelLabel(modelId)}</p>
     </div>
   );
@@ -221,7 +221,10 @@ function MetricsCompare({ answers }: { answers: Answer[] }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
       <div className="mb-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80 mb-3">Comparison</p>
+        <div className="flex items-center gap-2 mb-3">
+          <BarChart3 className="w-3.5 h-3.5 text-teal-300" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Comparison</p>
+        </div>
         <div className="flex flex-wrap gap-2 text-[10px]">
           <span className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
             <Zap className="w-3 h-3" /> Fastest: {modelLabel(fastest.model)}
@@ -229,7 +232,7 @@ function MetricsCompare({ answers }: { answers: Answer[] }) {
           <span className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
             <BookOpen className="w-3 h-3" /> Most readable: {modelLabel(mostReadable.model)}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/10 text-white/70 border border-white/10 px-2 py-0.5">
+          <span className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
             <FileText className="w-3 h-3" /> Most detailed: {modelLabel(longest.model)}
           </span>
         </div>
@@ -441,7 +444,10 @@ function Home() {
                   {result.answers.length > 1 && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
                       <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
-                        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Layers className="w-3.5 h-3.5 text-teal-300" />
+                          <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+                        </div>
                         <div className="prose prose-sm prose-invert max-w-none
                           prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
                           prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
