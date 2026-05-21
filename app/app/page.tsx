@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Zap, BookOpen, FileText } from "lucide-react";
+import { ArrowRight, Zap, BookOpen, FileText, Sparkles } from "lucide-react";
 import { Logo } from "@/components/logo";
 
 const MODELS = [
@@ -16,12 +16,20 @@ const MODELS = [
   { id: "meta-llama/llama-3.1-8b-instruct", label: "Llama 3.1 8B" },
 ];
 
+type Scores = {
+  comprehension: number;
+  thought_provoking: number;
+  nuance: number;
+  clarity: number;
+};
+
 type Answer = {
   model: string;
   answer: string;
   runtime_ms: number;
   tokens: number;
   cost_usd: number | null;
+  scores?: Scores | null;
 };
 
 type Result =
@@ -59,6 +67,73 @@ function readabilityLabel(score: number): string {
   if (score >= 40) return "Moderate";
   if (score >= 20) return "Difficult";
   return "Complex";
+}
+
+const SCORE_KEYS: { key: keyof Scores; label: string }[] = [
+  { key: "comprehension",     label: "Comprehension" },
+  { key: "thought_provoking", label: "Thought-provoking" },
+  { key: "nuance",            label: "Nuance" },
+  { key: "clarity",           label: "Clarity" },
+];
+
+function QualityScores({ answers }: { answers: Answer[] }) {
+  const scored = answers.filter((a): a is Answer & { scores: Scores } => !!a.scores);
+  if (scored.length === 0) return null;
+
+  const winners = SCORE_KEYS.map(({ key, label }) => {
+    const top = scored.reduce((p, c) => (c.scores[key] > p.scores[key] ? c : p));
+    return { key, label, model: top.model, value: top.scores[key] };
+  });
+
+  const ScoreBar = ({ value, accent }: { value: number; accent?: boolean }) => (
+    <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+      <div
+        className={`h-full rounded-full ${accent ? "bg-gradient-to-r from-teal-400 to-teal-300" : "bg-white/30"}`}
+        style={{ width: `${(value / 5) * 100}%` }}
+      />
+    </div>
+  );
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
+      <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-teal-300" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Quality scores</p>
+          <span className="text-[10px] text-white/30">judged by Haiku · 0–5</span>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[10px]">
+          {winners.map(w => (
+            <span key={w.key} className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
+              {w.label}: {modelLabel(w.model)}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {scored.map(a => (
+          <div key={a.model} className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-3 sm:gap-6 items-center">
+            <div className="text-xs font-medium text-white/80 truncate">{modelLabel(a.model)}</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {SCORE_KEYS.map(({ key, label }) => (
+                <div key={key}>
+                  <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
+                    <span>{label}</span>
+                    <span className="text-white/70">{a.scores[key].toFixed(1)}</span>
+                  </div>
+                  <ScoreBar
+                    value={a.scores[key]}
+                    accent={winners.find(w => w.key === key)?.model === a.model}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function MetricsCompare({ answers }: { answers: Answer[] }) {
@@ -302,6 +377,11 @@ function Home() {
 
                   {/* Comparison metrics */}
                   {result.answers.length > 1 && <MetricsCompare answers={result.answers} />}
+
+                  {/* LLM-judged quality scores */}
+                  {result.answers.length > 1 && result.answers.some(a => a.scores) && (
+                    <QualityScores answers={result.answers} />
+                  )}
 
                   {/* Per-model answers */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
