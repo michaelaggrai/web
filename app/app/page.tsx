@@ -132,9 +132,9 @@ function QualityScores({ answers }: { answers: Answer[] }) {
 
       <div className="space-y-4">
         {scored.map(a => (
-          <div key={a.model} className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-3 sm:gap-6 items-center">
+          <div key={a.model} className="grid grid-cols-1 sm:grid-cols-[130px_1fr] gap-2 sm:gap-4 items-center">
             <div className="text-xs font-medium text-white/80 truncate">{modelLabel(a.model)}</div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {SCORE_KEYS.map(({ key, label }) => (
                 <div key={key}>
                   <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
@@ -197,9 +197,9 @@ function MetricsCompare({ answers }: { answers: Answer[] }) {
 
       <div className="space-y-4">
         {enriched.map(a => (
-          <div key={a.model} className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-3 sm:gap-6 items-center">
+          <div key={a.model} className="grid grid-cols-1 sm:grid-cols-[130px_1fr] gap-2 sm:gap-4 items-center">
             <div className="text-xs font-medium text-white/80 truncate">{modelLabel(a.model)}</div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
                   <span>Speed</span>
@@ -367,11 +367,13 @@ function Home() {
           {/* Loading state — skeleton blocks mirroring the real layout */}
           {loading && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
                 <LoadingBlock title="Summary" gradientId="ld-summary" />
-                <LoadingBlock title="Comparison" gradientId="ld-cmp" />
+                <div className="space-y-4">
+                  <LoadingBlock title="Comparison" gradientId="ld-cmp" />
+                  <LoadingBlock title="Quality scores" gradientId="ld-q" />
+                </div>
               </div>
-              <LoadingBlock title="Quality scores" gradientId="ld-q" />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[...selected].map(id => (
                   <ModelLoadingBlock key={id} modelId={id} />
@@ -398,7 +400,7 @@ function Home() {
                 </div>
               ) : (
                 <>
-                  {/* Summary + Comparison side-by-side */}
+                  {/* Summary + (Comparison stacked over Quality scores) side-by-side */}
                   <div className={result.answers.length > 1 ? "grid grid-cols-1 lg:grid-cols-2 gap-4 items-start" : ""}>
                     <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
                       <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
@@ -408,13 +410,13 @@ function Home() {
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
                       </div>
                     </div>
-                    {result.answers.length > 1 && <MetricsCompare answers={result.answers} />}
+                    {result.answers.length > 1 && (
+                      <div className="space-y-4 min-w-0">
+                        <MetricsCompare answers={result.answers} />
+                        {result.answers.some(a => a.scores) && <QualityScores answers={result.answers} />}
+                      </div>
+                    )}
                   </div>
-
-                  {/* LLM-judged quality scores */}
-                  {result.answers.length > 1 && result.answers.some(a => a.scores) && (
-                    <QualityScores answers={result.answers} />
-                  )}
 
                   {/* Per-model answers */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
