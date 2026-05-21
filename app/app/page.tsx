@@ -112,9 +112,9 @@ function readabilityLabel(score: number): string {
   return "Complex";
 }
 
-function LoadingBlock({ title, gradientId }: { title: string; gradientId: string }) {
+function LoadingBlock({ title, gradientId, className = "" }: { title: string; gradientId: string; className?: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4">
+    <div className={`rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4 ${className}`}>
       <Logo height={26} spinning symbolOnly gradientId={gradientId} />
       <p className="text-xs text-white/40">{title}</p>
     </div>
@@ -406,8 +406,8 @@ function Home() {
           {loading && (
             <div className="space-y-4">
               {selected.size > 1 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                  <LoadingBlock title="Summary" gradientId="ld-summary" />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full" />
                   <div className="space-y-4">
                     <LoadingBlock title="Comparison" gradientId="ld-cmp" />
                     <LoadingBlock title="Quality scores" gradientId="ld-q" />
