@@ -401,14 +401,16 @@ function Home() {
           {/* Loading state — skeleton blocks mirroring the real layout */}
           {loading && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                <LoadingBlock title="Summary" gradientId="ld-summary" />
-                <div className="space-y-4">
-                  <LoadingBlock title="Comparison" gradientId="ld-cmp" />
-                  <LoadingBlock title="Quality scores" gradientId="ld-q" />
+              {selected.size > 1 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                  <LoadingBlock title="Summary" gradientId="ld-summary" />
+                  <div className="space-y-4">
+                    <LoadingBlock title="Comparison" gradientId="ld-cmp" />
+                    <LoadingBlock title="Quality scores" gradientId="ld-q" />
+                  </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              )}
+              <div className={`grid grid-cols-1 gap-4 ${selected.size > 1 ? "sm:grid-cols-2" : ""}`}>
                 {[...selected].map(id => (
                   <ModelLoadingBlock key={id} modelId={id} />
                 ))}
@@ -434,26 +436,26 @@ function Home() {
                 </div>
               ) : (
                 <>
-                  {/* Summary + (Comparison stacked over Quality scores) side-by-side */}
-                  <div className={result.answers.length > 1 ? "grid grid-cols-1 lg:grid-cols-2 gap-4 items-start" : ""}>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
-                      <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
-                      <div className="prose prose-sm prose-invert max-w-none
-                        prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
-                        prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>{result.summary}</ReactMarkdown>
+                  {/* Summary + (Comparison stacked over Quality scores) — only when comparing 2+ models */}
+                  {result.answers.length > 1 && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
+                        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+                        <div className="prose prose-sm prose-invert max-w-none
+                          prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
+                          prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>{result.summary}</ReactMarkdown>
+                        </div>
                       </div>
-                    </div>
-                    {result.answers.length > 1 && (
                       <div className="space-y-4 min-w-0">
                         <MetricsCompare answers={result.answers} />
                         {result.answers.some(a => a.scores) && <QualityScores answers={result.answers} />}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
-                  {/* Per-model answers */}
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {/* Per-model answers — full width if only one */}
+                  <div className={`grid grid-cols-1 gap-4 ${result.answers.length > 1 ? "sm:grid-cols-2" : ""}`}>
                     {result.answers.map(a => (
                       <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
                         <div className="mb-3 flex items-center justify-between">
