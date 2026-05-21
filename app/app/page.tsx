@@ -34,8 +34,8 @@ type Answer = {
 };
 
 type Result =
-  | { type: "product"; answer: string; question: string }
-  | { type: "compare"; summary: string; answers: Answer[]; question: string; failed?: { model: string; error: string }[] };
+  | { type: "product"; answer: string; question: string; cached?: boolean }
+  | { type: "compare"; summary: string; answers: Answer[]; question: string; failed?: { model: string; error: string }[]; cached?: boolean };
 
 function modelLabel(id: string) {
   return MODELS.find(m => m.id === id)?.label ?? id.split("/").pop() ?? id;
@@ -305,6 +305,7 @@ function Home() {
   }
 
   async function submitQuestion(q: string, models: Set<string>) {
+    const startedAt = Date.now();
     setLoading(true);
     setResult(null);
     setError("");
@@ -317,6 +318,12 @@ function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Request failed");
+      // For cached responses, hold the loading state to at least 2s so it doesn't feel jarring
+      if (data.cached) {
+        const elapsed = Date.now() - startedAt;
+        const remaining = 2000 - elapsed;
+        if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+      }
       setResult(data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
