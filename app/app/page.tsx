@@ -69,6 +69,15 @@ function readabilityLabel(score: number): string {
   return "Complex";
 }
 
+function LoadingBlock({ title, gradientId, compact }: { title: string; gradientId: string; compact?: boolean }) {
+  return (
+    <div className={`rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-3 ${compact ? "min-h-[140px] p-5" : "min-h-[180px] p-6"}`}>
+      <Logo height={compact ? 24 : 32} spinning gradientId={gradientId} />
+      <p className="text-xs text-white/40">{title}</p>
+    </div>
+  );
+}
+
 const SCORE_KEYS: { key: keyof Scores; label: string }[] = [
   { key: "comprehension",     label: "Comprehension" },
   { key: "thought_provoking", label: "Thought-provoking" },
@@ -344,11 +353,19 @@ function Home() {
             </div>
           )}
 
-          {/* Loading state — big spinning logo */}
+          {/* Loading state — skeleton blocks mirroring the real layout */}
           {loading && (
-            <div className="flex flex-col items-center justify-center py-24 gap-6">
-              <Logo height={80} spinning gradientId="loading-g" />
-              <p className="text-sm text-white/50">Asking every model…</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <LoadingBlock title="Summary" gradientId="ld-summary" />
+                <LoadingBlock title="Comparison" gradientId="ld-cmp" />
+              </div>
+              <LoadingBlock title="Quality scores" gradientId="ld-q" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {[...selected].map((id, i) => (
+                  <LoadingBlock key={id} title={modelLabel(id)} gradientId={`ld-m-${i}`} compact />
+                ))}
+              </div>
             </div>
           )}
 
@@ -365,18 +382,18 @@ function Home() {
                 </div>
               ) : (
                 <>
-                  {/* Summary */}
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
-                    <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
-                    <div className="prose prose-sm prose-invert max-w-none
-                      prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
-                      prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
+                  {/* Summary + Comparison side-by-side */}
+                  <div className={result.answers.length > 1 ? "grid grid-cols-1 lg:grid-cols-2 gap-4 items-start" : ""}>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
+                      <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+                      <div className="prose prose-sm prose-invert max-w-none
+                        prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
+                        prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
+                      </div>
                     </div>
+                    {result.answers.length > 1 && <MetricsCompare answers={result.answers} />}
                   </div>
-
-                  {/* Comparison metrics */}
-                  {result.answers.length > 1 && <MetricsCompare answers={result.answers} />}
 
                   {/* LLM-judged quality scores */}
                   {result.answers.length > 1 && result.answers.some(a => a.scores) && (
@@ -386,7 +403,7 @@ function Home() {
                   {/* Per-model answers */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {result.answers.map(a => (
-                      <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5">
+                      <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
                         <div className="mb-3 flex items-center justify-between">
                           <span className="text-xs font-semibold text-white/90">{modelLabel(a.model)}</span>
                           <div className="flex gap-3 text-xs text-white/40">
@@ -394,7 +411,10 @@ function Home() {
                             <span>{a.tokens} tok</span>
                           </div>
                         </div>
-                        <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white">
+                        <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                          [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
+                          [&_pre]:overflow-x-auto [&_pre]:max-w-full
+                          [&_img]:max-w-full [&_code]:break-words">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{a.answer}</ReactMarkdown>
                         </div>
                       </div>
