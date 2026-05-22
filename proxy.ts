@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 const PASSWORD = process.env.SITE_PASSWORD ?? "aggrai";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -21,10 +23,14 @@ export async function proxy(req: NextRequest) {
 
   // --- Gate 2: Supabase account session ---
   // (we are past the password wall here)
+  // If Supabase env vars are missing, degrade gracefully to password-wall-only
+  // rather than crashing every request.
+  if (!SUPABASE_URL || !SUPABASE_KEY) return NextResponse.next();
+
   let response = NextResponse.next({ request: req });
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL,
+    SUPABASE_KEY,
     {
       cookies: {
         getAll() {
