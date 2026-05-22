@@ -308,6 +308,18 @@ function Home() {
     }
   }, []);
 
+  // Keep the selection valid for the current tier — trims flagship models /
+  // excess count from a stale URL or after a tier change.
+  useEffect(() => {
+    const locked = lockedModelIds(tier, allModels);
+    const cap = maxModelsForTier(tier);
+    setSelected(prev => {
+      const valid = [...prev].filter(id => !locked.has(id)).slice(0, cap);
+      if (valid.length === prev.size) return prev;
+      return new Set(valid.length > 0 ? valid : TIER_DEFAULTS[tier]);
+    });
+  }, [tier, allModels]);
+
   async function submitQuestion(q: string, models: Set<string>) {
     const startedAt = Date.now();
     setLoading(true);
