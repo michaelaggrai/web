@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 // Edge runtime supports streaming response bodies (ReadableStream pass-through),
 // which the default Node serverless runtime does not.
 export const runtime = "edge";
 
 const API_URL = process.env.API_URL ?? "http://localhost:3456";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -14,11 +17,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "question is required" }, { status: 400 });
   }
 
+  // Forward the caller's Supabase access token so the backend can resolve
+  // their account + tier.
+  let accessToken: string | null = null;
+  if (SUPABASE_URL && SUPABASE_KEY) {
+    try {
+      const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
+        cookies: {
+          getAll() { return req.cookies.getAll(); },
+          setAll() { /* read-only in this route */ },
+        },
+      });
+      const { data } = await supabase.auth.getSession();
+      accessToken = data.session?.access_token ?? null;
+    } catch { /* no session — proceed anonymously */ }
+  }
+
   let upstream: Response;
   try {
     upstream = await fetch(`${API_URL}/ask`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
       body,
     });
   } catch (err) {
