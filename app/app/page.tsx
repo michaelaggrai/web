@@ -2,17 +2,16 @@
 import React, { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
 import * as Sentry from "@sentry/nextjs";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3 } from "lucide-react";
+import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3, Menu } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
 import { ModelPicker } from "@/components/model-picker";
+import { AppSidebar } from "@/components/app-sidebar";
 import { useTier } from "@/lib/use-tier";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
-import { AccountMenu } from "@/components/account-menu";
 import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parseModelsParam, type ModelEntry } from "@/lib/models";
 
 type Scores = {
@@ -282,6 +281,8 @@ function Home() {
   const [intentHint, setIntentHint] = useState<"compare" | "product" | "direct" | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showUpgradedBanner, setShowUpgradedBanner] = useState(searchParams.get("upgraded") === "1");
   const autoSubmitted = useRef(false);
 
   const maxModels = maxModelsForTier(tier);
@@ -404,26 +405,58 @@ function Home() {
     await submitQuestion(question, selected);
   }
 
+  // Reset to a blank comparison ("New comparison" in the sidebar).
+  function newComparison() {
+    setResult(null);
+    setQuestion("");
+    setError("");
+    setIntentHint(null);
+    setSidebarOpen(false);
+  }
+
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-navy via-navy to-[#252547] overflow-hidden">
+    <div className="relative flex h-screen overflow-hidden bg-gradient-to-b from-navy via-navy to-[#252547]">
       {/* Soft gradient orbs */}
-      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
+      <div className="pointer-events-none absolute top-20 left-1/3 w-[500px] h-[500px] bg-teal-500/12 rounded-full blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/8 rounded-full blur-[100px]" />
 
-      {/* Header */}
-      <header className="relative z-10 border-b border-white/5 bg-navy/60 backdrop-blur-xl">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/">
-              <Logo height={36} gradientId="app-logo-g" />
-            </Link>
-            <AccountMenu />
-          </div>
-        </div>
-      </header>
+      <AppSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onNewComparison={newComparison}
+      />
 
-      <main className="relative z-10 px-4 py-10">
-        <div className="mx-auto max-w-4xl space-y-8">
+      <div className="relative z-10 flex flex-1 flex-col min-w-0">
+        {/* Mobile top bar (sidebar is off-canvas below lg) */}
+        <header className="lg:hidden flex h-14 items-center gap-3 border-b border-white/5 px-4">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+            className="text-white/60 hover:text-white transition"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <Logo height={24} gradientId="topbar-logo" />
+        </header>
+
+        <main className="flex-1 overflow-y-auto px-4 py-10">
+          <div className="mx-auto max-w-4xl space-y-8">
+
+          {showUpgradedBanner && (
+            <div className="rounded-xl border border-teal-400/30 bg-teal-400/10 px-4 py-3 flex items-center justify-between gap-3">
+              <p className="text-sm text-teal-200">
+                Plan upgraded — your new models are unlocked.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowUpgradedBanner(false)}
+                className="text-teal-300/60 hover:text-teal-200 text-xs"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
           {/* Input */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -560,7 +593,8 @@ function Home() {
             </div>
           )}
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

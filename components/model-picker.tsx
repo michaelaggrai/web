@@ -4,6 +4,7 @@ import { Plus, X, Check, Lock } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ProviderLogo } from "@/components/brand-icons"
 import { useState } from "react"
+import Link from "next/link"
 import type { ModelEntry } from "@/lib/models"
 
 export type { ModelEntry }
@@ -137,8 +138,14 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
             ))}
           </div>
           {locked.size > 0 && (
-            <div className="mt-2 px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200">
-              Flagship models are a Pro feature — upgrade to compare them.
+            <div className="mt-2 px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200 flex items-center justify-between gap-2">
+              <span>Flagship models need a Pro plan.</span>
+              <Link
+                href="/upgrade"
+                className="shrink-0 font-semibold underline underline-offset-2 hover:text-amber-100"
+              >
+                Upgrade
+              </Link>
             </div>
           )}
           {locked.size === 0 && limitReached && (

@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
 
 export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignIn />
+    </Suspense>
+  );
+}
+
+function SignIn() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,6 +23,9 @@ export default function SignInPage() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/app";
+  const reason = searchParams.get("reason");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,7 +48,7 @@ export default function SignInPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      router.push("/app");
+      router.push(next);
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -59,9 +71,11 @@ export default function SignInPage() {
             {mode === "signup" ? "Create your account" : "Welcome back"}
           </h1>
           <p className="mt-1 text-sm text-white/40">
-            {mode === "signup"
-              ? "Sign up to start comparing AI models."
-              : "Sign in to continue."}
+            {reason === "upgrade"
+              ? "Create an account to unlock Pro and Premium plans."
+              : mode === "signup"
+                ? "Sign up to start comparing AI models."
+                : "Sign in to continue."}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-3">
