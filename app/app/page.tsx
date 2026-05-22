@@ -10,6 +10,7 @@ import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3 } from
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
 import { ModelPicker, type ModelEntry } from "@/components/model-picker";
+import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import { FALLBACK_MODELS, FALLBACK_DEFAULTS, MAX_MODELS_PER_TIER, parseModelsParam } from "@/lib/models";
 
 type Scores = {
@@ -513,9 +514,12 @@ function Home() {
                   <div className={`grid grid-cols-1 gap-4 ${result.answers.length > 1 ? "sm:grid-cols-2" : ""}`}>
                     {result.answers.map(a => (
                       <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
-                        <div className="mb-3 flex items-center justify-between">
-                          <span className="text-xs font-semibold text-white/90">{modelLabel(a.model)}</span>
-                          <div className="flex gap-3 text-xs text-white/40">
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
+                            <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{modelLabel(a.model)}</span>
+                          </span>
+                          <div className="flex gap-3 text-xs text-white/40 shrink-0">
                             <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>
                             <span>{a.tokens} tok</span>
                           </div>

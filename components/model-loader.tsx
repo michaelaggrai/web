@@ -1,16 +1,6 @@
 "use client"
 
-import { ProviderLogo } from "@/components/brand-icons"
-
-// Provider derived from the model-id prefix — covers every model from a
-// given provider, not just a hardcoded list.
-const PROVIDER_BY_PREFIX: Record<string, string> = {
-  "anthropic": "Anthropic",
-  "openai": "OpenAI",
-  "google": "Google",
-  "mistralai": "Mistral",
-  "meta-llama": "Meta",
-}
+import { ProviderLogo, providerOf } from "@/components/brand-icons"
 
 const BRAND_COLORS: Record<string, string> = {
   Anthropic: "#D97757",
@@ -18,10 +8,6 @@ const BRAND_COLORS: Record<string, string> = {
   Google: "#4285F4",
   Mistral: "#FF7000",
   Meta: "#0467DF",
-}
-
-function providerOf(modelId: string): string {
-  return PROVIDER_BY_PREFIX[modelId.split("/")[0]] ?? "Anthropic"
 }
 
 export function ModelLoader({ modelId, size = 28 }: { modelId: string; size?: number }) {

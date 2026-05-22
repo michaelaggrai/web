@@ -61,6 +61,19 @@ const BY_PROVIDER: Record<string, (p: IconProps) => React.JSX.Element> = {
   Meta: MetaIcon,
 }
 
+// Provider derived from the model-id prefix (e.g. "anthropic/claude-..." → "Anthropic")
+const PROVIDER_BY_PREFIX: Record<string, string> = {
+  "anthropic": "Anthropic",
+  "openai": "OpenAI",
+  "google": "Google",
+  "mistralai": "Mistral",
+  "meta-llama": "Meta",
+}
+
+export function providerOf(modelId: string): string {
+  return PROVIDER_BY_PREFIX[modelId.split("/")[0]] ?? "Anthropic"
+}
+
 export function ProviderLogo({ provider, className, style }: { provider: string } & IconProps) {
   const Icon = BY_PROVIDER[provider] ?? AnthropicIcon
   return <Icon className={className} style={style} />
