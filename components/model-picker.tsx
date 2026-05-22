@@ -2,6 +2,7 @@
 
 import { Plus, X, Check } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { ProviderLogo } from "@/components/brand-icons"
 import { useState } from "react"
 
 export type ModelEntry = { id: string; label: string; provider: string; default?: boolean }
@@ -52,8 +53,9 @@ export function ModelPicker({ all, selected, onChange, max = 5 }: Props) {
       {orderedSelected.map(m => (
         <span
           key={m.id}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white/15 text-white border border-white/20 pl-3 pr-1.5 py-1 text-xs font-medium"
+          className="inline-flex items-center gap-1.5 rounded-full bg-white/15 text-white border border-white/20 pl-2.5 pr-1.5 py-1 text-xs font-medium"
         >
+          <ProviderLogo provider={m.provider} className="w-3.5 h-3.5 shrink-0" />
           {m.label}
           <button
             type="button"
@@ -103,7 +105,7 @@ export function ModelPicker({ all, selected, onChange, max = 5 }: Props) {
                           type="button"
                           onClick={() => toggle(m.id)}
                           disabled={disabled}
-                          className={`w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs text-left transition-colors ${
+                          className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-left transition-colors ${
                             isSelected
                               ? "bg-teal-400/15 text-teal-100"
                               : disabled
@@ -111,7 +113,8 @@ export function ModelPicker({ all, selected, onChange, max = 5 }: Props) {
                                 : "text-white/80 hover:bg-white/5"
                           }`}
                         >
-                          <span className="truncate">{m.label}</span>
+                          <ProviderLogo provider={m.provider} className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate flex-1">{m.label}</span>
                           {isSelected ? <Check className="w-3.5 h-3.5 text-teal-300 shrink-0" /> : null}
                         </button>
                       </li>
