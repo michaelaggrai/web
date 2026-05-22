@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { AccountMenu } from "@/components/account-menu";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export type RecentItem = { id: string; question: string };
 
@@ -24,6 +26,13 @@ export function AppSidebar({
   activeId = null,
   onSelectRecent,
 }: Props) {
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    createClient().auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+  }, []);
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -99,15 +108,17 @@ export function AppSidebar({
           )}
         </div>
 
-        {/* Upgrade */}
-        <div className="px-3 pb-2">
-          <Link
-            href="/upgrade"
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-teal-400/20 bg-teal-400/10 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-400/15 hover:text-teal-200"
-          >
-            Upgrade plan
-          </Link>
-        </div>
+        {/* Upgrade — only for signed-in users */}
+        {signedIn && (
+          <div className="px-3 pb-2">
+            <Link
+              href="/upgrade"
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-teal-400/20 bg-teal-400/10 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-400/15 hover:text-teal-200"
+            >
+              Upgrade plan
+            </Link>
+          </div>
+        )}
 
         {/* Account */}
         <div className="border-t border-white/5 p-3">
