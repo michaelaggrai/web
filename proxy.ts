@@ -47,16 +47,12 @@ export async function proxy(req: NextRequest) {
   );
 
   // IMPORTANT: no logic between createServerClient and getUser().
+  // We refresh the session here but do NOT require one — anonymous users
+  // can use the app at the Free tier; an account is only for upgrading.
   const { data: { user } } = await supabase.auth.getUser();
 
-  const onAuthPage = pathname === "/signin";
-
-  // No account session → send to the sign-in page.
-  if (!user && !onAuthPage) {
-    return redirectWithCookies(req, response, "/signin");
-  }
   // Already signed in but on the auth page → send to the app.
-  if (user && onAuthPage) {
+  if (user && pathname === "/signin") {
     return redirectWithCookies(req, response, "/app");
   }
 

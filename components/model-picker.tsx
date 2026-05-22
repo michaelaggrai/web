@@ -1,17 +1,20 @@
 "use client"
 
-import { Plus, X, Check } from "lucide-react"
+import { Plus, X, Check, Lock } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ProviderLogo } from "@/components/brand-icons"
 import { useState } from "react"
+import type { ModelEntry } from "@/lib/models"
 
-export type ModelEntry = { id: string; label: string; provider: string; default?: boolean }
+export type { ModelEntry }
 
 type Props = {
   all: ModelEntry[]
   selected: Set<string>
   onChange: (next: Set<string>) => void
   max?: number
+  // Model ids the current tier may not use — shown locked with an upgrade hint.
+  lockedIds?: Set<string>
 }
 
 function groupBy<T, K extends string>(arr: T[], fn: (t: T) => K): Record<K, T[]> {
@@ -22,12 +25,14 @@ function groupBy<T, K extends string>(arr: T[], fn: (t: T) => K): Record<K, T[]>
   }, {} as Record<K, T[]>)
 }
 
-export function ModelPicker({ all, selected, onChange, max = 5 }: Props) {
+export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Props) {
   const [open, setOpen] = useState(false)
+  const locked = lockedIds ?? new Set<string>()
   const limitReached = selected.size >= max
   const byProvider = groupBy(all, m => m.provider)
 
   function toggle(id: string) {
+    if (locked.has(id)) return
     const next = new Set(selected)
     if (next.has(id)) {
       if (next.size > 1) next.delete(id) // keep at least one selected
@@ -98,7 +103,8 @@ export function ModelPicker({ all, selected, onChange, max = 5 }: Props) {
                 <ul>
                   {byProvider[provider].map(m => {
                     const isSelected = selected.has(m.id)
-                    const disabled = !isSelected && limitReached
+                    const isLocked = locked.has(m.id)
+                    const disabled = isLocked || (!isSelected && limitReached)
                     return (
                       <li key={m.id}>
                         <button
@@ -115,7 +121,13 @@ export function ModelPicker({ all, selected, onChange, max = 5 }: Props) {
                         >
                           <ProviderLogo provider={m.provider} className="w-3.5 h-3.5 shrink-0" />
                           <span className="truncate flex-1">{m.label}</span>
-                          {isSelected ? <Check className="w-3.5 h-3.5 text-teal-300 shrink-0" /> : null}
+                          {isLocked ? (
+                            <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-amber-400/15 text-amber-200/90 border border-amber-400/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                              <Lock className="w-2.5 h-2.5" /> Pro
+                            </span>
+                          ) : isSelected ? (
+                            <Check className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                          ) : null}
                         </button>
                       </li>
                     )
@@ -124,7 +136,12 @@ export function ModelPicker({ all, selected, onChange, max = 5 }: Props) {
               </div>
             ))}
           </div>
-          {limitReached && (
+          {locked.size > 0 && (
+            <div className="mt-2 px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200">
+              Flagship models are a Pro feature — upgrade to compare them.
+            </div>
+          )}
+          {locked.size === 0 && limitReached && (
             <div className="mt-2 px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200">
               Max {max} models — remove one to swap.
             </div>

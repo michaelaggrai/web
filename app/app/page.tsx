@@ -9,10 +9,11 @@ import remarkGfm from "remark-gfm";
 import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
-import { ModelPicker, type ModelEntry } from "@/components/model-picker";
+import { ModelPicker } from "@/components/model-picker";
+import { useTier } from "@/lib/use-tier";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import { AccountMenu } from "@/components/account-menu";
-import { FALLBACK_MODELS, FALLBACK_DEFAULTS, MAX_MODELS_PER_TIER, parseModelsParam } from "@/lib/models";
+import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parseModelsParam, type ModelEntry } from "@/lib/models";
 
 type Scores = {
   comprehension: number;
@@ -273,26 +274,26 @@ export default function Page() {
 function Home() {
   const searchParams = useSearchParams();
   const modelsParam = parseModelsParam(searchParams.get("models"));
+  const tier = useTier();
   const [question, setQuestion] = useState(searchParams.get("q") ?? "");
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
-  const [selected, setSelected] = useState<Set<string>>(modelsParam ?? new Set(FALLBACK_DEFAULTS));
+  const [selected, setSelected] = useState<Set<string>>(modelsParam ?? new Set(TIER_DEFAULTS.free));
   const [loading, setLoading] = useState(false);
   const [intentHint, setIntentHint] = useState<"compare" | "product" | "direct" | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const autoSubmitted = useRef(false);
 
+  const maxModels = maxModelsForTier(tier);
+  const lockedIds = lockedModelIds(tier, allModels);
+
   useEffect(() => {
     fetch("/api/models")
       .then(r => r.json())
-      .then((d: { models?: ModelEntry[]; defaults?: string[] }) => {
+      .then((d: { models?: ModelEntry[] }) => {
         if (Array.isArray(d.models) && d.models.length > 0) {
           setAllModels(d.models);
           setModelLabels(d.models);
-          // Only fall back to catalog defaults if the URL didn't specify models
-          if (!modelsParam && Array.isArray(d.defaults) && d.defaults.length > 0) {
-            setSelected(new Set(d.defaults.slice(0, MAX_MODELS_PER_TIER)));
-          }
         }
       })
       .catch(() => {});
@@ -303,7 +304,7 @@ function Home() {
     if (q && !autoSubmitted.current) {
       autoSubmitted.current = true;
       setQuestion(q);
-      submitQuestion(q, modelsParam ?? new Set(FALLBACK_DEFAULTS));
+      submitQuestion(q, modelsParam ?? new Set(TIER_DEFAULTS.free));
     }
   }, []);
 
@@ -438,7 +439,8 @@ function Home() {
               all={allModels}
               selected={selected}
               onChange={setSelected}
-              max={MAX_MODELS_PER_TIER}
+              max={maxModels}
+              lockedIds={lockedIds}
             />
           </form>
 

@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Sparkles } from "lucide-react"
-import { ModelPicker, type ModelEntry } from "@/components/model-picker"
-import { FALLBACK_MODELS, FALLBACK_DEFAULTS, MAX_MODELS_PER_TIER } from "@/lib/models"
+import { ModelPicker } from "@/components/model-picker"
+import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, type ModelEntry } from "@/lib/models"
+import { useTier } from "@/lib/use-tier"
 
 // Static pool — mirrors backend EXAMPLE_PROMPTS. Renders instantly without
 // waiting on a network roundtrip. Backend is still the source of truth for
@@ -44,13 +45,17 @@ export function Hero() {
   // Initialise immediately on mount — no network wait
   const [examples, setExamples] = useState<string[]>(() => pickThree(EXAMPLE_POOL))
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS)
-  const [selected, setSelected] = useState<Set<string>>(new Set(FALLBACK_DEFAULTS))
+  const [selected, setSelected] = useState<Set<string>>(new Set(TIER_DEFAULTS.free))
   const router = useRouter()
+  const tier = useTier()
+
+  const maxModels = maxModelsForTier(tier)
+  const lockedIds = lockedModelIds(tier, allModels)
 
   useEffect(() => {
     fetch("/api/models")
       .then(r => r.json())
-      .then((d: { models?: ModelEntry[]; defaults?: string[] }) => {
+      .then((d: { models?: ModelEntry[] }) => {
         if (Array.isArray(d.models) && d.models.length > 0) setAllModels(d.models)
       })
       .catch(() => {})
@@ -120,7 +125,8 @@ export function Hero() {
                   all={allModels}
                   selected={selected}
                   onChange={setSelected}
-                  max={MAX_MODELS_PER_TIER}
+                  max={maxModels}
+                  lockedIds={lockedIds}
                 />
               </div>
 
