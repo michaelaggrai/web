@@ -33,6 +33,9 @@ export function AccountMenu() {
   // Auth not configured, or still resolving — render nothing to avoid a flash.
   if (!isSupabaseConfigured || !loaded) return null;
 
+  // Anonymous — nothing to show (header handles sign-up, sidebar handles log-in)
+  if (!email) return null;
+
   // Signed in
   if (email) {
     return (
@@ -52,13 +55,4 @@ export function AccountMenu() {
     );
   }
 
-  // Anonymous — invite to sign up (not mandatory)
-  return (
-    <Link
-      href="/signin"
-      className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3.5 py-1 text-xs font-medium text-white/70 transition hover:text-white hover:border-white/20"
-    >
-      Sign up
-    </Link>
-  );
 }

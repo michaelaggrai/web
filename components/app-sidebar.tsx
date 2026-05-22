@@ -108,21 +108,26 @@ export function AppSidebar({
           )}
         </div>
 
-        {/* Upgrade — only for signed-in users */}
-        {signedIn && (
-          <div className="px-3 pb-2">
+        {/* Bottom section */}
+        <div className="border-t border-white/5 p-3 space-y-2">
+          {signedIn ? (
+            <>
+              <Link
+                href="/upgrade"
+                className="flex w-full items-center justify-center rounded-lg border border-teal-400/20 bg-teal-400/10 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-400/15 hover:text-teal-200"
+              >
+                Upgrade plan
+              </Link>
+              <AccountMenu />
+            </>
+          ) : (
             <Link
-              href="/upgrade"
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-teal-400/20 bg-teal-400/10 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-400/15 hover:text-teal-200"
+              href="/signin"
+              className="flex w-full items-center justify-center rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
             >
-              Upgrade plan
+              Log in
             </Link>
-          </div>
-        )}
-
-        {/* Account */}
-        <div className="border-t border-white/5 p-3">
-          <AccountMenu />
+          )}
         </div>
       </aside>
     </>

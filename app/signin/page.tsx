@@ -16,16 +16,18 @@ export default function SignInPage() {
 }
 
 function SignIn() {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/app";
+  const reason = searchParams.get("reason");
+  const [mode, setMode] = useState<"signin" | "signup">(
+    searchParams.get("mode") === "signup" ? "signup" : "signin"
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/app";
-  const reason = searchParams.get("reason");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

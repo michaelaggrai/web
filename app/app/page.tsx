@@ -6,11 +6,13 @@ import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3, Menu } from "lucide-react";
+import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
 import { ModelPicker } from "@/components/model-picker";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useTier } from "@/lib/use-tier";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parseModelsParam, type ModelEntry } from "@/lib/models";
 
@@ -283,7 +285,13 @@ function Home() {
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showUpgradedBanner, setShowUpgradedBanner] = useState(searchParams.get("upgraded") === "1");
+  const [signedIn, setSignedIn] = useState(false);
   const autoSubmitted = useRef(false);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    createClient().auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+  }, []);
 
   const maxModels = maxModelsForTier(tier);
   const lockedIds = lockedModelIds(tier, allModels);
@@ -427,17 +435,40 @@ function Home() {
       />
 
       <div className="relative z-10 flex flex-1 flex-col min-w-0">
-        {/* Mobile top bar (sidebar is off-canvas below lg) */}
-        <header className="lg:hidden flex h-14 items-center gap-3 border-b border-white/5 px-4">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open menu"
-            className="text-white/60 hover:text-white transition"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <Logo height={24} gradientId="topbar-logo" />
+        {/* Top bar */}
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-white/5 px-4">
+          {/* Mobile: menu toggle + logo */}
+          <div className="flex items-center gap-3 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+              className="text-white/60 hover:text-white transition"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <Logo height={24} gradientId="topbar-logo" />
+          </div>
+
+          <div className="flex-1" />
+
+          {/* Auth buttons — anonymous only */}
+          {!signedIn && (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/signin"
+                className="rounded-lg px-3 py-1.5 text-sm text-white/60 transition hover:text-white"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signin?mode=signup"
+                className="rounded-lg bg-white px-3.5 py-1.5 text-sm font-medium text-navy transition hover:bg-white/90"
+              >
+                Sign up for free
+              </Link>
+            </div>
+          )}
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 py-10">
