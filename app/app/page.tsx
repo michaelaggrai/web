@@ -287,6 +287,15 @@ function Home() {
   const [showUpgradedBanner, setShowUpgradedBanner] = useState(searchParams.get("upgraded") === "1");
   const [signedIn, setSignedIn] = useState(false);
   const autoSubmitted = useRef(false);
+  const justUpgraded = useRef(searchParams.get("upgraded") === "1");
+
+  // When landing here after an upgrade, switch the selection to the new tier's defaults.
+  useEffect(() => {
+    if (justUpgraded.current && tier !== "free") {
+      setSelected(new Set(TIER_DEFAULTS[tier]));
+      justUpgraded.current = false;
+    }
+  }, [tier]);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
