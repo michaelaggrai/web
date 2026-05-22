@@ -3,23 +3,26 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export function AccountMenu() {
   const [email, setEmail] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    if (!isSupabaseConfigured) return;
+    createClient().auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
   }, []);
 
   async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    if (!isSupabaseConfigured) return;
+    await createClient().auth.signOut();
     router.push("/signin");
     router.refresh();
   }
+
+  // Auth not configured — render nothing rather than crash the page.
+  if (!isSupabaseConfigured) return null;
 
   return (
     <div className="flex items-center gap-3">
