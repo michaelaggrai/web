@@ -51,9 +51,28 @@ export async function proxy(req: NextRequest) {
   // can use the app at the Free tier; an account is only for upgrading.
   const { data: { user } } = await supabase.auth.getUser();
 
+  // "Returning" = signed in, or has used the app before (cookie set below).
+  const returning = !!user || req.cookies.get("aggrai_returning")?.value === "1";
+
   // Already signed in but on the auth page → send to the app.
   if (user && pathname === "/signin") {
     return redirectWithCookies(req, response, "/app");
+  }
+
+  // Returning users land on the app (their "dashboard"), not the marketing
+  // page. Brand-new visitors still see the landing page.
+  if (pathname === "/" && returning) {
+    return redirectWithCookies(req, response, "/app");
+  }
+
+  // Anyone who reaches the app is marked returning, so / sends them
+  // straight here next time.
+  if (pathname === "/app") {
+    response.cookies.set("aggrai_returning", "1", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
   }
 
   return response;
