@@ -7,8 +7,9 @@ const nextConfig: NextConfig = {
 
 export default withSentryConfig(nextConfig, {
   silent: true,
-  // Source-map upload needs SENTRY_AUTH_TOKEN + org/project slugs.
-  // Disabled for now — errors are still captured, just with minified
-  // stack traces. Add the token and remove this to get readable traces.
-  sourcemaps: { disable: true },
+  org: "aggrai",
+  project: "aggrai-web",
+  // Source-map upload (readable stack traces) runs when the
+  // SENTRY_AUTH_TOKEN env var is present — set it in Vercel.
+  // Builds without the token still succeed; upload is just skipped.
 });

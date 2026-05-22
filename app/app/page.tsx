@@ -1,6 +1,7 @@
 "use client";
 import React, { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
+import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -373,6 +374,8 @@ function Home() {
         throw new Error("Empty response from server");
       }
     } catch (err: unknown) {
+      // Report handled failures — this is the path the user actually sees
+      Sentry.captureException(err, { tags: { feature: "ask" } });
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
