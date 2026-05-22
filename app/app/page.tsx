@@ -11,6 +11,7 @@ import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
 import { ModelPicker, type ModelEntry } from "@/components/model-picker";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
+import { AccountMenu } from "@/components/account-menu";
 import { FALLBACK_MODELS, FALLBACK_DEFAULTS, MAX_MODELS_PER_TIER, parseModelsParam } from "@/lib/models";
 
 type Scores = {
@@ -403,7 +404,7 @@ function Home() {
             <Link href="/">
               <Logo height={36} gradientId="app-logo-g" />
             </Link>
-            <span className="text-xs text-white/40">Ask every AI at once</span>
+            <AccountMenu />
           </div>
         </div>
       </header>

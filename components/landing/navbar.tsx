@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
+import { AccountMenu } from "@/components/account-menu"
 
 export function Navbar() {
   return (
@@ -14,18 +15,12 @@ export function Navbar() {
           </Link>
           <div className="flex items-center gap-3">
             <Button
-              variant="ghost"
-              className="text-white/60 hover:text-white hover:bg-white/5 font-normal text-sm"
-              asChild
-            >
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button
               className="bg-white/10 hover:bg-white/15 text-white font-medium text-sm rounded-full px-5 border border-white/10"
               asChild
             >
               <Link href="/app">Get started</Link>
             </Button>
+            <AccountMenu />
           </div>
         </div>
       </div>
