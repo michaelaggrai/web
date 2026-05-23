@@ -107,19 +107,24 @@ body {
 .aggrai-word b:nth-child(2) { transition-delay: 0.28s; }
 .aggrai-word b:nth-child(1) { transition-delay: 0.35s; }
 
-/* Hover state:
+/* Hover state — triggered ONLY when the icon is hovered (not the wordmark).
+   The wordmark collapse shrinks the parent's bounding box; if hover
+   tracked the whole .aggrai-logo we'd get a jitter loop where the
+   shrinking wordmark loses the hover, expands again, re-triggers, etc.
+   By scoping the trigger to .aggrai-icon (whose layout box never changes)
+   the hover state stays stable for as long as the cursor is on the icon.
    - Wordmark "slurps" into the icon (letters travel left, rightmost first)
    - Mesh pulses outward then returns to rest size (no shrinking)
    - Spoke flow + core beat play once, not on a loop */
-.aggrai-logo:hover .aggrai-word,
+.aggrai-logo:has(.aggrai-icon:hover) .aggrai-word,
 .aggrai-logo.is-collapsed .aggrai-word { max-width: 0; opacity: 0; }
-.aggrai-logo:hover .aggrai-word b,
+.aggrai-logo:has(.aggrai-icon:hover) .aggrai-word b,
 .aggrai-logo.is-collapsed .aggrai-word b { transform: translateX(-0.8em) scale(.3); opacity: 0; }
-.aggrai-logo:hover .aggrai-mesh,
+.aggrai-logo:has(.aggrai-icon:hover) .aggrai-mesh,
 .aggrai-logo.is-collapsed .aggrai-mesh { animation: aggrai-pulse 0.9s cubic-bezier(.4, 0, .2, 1) 1; }
-.aggrai-logo:hover .aggrai-spoke,
+.aggrai-logo:has(.aggrai-icon:hover) .aggrai-spoke,
 .aggrai-logo.is-collapsed .aggrai-spoke { animation: aggrai-flow 0.85s linear 1; }
-.aggrai-logo:hover .aggrai-core,
+.aggrai-logo:has(.aggrai-icon:hover) .aggrai-core,
 .aggrai-logo.is-collapsed .aggrai-core { animation: aggrai-beat 1.2s ease-in-out 1; }
 
 /* Loading spinner — apply .is-loading to a stand-alone .aggrai-icon */
