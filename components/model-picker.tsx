@@ -3,9 +3,9 @@
 import { Plus, X, Check, Lock } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ProviderLogo } from "@/components/brand-icons"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
-import type { ModelEntry } from "@/lib/models"
+import { CATEGORIES, type ModelCategory, type ModelEntry } from "@/lib/models"
 
 export type { ModelEntry }
 
@@ -22,21 +22,28 @@ type Props = {
 // Premium unlocks more slots.
 const PREMIUM_MAX = 5
 
-function groupBy<T, K extends string>(arr: T[], fn: (t: T) => K): Record<K, T[]> {
-  return arr.reduce((acc, item) => {
-    const k = fn(item)
-    ;(acc[k] ??= []).push(item)
-    return acc
-  }, {} as Record<K, T[]>)
-}
-
 export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Props) {
   const [open, setOpen] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<ModelCategory>("fast")
   // Brief in-popover toast "Swapped X for Y" when at-max swap fires.
   const [swapNotice, setSwapNotice] = useState<string | null>(null)
   const locked = lockedIds ?? new Set<string>()
   const limitReached = selected.size >= max
-  const byProvider = groupBy(all, m => m.provider)
+
+  // Group models by category once per render. Only categories that have
+  // at least one model are shown as tabs — keeps the UI honest if the
+  // backend ever returns a slimmed-down catalog.
+  const byCategory = useMemo(() => {
+    const map = new Map<ModelCategory, ModelEntry[]>()
+    for (const m of all) {
+      const cat = (m.category ?? "fast") as ModelCategory
+      ;(map.get(cat) ?? map.set(cat, []).get(cat)!).push(m)
+    }
+    return map
+  }, [all])
+
+  const visibleCategories = CATEGORIES.filter(c => byCategory.has(c.id))
+  const activeList = byCategory.get(activeCategory) ?? []
 
   function toggle(id: string) {
     if (locked.has(id)) return
@@ -107,9 +114,10 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
         <PopoverContent
           align="start"
           sideOffset={6}
-          className="w-72 bg-navy/95 backdrop-blur-xl border-white/10 text-white p-2"
+          className="w-[340px] bg-navy/95 backdrop-blur-xl border-white/10 text-white p-0"
         >
-          <div className="flex items-center justify-between px-2 py-1.5 mb-1 text-[11px] font-semibold uppercase tracking-wider text-white/40">
+          {/* Header: selection count + Premium upsell */}
+          <div className="flex items-center justify-between px-3 pt-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-white/40">
             <span>Models</span>
             <span className={selected.size >= max ? "text-teal-300" : "text-white/40"}>
               {selected.size}/{max}
@@ -120,49 +128,81 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
               )}
             </span>
           </div>
-          <div className="max-h-80 overflow-y-auto pr-1">
-            {(Object.keys(byProvider) as string[]).map(provider => (
-              <div key={provider} className="mb-2 last:mb-0">
-                <div className="text-[10px] uppercase tracking-wider text-white/30 px-2 py-1">{provider}</div>
-                <ul>
-                  {byProvider[provider].map(m => {
-                    const isSelected = selected.has(m.id)
-                    const isLocked = locked.has(m.id)
-                    // Note: !isSelected + limitReached is now ALLOWED — it auto-swaps.
-                    // Only true lock is the tier-locked state.
-                    const disabled = isLocked
-                    return (
-                      <li key={m.id}>
-                        <button
-                          type="button"
-                          onClick={() => toggle(m.id)}
-                          disabled={disabled}
-                          className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-left transition-colors ${
-                            isSelected
-                              ? "bg-teal-400/15 text-teal-100"
-                              : disabled
-                                ? "text-white/30 cursor-not-allowed"
-                                : "text-white/80 hover:bg-white/5"
-                          }`}
-                        >
-                          <ProviderLogo provider={m.provider} className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate flex-1">{m.label}</span>
-                          {isLocked ? (
-                            <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-amber-400/15 text-amber-200/90 border border-amber-400/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
-                              <Lock className="w-2.5 h-2.5" /> Pro
-                            </span>
-                          ) : isSelected ? (
-                            <Check className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                          ) : null}
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            ))}
+
+          {/* Category tabs — horizontal scroll on narrow viewports */}
+          <div className="flex gap-0.5 px-2 border-b border-white/5 overflow-x-auto scrollbar-none">
+            {visibleCategories.map(c => {
+              const isActive = c.id === activeCategory
+              const count = byCategory.get(c.id)?.length ?? 0
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setActiveCategory(c.id)}
+                  className={`shrink-0 px-2.5 py-1.5 text-[11px] font-medium rounded-t-md transition-colors border-b-2 ${
+                    isActive
+                      ? "border-teal-400 text-white bg-white/[0.04]"
+                      : "border-transparent text-white/50 hover:text-white/80"
+                  }`}
+                >
+                  {c.label}
+                  <span className="ml-1 text-[10px] text-white/30">{count}</span>
+                </button>
+              )
+            })}
           </div>
-          <div className="mt-2 space-y-1.5">
+
+          {/* Category description */}
+          <p className="px-3 py-2 text-[10px] leading-snug text-white/40 border-b border-white/5">
+            {CATEGORIES.find(c => c.id === activeCategory)?.description}
+          </p>
+
+          {/* Model list for the active category */}
+          <div className="max-h-72 overflow-y-auto px-2 py-2">
+            <ul>
+              {activeList.map(m => {
+                const isSelected = selected.has(m.id)
+                const isLocked = locked.has(m.id)
+                // !isSelected + limitReached now allowed — it auto-swaps.
+                const disabled = isLocked
+                return (
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => toggle(m.id)}
+                      disabled={disabled}
+                      className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-left transition-colors ${
+                        isSelected
+                          ? "bg-teal-400/15 text-teal-100"
+                          : disabled
+                            ? "text-white/30 cursor-not-allowed"
+                            : "text-white/80 hover:bg-white/5"
+                      }`}
+                    >
+                      <ProviderLogo provider={m.provider} className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate flex-1">{m.label}</span>
+                      <span className="text-[10px] text-white/30 shrink-0">{m.provider}</span>
+                      {isLocked ? (
+                        <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-amber-400/15 text-amber-200/90 border border-amber-400/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                          <Lock className="w-2.5 h-2.5" /> Pro
+                        </span>
+                      ) : isSelected ? (
+                        <Check className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                      ) : null}
+                    </button>
+                  </li>
+                )
+              })}
+              {activeList.length === 0 && (
+                <li className="px-2 py-3 text-xs text-white/40 text-center">
+                  No models in this category yet.
+                </li>
+              )}
+            </ul>
+          </div>
+
+          {/* Footer hints + swap notice */}
+          <div className="px-2 pb-2 space-y-1.5">
             {locked.size > 0 && (
               <div className="px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200 flex items-center justify-between gap-2">
                 <span>Flagship models need a Pro plan.</span>
@@ -185,7 +225,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                 </Link>
               </div>
             )}
-            {limitReached && (
+            {limitReached && !swapNotice && (
               <div className="px-2 py-1.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-white/60">
                 At {max} models. Tap another to swap automatically.
               </div>

@@ -53,12 +53,35 @@ export function MetaIcon({ className, style }: IconProps) {
   )
 }
 
+// Generic initial-in-circle icon for providers without a custom brand mark.
+// Keeps the picker visually consistent when new providers get added without
+// us having to fetch a logo every time.
+function initialIcon(letter: string, fill: string) {
+  return function InitialIcon({ className, style }: IconProps) {
+    return (
+      <svg className={className} style={style} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="11" fill={fill} />
+        <text x="12" y="16.5" textAnchor="middle" fontSize="12" fontWeight="700" fill="white" fontFamily="ui-sans-serif, system-ui">
+          {letter}
+        </text>
+      </svg>
+    )
+  }
+}
+
+export const DeepSeekIcon = initialIcon("D", "#4F6BFF")
+export const QwenIcon     = initialIcon("Q", "#615CED")
+export const XAIIcon      = initialIcon("X", "#111111")
+
 const BY_PROVIDER: Record<string, (p: IconProps) => React.JSX.Element> = {
   Anthropic: AnthropicIcon,
   OpenAI: OpenAIIcon,
   Google: GoogleIcon,
   Mistral: MistralIcon,
   Meta: MetaIcon,
+  DeepSeek: DeepSeekIcon,
+  Qwen: QwenIcon,
+  xAI: XAIIcon,
 }
 
 // Provider derived from the model-id prefix (e.g. "anthropic/claude-..." → "Anthropic")
@@ -68,6 +91,9 @@ const PROVIDER_BY_PREFIX: Record<string, string> = {
   "google": "Google",
   "mistralai": "Mistral",
   "meta-llama": "Meta",
+  "deepseek": "DeepSeek",
+  "qwen": "Qwen",
+  "x-ai": "xAI",
 }
 
 export function providerOf(modelId: string): string {
