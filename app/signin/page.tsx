@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
@@ -28,9 +29,14 @@ function SignIn() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (mode === "signup" && !agreed) {
+      setError("Please agree to the Terms and Privacy Policy to continue.");
+      return;
+    }
     setLoading(true);
     setError("");
     setNotice("");
@@ -101,12 +107,47 @@ function SignIn() {
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
             />
 
+            {mode === "signup" && (
+              <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={e => setAgreed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/[0.06] accent-teal-400 cursor-pointer"
+                />
+                <span className="text-xs text-white/60 leading-relaxed">
+                  I agree to aggrai&apos;s{" "}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    className="text-teal-300 underline-offset-2 hover:underline"
+                  >
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    className="text-teal-300 underline-offset-2 hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>
+                  .
+                </span>
+              </label>
+            )}
+
             {error && <p className="text-sm text-red-300">{error}</p>}
             {notice && <p className="text-sm text-teal-300">{notice}</p>}
 
             <button
               type="submit"
-              disabled={loading || !email || password.length < 6}
+              disabled={
+                loading ||
+                !email ||
+                password.length < 6 ||
+                (mode === "signup" && !agreed)
+              }
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-4 py-3 text-sm font-medium text-white transition hover:from-teal-400 hover:to-teal-400 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? "…" : mode === "signup" ? "Create account" : "Sign in"}
@@ -122,6 +163,7 @@ function SignIn() {
                 setMode(mode === "signup" ? "signin" : "signup");
                 setError("");
                 setNotice("");
+                setAgreed(false);
               }}
               className="font-medium text-teal-300 hover:text-teal-200"
             >
