@@ -84,7 +84,9 @@ body {
   font-weight: 600;
   text-transform: lowercase;
   letter-spacing: -0.005em;
-  line-height: 1;
+  /* line-height needs room for the "g" descender — line-height:1 clips it. */
+  line-height: 1.3;
+  padding-bottom: 0.05em;
   max-width: 6em;
   opacity: 1;
   transition: max-width 1.4s cubic-bezier(.66, 0, .2, 1), opacity 1s ease;
