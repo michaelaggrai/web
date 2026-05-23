@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Settings } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { AccountMenu } from "@/components/account-menu";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -123,6 +123,13 @@ export function AppSidebar({
                   Upgrade plan
                 </Link>
               )}
+              <Link
+                href="/settings"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 transition hover:bg-white/5 hover:text-white"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Settings
+              </Link>
               <AccountMenu />
             </>
           ) : (
