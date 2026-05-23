@@ -11,7 +11,7 @@ export function Navbar() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/">
-            <Logo height={36} gradientId="nav-g" />
+            <Logo height={28} gradientId="nav-g" />
           </Link>
           <div className="flex items-center gap-3">
             <Button

@@ -39,7 +39,7 @@ export function Logo({
     return (
       <svg
         className={`aggrai-icon ${spinning ? "is-loading" : ""} ${className}`}
-        viewBox="0 0 100 100"
+        viewBox="-12 -12 124 124"
         width={height}
         height={height}
         aria-label="aggrai"
@@ -56,7 +56,7 @@ export function Logo({
       aria-label="aggrai"
       style={{ ["--aggrai-size" as keyof CSSProperties]: `${height}px` } as CSSProperties}
     >
-      <svg className="aggrai-icon" viewBox="0 0 100 100" aria-hidden="true">
+      <svg className="aggrai-icon" viewBox="-12 -12 124 124" aria-hidden="true">
         {MESH}
         {CORE}
       </svg>
