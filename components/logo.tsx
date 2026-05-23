@@ -36,10 +36,13 @@ export function Logo({
   symbolOnly = false,
 }: LogoProps) {
   if (symbolOnly) {
+    // Spinning state animates the mesh at scale(1) — fits in 0 0 100 100.
+    // Idle symbol-only still uses the default 1.32x mesh — needs padding.
+    const symbolViewBox = spinning ? "0 0 100 100" : "-12 -12 124 124"
     return (
       <svg
         className={`aggrai-icon ${spinning ? "is-loading" : ""} ${className}`}
-        viewBox="-12 -12 124 124"
+        viewBox={symbolViewBox}
         width={height}
         height={height}
         aria-label="aggrai"

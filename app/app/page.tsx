@@ -110,7 +110,7 @@ function readabilityLabel(score: number): string {
 function LoadingBlock({ title, gradientId, className = "" }: { title: string; gradientId: string; className?: string }) {
   return (
     <div className={`rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4 ${className}`}>
-      <Logo height={26} spinning symbolOnly gradientId={gradientId} />
+      <Logo height={40} spinning symbolOnly gradientId={gradientId} />
       <p className="text-xs text-white/40">{title}</p>
     </div>
   );
@@ -119,7 +119,7 @@ function LoadingBlock({ title, gradientId, className = "" }: { title: string; gr
 function ModelLoadingBlock({ modelId }: { modelId: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4">
-      <ModelLoader modelId={modelId} size={24} />
+      <ModelLoader modelId={modelId} size={36} />
       <p className="text-xs text-white/40">{modelLabel(modelId)}</p>
     </div>
   );
