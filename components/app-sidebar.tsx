@@ -54,7 +54,7 @@ export function AppSidebar({
       >
         {/* Brand */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-white/5">
-          <Link href="/app" aria-label="aggrai">
+          <Link href={signedIn ? "/app" : "/"} aria-label="aggrai">
             <Logo height={28} gradientId="sidebar-logo" />
           </Link>
           <button

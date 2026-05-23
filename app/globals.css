@@ -98,24 +98,29 @@ body {
 }
 .aggrai-word b:nth-child(5),
 .aggrai-word b:nth-child(6) { color: var(--aggrai-teal); }
-.aggrai-word b:nth-child(1) { transition-delay: 0s; }
-.aggrai-word b:nth-child(2) { transition-delay: 0.09s; }
-.aggrai-word b:nth-child(3) { transition-delay: 0.18s; }
-.aggrai-word b:nth-child(4) { transition-delay: 0.27s; }
-.aggrai-word b:nth-child(5) { transition-delay: 0.36s; }
-.aggrai-word b:nth-child(6) { transition-delay: 0.45s; }
+/* Delays reversed so wordmark collapses INTO the icon (rightmost letter
+   moves first, leftmost last). On unhover they reverse symmetrically. */
+.aggrai-word b:nth-child(6) { transition-delay: 0s; }
+.aggrai-word b:nth-child(5) { transition-delay: 0.07s; }
+.aggrai-word b:nth-child(4) { transition-delay: 0.14s; }
+.aggrai-word b:nth-child(3) { transition-delay: 0.21s; }
+.aggrai-word b:nth-child(2) { transition-delay: 0.28s; }
+.aggrai-word b:nth-child(1) { transition-delay: 0.35s; }
 
-/* Hover collapse */
+/* Hover state:
+   - Wordmark "slurps" into the icon (letters travel left, rightmost first)
+   - Mesh pulses outward then returns to rest size (no shrinking)
+   - Spoke flow + core beat play once, not on a loop */
 .aggrai-logo:hover .aggrai-word,
 .aggrai-logo.is-collapsed .aggrai-word { max-width: 0; opacity: 0; }
 .aggrai-logo:hover .aggrai-word b,
-.aggrai-logo.is-collapsed .aggrai-word b { transform: translateX(-0.4em) scale(.3); opacity: 0; }
+.aggrai-logo.is-collapsed .aggrai-word b { transform: translateX(-0.8em) scale(.3); opacity: 0; }
 .aggrai-logo:hover .aggrai-mesh,
-.aggrai-logo.is-collapsed .aggrai-mesh { transform: scale(1); }
+.aggrai-logo.is-collapsed .aggrai-mesh { animation: aggrai-pulse 0.9s cubic-bezier(.4, 0, .2, 1) 1; }
 .aggrai-logo:hover .aggrai-spoke,
-.aggrai-logo.is-collapsed .aggrai-spoke { animation: aggrai-flow 0.85s linear infinite; }
+.aggrai-logo.is-collapsed .aggrai-spoke { animation: aggrai-flow 0.85s linear 1; }
 .aggrai-logo:hover .aggrai-core,
-.aggrai-logo.is-collapsed .aggrai-core { animation: aggrai-beat 2.4s ease-in-out infinite; }
+.aggrai-logo.is-collapsed .aggrai-core { animation: aggrai-beat 1.2s ease-in-out 1; }
 
 /* Loading spinner — apply .is-loading to a stand-alone .aggrai-icon */
 .aggrai-icon.is-loading .aggrai-mesh { transform: scale(1); animation: aggrai-rot 5.5s linear infinite; }
@@ -125,6 +130,13 @@ body {
 @keyframes aggrai-flow { to { stroke-dashoffset: -13; } }
 @keyframes aggrai-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(.62); } }
 @keyframes aggrai-rot { to { transform: rotate(360deg); } }
+/* Hover pulse — expand outward then return to rest size (1.32).
+   Never shrinks below the default, so the icon stays readable. */
+@keyframes aggrai-pulse {
+  0%   { transform: scale(1.32); }
+  45%  { transform: scale(1.55); }
+  100% { transform: scale(1.32); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .aggrai-word, .aggrai-word b, .aggrai-mesh { transition-duration: 0.001ms; }
