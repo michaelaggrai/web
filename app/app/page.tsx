@@ -287,15 +287,21 @@ function Home() {
   const [showUpgradedBanner, setShowUpgradedBanner] = useState(searchParams.get("upgraded") === "1");
   const [signedIn, setSignedIn] = useState(false);
   const autoSubmitted = useRef(false);
-  const justUpgraded = useRef(searchParams.get("upgraded") === "1");
+  // User "owns" their selection if they brought a ?models= URL preset or
+  // manually edited the picker. Otherwise we keep it in sync with their tier.
+  const userOwnsSelection = useRef(modelsParam !== null);
 
-  // When landing here after an upgrade, switch the selection to the new tier's defaults.
+  // Whenever the tier resolves, snap the default selection to that tier's
+  // defaults — unless the user has explicitly chosen models.
   useEffect(() => {
-    if (justUpgraded.current && tier !== "free") {
-      setSelected(new Set(TIER_DEFAULTS[tier]));
-      justUpgraded.current = false;
-    }
+    if (userOwnsSelection.current) return;
+    setSelected(new Set(TIER_DEFAULTS[tier]));
   }, [tier]);
+
+  function handleSelectionChange(next: Set<string>) {
+    userOwnsSelection.current = true;
+    setSelected(next);
+  }
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -523,7 +529,7 @@ function Home() {
             <ModelPicker
               all={allModels}
               selected={selected}
-              onChange={setSelected}
+              onChange={handleSelectionChange}
               max={maxModels}
               lockedIds={lockedIds}
             />
