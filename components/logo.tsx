@@ -43,6 +43,11 @@ export function Logo({
   const wrapperRef = useRef<HTMLSpanElement>(null)
   const [lockedWidth, setLockedWidth] = useState<number | null>(null)
   const [collapsed, setCollapsed] = useState(false)
+  // `expanding` is set briefly after mouseleave so the icon re-pulses
+  // outward-then-back as it un-collapses. Cleared after the animation
+  // window completes so subsequent hovers play the pulse fresh.
+  const [expanding, setExpanding] = useState(false)
+  const expandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Measure the wrapper's natural width once after mount, then pin it.
   // We deliberately measure BEFORE the collapsed state ever applies so
@@ -75,8 +80,17 @@ export function Logo({
     <span
       ref={wrapperRef}
       className="aggrai-logo-wrap"
-      onMouseEnter={() => setCollapsed(true)}
-      onMouseLeave={() => setCollapsed(false)}
+      onMouseEnter={() => {
+        if (expandTimer.current) clearTimeout(expandTimer.current)
+        setExpanding(false)
+        setCollapsed(true)
+      }}
+      onMouseLeave={() => {
+        setCollapsed(false)
+        setExpanding(true)
+        if (expandTimer.current) clearTimeout(expandTimer.current)
+        expandTimer.current = setTimeout(() => setExpanding(false), 900)
+      }}
       style={{
         display: "inline-block",
         // Lock the bounding box at the natural expanded width. The inner
@@ -87,7 +101,7 @@ export function Logo({
       }}
     >
       <span
-        className={`aggrai-logo ${collapsed ? "is-collapsed" : ""} ${className}`}
+        className={`aggrai-logo ${collapsed ? "is-collapsed" : ""} ${expanding ? "is-expanding" : ""} ${className}`}
         aria-label="aggrai"
         style={{ ["--aggrai-size" as keyof CSSProperties]: `${height}px` } as CSSProperties}
       >

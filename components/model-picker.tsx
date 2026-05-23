@@ -32,6 +32,8 @@ function groupBy<T, K extends string>(arr: T[], fn: (t: T) => K): Record<K, T[]>
 
 export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Props) {
   const [open, setOpen] = useState(false)
+  // Brief in-popover toast "Swapped X for Y" when at-max swap fires.
+  const [swapNotice, setSwapNotice] = useState<string | null>(null)
   const locked = lockedIds ?? new Set<string>()
   const limitReached = selected.size >= max
   const byProvider = groupBy(all, m => m.provider)
@@ -42,7 +44,20 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
     if (next.has(id)) {
       if (next.size > 1) next.delete(id) // keep at least one selected
     } else {
-      if (next.size >= max) return
+      // At max: auto-swap by dropping the leftmost (catalog-order) selection
+      // instead of refusing the click. Old behaviour made users hunt for an
+      // X button before they could try another model — high friction.
+      if (next.size >= max) {
+        const swappedOut = all.find(m => selected.has(m.id))
+        const newPick = all.find(m => m.id === id)
+        if (swappedOut) {
+          next.delete(swappedOut.id)
+          if (newPick) {
+            setSwapNotice(`Swapped ${swappedOut.label} → ${newPick.label}`)
+            setTimeout(() => setSwapNotice(null), 1800)
+          }
+        }
+      }
       next.add(id)
     }
     onChange(next)
@@ -83,11 +98,10 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
         <PopoverTrigger asChild>
           <button
             type="button"
-            disabled={limitReached}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-white/15 bg-white/5 text-white/70 hover:text-white hover:border-white/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-white/15 bg-white/5 text-white/70 hover:text-white hover:border-white/30 transition-colors"
           >
             <Plus className="w-3 h-3" />
-            {limitReached ? `${selected.size}/${max} selected` : "Add model"}
+            {limitReached ? `Change models (${selected.size}/${max})` : "Add model"}
           </button>
         </PopoverTrigger>
         <PopoverContent
@@ -114,7 +128,9 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                   {byProvider[provider].map(m => {
                     const isSelected = selected.has(m.id)
                     const isLocked = locked.has(m.id)
-                    const disabled = isLocked || (!isSelected && limitReached)
+                    // Note: !isSelected + limitReached is now ALLOWED — it auto-swaps.
+                    // Only true lock is the tier-locked state.
+                    const disabled = isLocked
                     return (
                       <li key={m.id}>
                         <button
@@ -169,9 +185,14 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                 </Link>
               </div>
             )}
-            {max === PREMIUM_MAX && limitReached && (
-              <div className="px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200">
-                Max {max} models — remove one to swap.
+            {limitReached && (
+              <div className="px-2 py-1.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-white/60">
+                At {max} models. Tap another to swap automatically.
+              </div>
+            )}
+            {swapNotice && (
+              <div className="px-2 py-1.5 rounded-md bg-teal-400/10 border border-teal-400/20 text-[10px] text-teal-200">
+                {swapNotice}
               </div>
             )}
           </div>

@@ -119,6 +119,9 @@ body {
 .aggrai-logo.is-collapsed .aggrai-mesh { animation: aggrai-pulse 0.9s cubic-bezier(.4, 0, .2, 1) 1; }
 .aggrai-logo.is-collapsed .aggrai-spoke { animation: aggrai-flow 0.85s linear 1; }
 .aggrai-logo.is-collapsed .aggrai-core { animation: aggrai-beat 1.2s ease-in-out 1; }
+/* On mouse-leave the wordmark un-collapses AND the icon does its own
+   pulse-back-to-rest so the exit feels as alive as the entry. */
+.aggrai-logo.is-expanding .aggrai-mesh { animation: aggrai-pulse 0.9s cubic-bezier(.4, 0, .2, 1) 1; }
 
 /* Loading spinner — apply .is-loading to a stand-alone .aggrai-icon */
 .aggrai-icon.is-loading .aggrai-mesh { transform: scale(1); animation: aggrai-rot 5.5s linear infinite; }
