@@ -1,6 +1,6 @@
 "use client"
 
-import type { CSSProperties } from "react"
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
 
 type LogoProps = {
   height?: number
@@ -35,6 +35,24 @@ export function Logo({
   className = "",
   symbolOnly = false,
 }: LogoProps) {
+  // Hover state managed in JS instead of via CSS :hover so the trigger
+  // surface (the outer wrapper) can be locked to the natural expanded
+  // width. Without that lock, the wordmark collapse shrinks the parent's
+  // bounding box, the cursor falls out of the hover area, and we get
+  // a flicker loop. See app/globals.css comment on `.aggrai-logo.is-collapsed`.
+  const wrapperRef = useRef<HTMLSpanElement>(null)
+  const [lockedWidth, setLockedWidth] = useState<number | null>(null)
+  const [collapsed, setCollapsed] = useState(false)
+
+  // Measure the wrapper's natural width once after mount, then pin it.
+  // We deliberately measure BEFORE the collapsed state ever applies so
+  // we always get the full icon+wordmark width.
+  useLayoutEffect(() => {
+    if (!symbolOnly && wrapperRef.current) {
+      setLockedWidth(wrapperRef.current.offsetWidth)
+    }
+  }, [symbolOnly, height])
+
   if (symbolOnly) {
     // Spinning state animates the mesh at scale(1) — fits in 0 0 100 100.
     // Idle symbol-only still uses the default 1.32x mesh — needs padding.
@@ -55,16 +73,31 @@ export function Logo({
 
   return (
     <span
-      className={`aggrai-logo ${className}`}
-      aria-label="aggrai"
-      style={{ ["--aggrai-size" as keyof CSSProperties]: `${height}px` } as CSSProperties}
+      ref={wrapperRef}
+      className="aggrai-logo-wrap"
+      onMouseEnter={() => setCollapsed(true)}
+      onMouseLeave={() => setCollapsed(false)}
+      style={{
+        display: "inline-block",
+        // Lock the bounding box at the natural expanded width. The inner
+        // .aggrai-logo can shrink/grow visually inside without affecting
+        // our hover hitbox.
+        minWidth: lockedWidth ?? undefined,
+        lineHeight: 0,
+      }}
     >
-      <svg className="aggrai-icon" viewBox="-12 -12 124 124" aria-hidden="true">
-        {MESH}
-        {CORE}
-      </svg>
-      <span className="aggrai-word">
-        <b>a</b><b>g</b><b>g</b><b>r</b><b>a</b><b>i</b>
+      <span
+        className={`aggrai-logo ${collapsed ? "is-collapsed" : ""} ${className}`}
+        aria-label="aggrai"
+        style={{ ["--aggrai-size" as keyof CSSProperties]: `${height}px` } as CSSProperties}
+      >
+        <svg className="aggrai-icon" viewBox="-12 -12 124 124" aria-hidden="true">
+          {MESH}
+          {CORE}
+        </svg>
+        <span className="aggrai-word">
+          <b>a</b><b>g</b><b>g</b><b>r</b><b>a</b><b>i</b>
+        </span>
       </span>
     </span>
   )
