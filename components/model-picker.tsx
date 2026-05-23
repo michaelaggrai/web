@@ -18,6 +18,10 @@ type Props = {
   lockedIds?: Set<string>
 }
 
+// Top-tier cap. When the user's `max` is below this, we show a hint that
+// Premium unlocks more slots.
+const PREMIUM_MAX = 5
+
 function groupBy<T, K extends string>(arr: T[], fn: (t: T) => K): Record<K, T[]> {
   return arr.reduce((acc, item) => {
     const k = fn(item)
@@ -95,6 +99,11 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
             <span>Models</span>
             <span className={selected.size >= max ? "text-teal-300" : "text-white/40"}>
               {selected.size}/{max}
+              {max < PREMIUM_MAX && (
+                <span className="ml-1 text-white/25 normal-case tracking-normal font-medium">
+                  · {PREMIUM_MAX} w/ Premium
+                </span>
+              )}
             </span>
           </div>
           <div className="max-h-80 overflow-y-auto pr-1">
@@ -137,22 +146,35 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
               </div>
             ))}
           </div>
-          {locked.size > 0 && (
-            <div className="mt-2 px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200 flex items-center justify-between gap-2">
-              <span>Flagship models need a Pro plan.</span>
-              <Link
-                href="/upgrade"
-                className="shrink-0 font-semibold underline underline-offset-2 hover:text-amber-100"
-              >
-                Upgrade
-              </Link>
-            </div>
-          )}
-          {locked.size === 0 && limitReached && (
-            <div className="mt-2 px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200">
-              Max {max} models — remove one to swap.
-            </div>
-          )}
+          <div className="mt-2 space-y-1.5">
+            {locked.size > 0 && (
+              <div className="px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200 flex items-center justify-between gap-2">
+                <span>Flagship models need a Pro plan.</span>
+                <Link
+                  href="/upgrade"
+                  className="shrink-0 font-semibold underline underline-offset-2 hover:text-amber-100"
+                >
+                  Upgrade
+                </Link>
+              </div>
+            )}
+            {max < PREMIUM_MAX && (
+              <div className="px-2 py-1.5 rounded-md bg-teal-400/10 border border-teal-400/20 text-[10px] text-teal-200 flex items-center justify-between gap-2">
+                <span>Compare up to {PREMIUM_MAX} models with Premium.</span>
+                <Link
+                  href="/upgrade"
+                  className="shrink-0 font-semibold underline underline-offset-2 hover:text-teal-100"
+                >
+                  Upgrade
+                </Link>
+              </div>
+            )}
+            {max === PREMIUM_MAX && limitReached && (
+              <div className="px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200">
+                Max {max} models — remove one to swap.
+              </div>
+            )}
+          </div>
         </PopoverContent>
       </Popover>
     </div>
