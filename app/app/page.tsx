@@ -474,7 +474,9 @@ function Home() {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <Logo height={24} gradientId="topbar-logo" />
+            <Link href={signedIn ? "/app" : "/"} aria-label="aggrai home">
+              <Logo height={24} gradientId="topbar-logo" />
+            </Link>
           </div>
 
           <div className="flex-1" />

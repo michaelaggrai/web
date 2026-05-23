@@ -143,7 +143,9 @@ function SignIn() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex justify-center">
-          <Logo height={40} gradientId="signin-logo" />
+          <Link href="/" aria-label="aggrai home">
+            <Logo height={40} gradientId="signin-logo" />
+          </Link>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-7 shadow-2xl shadow-black/30">
