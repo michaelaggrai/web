@@ -4,9 +4,21 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Crown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
+
+// Compact plan picker shown only in signup mode. After successful signup,
+// the chosen paid plan is auto-applied via /api/upgrade. Free skips it.
+type PlanId = "free" | "pro" | "premium";
+const PLANS: { id: PlanId; name: string; price: string; icon: typeof Sparkles; iconColor: string }[] = [
+  { id: "free",    name: "Free",    price: "£0",  icon: Sparkles, iconColor: "text-white/50" },
+  { id: "pro",     name: "Pro",     price: "£9",  icon: Zap,      iconColor: "text-teal-300" },
+  { id: "premium", name: "Premium", price: "£19", icon: Crown,    iconColor: "text-amber-300" },
+];
+function isPlanId(v: string | null): v is PlanId {
+  return v === "free" || v === "pro" || v === "premium";
+}
 
 export default function SignInPage() {
   return (
@@ -30,6 +42,9 @@ function SignIn() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  // Plan picker: defaults to URL ?plan= if valid, otherwise Free.
+  const initialPlan = searchParams.get("plan");
+  const [plan, setPlan] = useState<PlanId>(isPlanId(initialPlan) ? initialPlan : "free");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,9 +62,27 @@ function SignIn() {
         if (error) throw error;
         if (!data.session) {
           // Email confirmation is enabled — no session until they confirm.
+          // Preserve the selected plan so it sticks through the confirm-then-signin step.
           setNotice("Check your email to confirm your account, then sign in.");
           setMode("signin");
           setLoading(false);
+          return;
+        }
+        // Auto-apply paid plan if the user selected one on the signup form.
+        if (plan !== "free") {
+          const res = await fetch("/api/upgrade", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tier: plan }),
+          });
+          if (!res.ok) {
+            // Upgrade failed but the account exists — send them to /upgrade so they can retry.
+            router.push("/upgrade");
+            router.refresh();
+            return;
+          }
+          router.push("/app?upgraded=1");
+          router.refresh();
           return;
         }
       } else {
@@ -85,6 +118,46 @@ function SignIn() {
                 ? "Sign up to start comparing AI models."
                 : "Sign in to continue."}
           </p>
+
+          {mode === "signup" && (
+            <div className="mt-5">
+              <p className="text-xs font-medium uppercase tracking-wider text-white/40 mb-2">
+                Choose a plan
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {PLANS.map(p => {
+                  const Icon = p.icon;
+                  const active = plan === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPlan(p.id)}
+                      aria-pressed={active}
+                      className={`relative rounded-xl border px-2 py-3 text-center transition-all ${
+                        active
+                          ? "border-teal-400/60 bg-teal-400/[0.08]"
+                          : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 mx-auto mb-1 ${p.iconColor}`} />
+                      <div className={`text-xs font-semibold ${active ? "text-white" : "text-white/70"}`}>
+                        {p.name}
+                      </div>
+                      <div className={`text-[11px] mt-0.5 ${active ? "text-white/70" : "text-white/40"}`}>
+                        {p.price}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[11px] text-white/40 leading-relaxed">
+                {plan === "free"
+                  ? "Free forever — no card required."
+                  : `Selected ${plan === "pro" ? "Pro" : "Premium"} — applied right after signup.`}
+              </p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-3">
             <input

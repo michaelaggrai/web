@@ -37,7 +37,7 @@ const PLANS = [
       "Up to 3 models per comparison",
       "Everything in Free",
     ],
-    cta: { href: "/signin?mode=signup&reason=upgrade&next=/upgrade", label: "Get Pro" },
+    cta: { href: "/signin?mode=signup&reason=upgrade&plan=pro&next=/app", label: "Get Pro" },
     highlight: true,
   },
   {
@@ -53,7 +53,7 @@ const PLANS = [
       "Priority for new model launches",
       "Everything in Pro",
     ],
-    cta: { href: "/signin?mode=signup&reason=upgrade&next=/upgrade", label: "Get Premium" },
+    cta: { href: "/signin?mode=signup&reason=upgrade&plan=premium&next=/app", label: "Get Premium" },
     highlight: false,
   },
 ];
