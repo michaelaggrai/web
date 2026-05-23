@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3, Menu } from "lucide-react";
+import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3, Menu, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
@@ -286,6 +286,18 @@ function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showUpgradedBanner, setShowUpgradedBanner] = useState(searchParams.get("upgraded") === "1");
   const [signedIn, setSignedIn] = useState(false);
+  // Per-model raw answers are collapsed by default. User clicks a card header
+  // to expand. Reset whenever a fresh result lands so a new question starts
+  // with everything collapsed again.
+  const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
+  useEffect(() => { setExpandedAnswers(new Set()); }, [result]);
+  const toggleAnswer = (modelId: string) => {
+    setExpandedAnswers(prev => {
+      const next = new Set(prev);
+      if (next.has(modelId)) next.delete(modelId); else next.add(modelId);
+      return next;
+    });
+  };
   const autoSubmitted = useRef(false);
   // User "owns" their selection if they brought a ?models= URL preset or
   // manually edited the picker. Otherwise we keep it in sync with their tier.
@@ -605,27 +617,56 @@ function Home() {
                   )}
 
                   {/* Per-model answers — full width if only one */}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-white/40">Raw answers</p>
+                    {result.answers.length > 1 && (() => {
+                      const allOpen = expandedAnswers.size === result.answers.length;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedAnswers(allOpen ? new Set() : new Set(result.answers.map(a => a.model)))}
+                          className="text-xs text-white/50 hover:text-white/80 transition-colors"
+                        >
+                          {allOpen ? "Collapse all" : "Expand all"}
+                        </button>
+                      );
+                    })()}
+                  </div>
                   <div className={`grid grid-cols-1 gap-4 ${result.answers.length > 1 ? "sm:grid-cols-2" : ""}`}>
-                    {result.answers.map(a => (
-                      <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
-                        <div className="mb-3 flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
-                            <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">{modelLabel(a.model)}</span>
-                          </span>
-                          <div className="flex gap-3 text-xs text-white/40 shrink-0">
-                            <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>
-                            <span>{a.tokens} tok</span>
-                          </div>
+                    {result.answers.map(a => {
+                      const isOpen = expandedAnswers.has(a.model);
+                      return (
+                        <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => toggleAnswer(a.model)}
+                            aria-expanded={isOpen}
+                            className="w-full flex items-center justify-between gap-2 p-5 text-left hover:bg-white/[0.02] transition-colors"
+                          >
+                            <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
+                              <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{modelLabel(a.model)}</span>
+                            </span>
+                            <div className="flex items-center gap-3 text-xs text-white/40 shrink-0">
+                              <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>
+                              <span>{a.tokens} tok</span>
+                              <ChevronDown
+                                className={`w-4 h-4 text-white/50 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                                aria-hidden="true"
+                              />
+                            </div>
+                          </button>
+                          {isOpen && (
+                            <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                              [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
+                              [&_pre]:overflow-x-auto [&_pre]:max-w-full
+                              [&_img]:max-w-full [&_code]:break-words">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{a.answer}</ReactMarkdown>
+                            </div>
+                          )}
                         </div>
-                        <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
-                          [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
-                          [&_pre]:overflow-x-auto [&_pre]:max-w-full
-                          [&_img]:max-w-full [&_code]:break-words">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{a.answer}</ReactMarkdown>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* Failed models */}
