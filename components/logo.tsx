@@ -43,9 +43,9 @@ export function Logo({
       <svg
         className={`aggrai-icon ${spinning ? "is-loading" : ""} ${className}`}
         viewBox={symbolViewBox}
-        width={height}
-        height={height}
         aria-label="aggrai"
+        /* inline style beats the .aggrai-icon { width:1.16em } CSS rule */
+        style={{ width: `${height}px`, height: `${height}px` }}
       >
         {MESH}
         {CORE}
