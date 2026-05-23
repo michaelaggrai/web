@@ -6,6 +6,7 @@ import { Plus, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { AccountMenu } from "@/components/account-menu";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { useTier } from "@/lib/use-tier";
 
 export type RecentItem = { id: string; question: string };
 
@@ -27,6 +28,8 @@ export function AppSidebar({
   onSelectRecent,
 }: Props) {
   const [signedIn, setSignedIn] = useState(false);
+  const tier = useTier();
+  const canUpgrade = signedIn && tier !== "premium";
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -112,12 +115,14 @@ export function AppSidebar({
         <div className="border-t border-white/5 p-3 space-y-2">
           {signedIn ? (
             <>
-              <Link
-                href="/upgrade"
-                className="flex w-full items-center justify-center rounded-lg border border-teal-400/20 bg-teal-400/10 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-400/15 hover:text-teal-200"
-              >
-                Upgrade plan
-              </Link>
+              {canUpgrade && (
+                <Link
+                  href="/upgrade"
+                  className="flex w-full items-center justify-center rounded-lg border border-teal-400/20 bg-teal-400/10 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-400/15 hover:text-teal-200"
+                >
+                  Upgrade plan
+                </Link>
+              )}
               <AccountMenu />
             </>
           ) : (
