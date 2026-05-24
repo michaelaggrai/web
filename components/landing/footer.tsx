@@ -14,6 +14,7 @@ type FooterLink = { label: string; href: string; external?: boolean }
 const FOOTER_LINKS: Record<string, FooterLink[]> = {
   Product: [
     { label: "Features",  href: "/#features" },
+    { label: "Models",    href: "/models"    },
     { label: "Pricing",   href: "/pricing"   },
     { label: "Try it",    href: "/app"       },
   ],

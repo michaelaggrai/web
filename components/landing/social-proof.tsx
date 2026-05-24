@@ -92,7 +92,7 @@ export function SocialProof() {
             )
           })}
           <Link
-            href="/pricing"
+            href="/models"
             className="px-4 py-2.5 rounded-full bg-gradient-to-r from-teal-500/15 to-teal-500/10 border border-teal-400/30 hover:border-teal-400/60 hover:from-teal-500/25 hover:to-teal-500/15 transition-colors"
             aria-label="See all available models"
           >

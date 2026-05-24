@@ -134,6 +134,16 @@ export default function PricingPage() {
           })}
         </div>
 
+        {/* Bridge to the full catalog so users curious about "which models exactly?" don't bounce */}
+        <div className="mt-8 text-center">
+          <Link
+            href="/models"
+            className="inline-flex items-center gap-1.5 text-sm text-teal-300 hover:text-teal-200 underline-offset-2 hover:underline"
+          >
+            See the full model catalog →
+          </Link>
+        </div>
+
         {/* FAQ-lite */}
         <div className="mt-16 grid sm:grid-cols-2 gap-6 text-sm">
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
