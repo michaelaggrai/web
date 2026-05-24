@@ -711,7 +711,10 @@ function Home() {
                               prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
                               prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
                               <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2 not-prose">
-                                Best answer
+                                Aggrai&apos;s answer
+                                <span className="ml-1.5 normal-case tracking-normal text-white/30 font-medium">
+                                  · combined from all models, weighted by score
+                                </span>
                               </p>
                               <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
                                 {best || result.summary}
