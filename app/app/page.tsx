@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3, Menu, ChevronDown, Trophy } from "lucide-react";
+import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3, Menu, ChevronDown, Trophy, Gem, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
@@ -150,10 +150,59 @@ function overallScore(s: Scores): number {
   return Math.round(((s.comprehension + s.thought_provoking + s.nuance + s.clarity) / 4) * 20);
 }
 
-// Big "winner" block shown at the very top of results when 2+ models compared.
-// Surfaces the single highest-scoring answer so the user instantly sees who
-// "won" — the rest of the page is then the explanation of why.
-function WinnerBlock({ answers }: { answers: Answer[] }) {
+// The summariser produces markdown with three sections:
+//   ## Where they agree
+//   ## Where they differ
+//   ## Best answer
+// We promote the "Best answer" content to its own hero card at the top of
+// the results — that's the synthesised answer the user came for. The other
+// two sections stay in the Summary card as supporting context.
+function splitSummary(summary: string): { best: string | null; rest: string } {
+  const match = summary.match(/^[ \t]*##\s*Best\s+answer\s*\n([\s\S]*?)(?=^\s*##\s|\Z)/im);
+  if (!match) return { best: null, rest: summary };
+  const best = match[1].trim();
+  const rest = summary.replace(match[0], "").trim();
+  return { best, rest };
+}
+
+// The hero card on the results page — the synthesised "best answer" drawn
+// from all the models. This is what users come for; everything below it
+// (scores, comparison, raw answers) is the explanation of how we got here.
+function BestAnswerCard({ markdown }: { markdown: string }) {
+  return (
+    <div className="rounded-2xl border border-teal-400/25 bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-xl p-7 shadow-xl shadow-teal-500/5">
+      <div className="flex items-center gap-2 mb-4">
+        <Gem className="w-4 h-4 text-teal-300" />
+        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">
+          Best answer
+        </p>
+        <span className="text-[10px] text-white/30">synthesised from all models</span>
+      </div>
+      <div className="prose prose-sm sm:prose-base prose-invert max-w-none
+        prose-p:my-2 prose-strong:text-white prose-ul:my-2 prose-li:my-1">
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+          {markdown}
+        </ReactMarkdown>
+      </div>
+    </div>
+  );
+}
+
+// Highlights the single highest-scoring model alongside a CTA to continue
+// a follow-up with just that model. The synthesised "Best answer" is the
+// product; this block points at which model the user might want to keep
+// chatting with afterwards.
+//
+// onContinue is wired by the page: clicking the CTA sets the model picker
+// to only this model and scrolls to the question input. When V2's
+// persistent conversation feature lands, this is the entry point for it.
+function WinnerBlock({
+  answers,
+  onContinue,
+}: {
+  answers: Answer[];
+  onContinue?: (modelId: string) => void;
+}) {
   const scored = answers.filter((a): a is Answer & { scores: Scores } => !!a.scores);
   if (scored.length === 0) return null;
 
@@ -163,28 +212,27 @@ function WinnerBlock({ answers }: { answers: Answer[] }) {
   const winner = ranked[0];
   const runnerUp = ranked[1];
 
-  // Find which dimensions the winner topped (helps the "Strongest on …" copy)
   const wonOn = SCORE_KEYS.filter(({ key }) => {
     const top = scored.reduce((p, c) => (c.scores[key] > p.scores[key] ? c : p));
     return top.model === winner.model;
   }).map(k => k.label);
 
   return (
-    <div className="rounded-2xl border border-teal-400/30 bg-gradient-to-br from-teal-500/[0.08] to-teal-500/[0.02] backdrop-blur-xl p-6 shadow-xl shadow-teal-500/10">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.05] backdrop-blur-xl p-5 shadow-lg">
       <div className="flex items-start gap-4">
-        <div className="shrink-0 rounded-xl bg-teal-400/15 border border-teal-400/30 p-2.5">
-          <Trophy className="w-5 h-5 text-teal-300" />
+        <div className="shrink-0 rounded-xl bg-amber-300/10 border border-amber-300/20 p-2.5">
+          <Trophy className="w-4 h-4 text-amber-300" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1">
-            Best answer
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-1">
+            Strongest single answer
           </p>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <ProviderLogo provider={providerOf(winner.model)} className="w-5 h-5 self-center shrink-0" />
-            <span className="text-xl sm:text-2xl font-semibold text-white truncate">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <ProviderLogo provider={providerOf(winner.model)} className="w-4 h-4 self-center shrink-0" />
+            <span className="text-base sm:text-lg font-semibold text-white truncate">
               {modelLabel(winner.model)}
             </span>
-            <span className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-teal-300 to-teal-200 bg-clip-text text-transparent tabular-nums">
+            <span className="text-xl sm:text-2xl font-bold text-teal-300 tabular-nums">
               {winner.overall}
             </span>
             <span className="text-xs text-white/40">/100</span>
@@ -200,6 +248,17 @@ function WinnerBlock({ answers }: { answers: Answer[] }) {
             </p>
           )}
         </div>
+        {onContinue && (
+          <button
+            type="button"
+            onClick={() => onContinue(winner.model)}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-teal-500 to-teal-400 px-3 py-2 text-xs font-medium text-white hover:from-teal-400 hover:to-teal-400 transition shadow-sm shadow-teal-500/20"
+            aria-label={`Continue with ${modelLabel(winner.model)}`}
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            Continue with {modelLabel(winner.model).split(" ")[0]}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -399,6 +458,26 @@ function Home() {
   // with everything collapsed again.
   const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
   useEffect(() => { setExpandedAnswers(new Set()); }, [result]);
+  const questionInputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // "Continue with X" — narrow the model picker to just that model, clear
+  // the visible result, and scroll the question input into view focused.
+  // Until V2's persistent conversation feature lands, this is a "soft"
+  // continuation: the user's next question goes to that single model with
+  // no carried context, which is still much closer to the "pick a model
+  // and chat with it" mental model than today's restart-from-scratch flow.
+  function handleContinueWith(modelId: string) {
+    setSelected(new Set([modelId]));
+    userOwnsSelection.current = true;  // stop tier-default auto-sync from overriding
+    setResult(null);
+    setError("");
+    setIntentHint(null);
+    // Scroll + focus on the next tick so the layout collapse has happened.
+    setTimeout(() => {
+      questionInputRef.current?.focus();
+      questionInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  }
   const toggleAnswer = (modelId: string) => {
     setExpandedAnswers(prev => {
       const next = new Set(prev);
@@ -630,6 +709,7 @@ function Home() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex items-center bg-white/[0.08] backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 transition-colors shadow-2xl shadow-black/20">
               <textarea
+                ref={questionInputRef}
                 value={question}
                 onChange={e => setQuestion(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
@@ -667,9 +747,10 @@ function Home() {
           {loading && (
             intentHint === "compare" && selected.size > 1 ? (
               <div className="space-y-4">
-                <LoadingBlock title="Best answer" gradientId="ld-winner" />
+                <LoadingBlock title="Best answer" gradientId="ld-best" className="min-h-[160px]" />
+                <LoadingBlock title="Strongest single answer" gradientId="ld-winner" />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full" />
+                  <LoadingBlock title="How they compared" gradientId="ld-summary" className="lg:h-full" />
                   <LoadingBlock title="Scores & metrics" gradientId="ld-sm" />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -703,35 +784,49 @@ function Home() {
                 </div>
               ) : (
                 <>
-                  {/* Multi-model results: Winner banner on top, then 2-col
-                      with Summary (+ contribution bars) on left and combined
-                      Scores & Metrics on right. */}
-                  {result.answers.length > 1 && (
-                    <>
-                      {result.answers.some(a => a.scores) && (
-                        <WinnerBlock answers={result.answers} />
-                      )}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
-                          <div className="flex items-center gap-2 mb-4">
-                            <Layers className="w-3.5 h-3.5 text-teal-300" />
-                            <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+                  {/* Multi-model results — three layers, top-down:
+                      1. The synthesised Best answer (the product).
+                      2. The Strongest single answer + Continue CTA (next action).
+                      3. Two-col supporting evidence: Summary (agree/differ +
+                         contribution bars) on the left, Scores & Metrics on
+                         the right. */}
+                  {result.answers.length > 1 && (() => {
+                    const { best, rest } = splitSummary(result.summary);
+                    return (
+                      <>
+                        {best && <BestAnswerCard markdown={best} />}
+                        {result.answers.some(a => a.scores) && (
+                          <WinnerBlock
+                            answers={result.answers}
+                            onContinue={handleContinueWith}
+                          />
+                        )}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                          <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
+                            <div className="flex items-center gap-2 mb-4">
+                              <Layers className="w-3.5 h-3.5 text-teal-300" />
+                              <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">
+                                {best ? "How they compared" : "Summary"}
+                              </p>
+                            </div>
+                            <div className="prose prose-sm prose-invert max-w-none
+                              prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
+                              prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+                                {rest || result.summary}
+                              </ReactMarkdown>
+                            </div>
+                            {result.contributions && result.contributions.length > 0 && (
+                              <ContributionBreakdown contributions={result.contributions} />
+                            )}
                           </div>
-                          <div className="prose prose-sm prose-invert max-w-none
-                            prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
-                            prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>{result.summary}</ReactMarkdown>
+                          <div className="min-w-0">
+                            <ScoresAndMetrics answers={result.answers} />
                           </div>
-                          {result.contributions && result.contributions.length > 0 && (
-                            <ContributionBreakdown contributions={result.contributions} />
-                          )}
                         </div>
-                        <div className="min-w-0">
-                          <ScoresAndMetrics answers={result.answers} />
-                        </div>
-                      </div>
-                    </>
-                  )}
+                      </>
+                    );
+                  })()}
 
                   {/* Per-model answers — full width if only one */}
                   <div className="flex items-center justify-between gap-2">
