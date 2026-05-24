@@ -47,7 +47,9 @@ export default function SettingsPage() {
       }
       setLoaded(true);
     })();
-  }, [router]);
+    // `router` is a stable reference from next/navigation — no need to
+    // include it in deps. This effect should fire exactly once on mount.
+  }, []);
 
   async function signOut() {
     if (signingOut) return;

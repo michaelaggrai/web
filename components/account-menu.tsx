@@ -68,31 +68,28 @@ export function AccountMenu() {
   if (!email) return null;
 
   // Signed in
-  if (email) {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1 flex items-center gap-1.5">
-          <span className="text-xs text-white/40 truncate">
-            {email}
-          </span>
-          <span
-            className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${TIER_STYLE[tier]}`}
-            title={`Current plan: ${TIER_LABEL[tier]}`}
-          >
-            {TIER_LABEL[tier]}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={signOut}
-          disabled={signingOut}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 transition hover:text-white hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+  return (
+    <div className="flex items-center gap-2">
+      <div className="min-w-0 flex-1 flex items-center gap-1.5">
+        <span className="text-xs text-white/40 truncate">
+          {email}
+        </span>
+        <span
+          className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${TIER_STYLE[tier]}`}
+          title={`Current plan: ${TIER_LABEL[tier]}`}
         >
-          <LogOut className="w-3.5 h-3.5" />
-          {signingOut ? "Signing out…" : "Sign out"}
-        </button>
+          {TIER_LABEL[tier]}
+        </span>
       </div>
-    );
-  }
-
+      <button
+        type="button"
+        onClick={signOut}
+        disabled={signingOut}
+        className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 transition hover:text-white hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <LogOut className="w-3.5 h-3.5" />
+        {signingOut ? "Signing out…" : "Sign out"}
+      </button>
+    </div>
+  );
 }

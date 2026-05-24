@@ -94,8 +94,13 @@ export default function UpgradePage() {
         const d = await res.json().catch(() => ({}));
         throw new Error(d.error ?? "Upgrade failed");
       }
-      router.push("/app?upgraded=1");
-      router.refresh();
+      // Hard reload — NOT router.push. The useTier hook (+ AccountMenu,
+      // ModelPicker locked-IDs, /app tier validation) all read the user's
+      // tier ONCE on mount and never refresh. router.push() preserves the
+      // React tree so they stay stale. A full-page navigation is the only
+      // way every consumer picks up the new tier reliably. See AGG-32 +
+      // AGG-36 for the deeper diagnosis.
+      window.location.assign("/app?upgraded=1");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setLoading(null);
@@ -178,8 +183,8 @@ export default function UpgradePage() {
                     Your current plan
                   </div>
                 ) : isBelow ? (
-                  <div className="rounded-xl border border-white/5 py-2.5 text-center text-sm text-white/20">
-                    Included in your plan
+                  <div className="rounded-xl border border-white/5 py-2.5 text-center text-sm text-white/30">
+                    Already covered by your plan
                   </div>
                 ) : (
                   <button
@@ -201,7 +206,11 @@ export default function UpgradePage() {
         </div>
 
         <p className="mt-8 text-center text-xs text-white/30">
-          Plans can be changed at any time.{" "}
+          Need to downgrade or cancel? Email{" "}
+          <a href="mailto:hello@aggrai.com" className="text-white/50 hover:text-white underline underline-offset-2">
+            hello@aggrai.com
+          </a>{" "}
+          — self-serve downgrade lands with our billing rollout.{" "}
           <Link href="/app" className="text-white/40 hover:text-white/70 underline underline-offset-2">
             Back to app
           </Link>

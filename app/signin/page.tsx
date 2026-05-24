@@ -85,6 +85,11 @@ function SignIn() {
   const initialPlan = searchParams.get("plan");
   const [plan, setPlan] = useState<PlanId>(isPlanId(initialPlan) ? initialPlan : "free");
 
+  // sessionStorage key for "user picked Pro/Premium on signup but Supabase is
+  // making them confirm email first — apply the upgrade after they finally
+  // sign in." Survives the confirm-link round-trip (per-tab, ephemeral).
+  const PENDING_UPGRADE_KEY = "aggrai_pending_upgrade_plan";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (mode === "signup" && !agreed) {
@@ -101,38 +106,70 @@ function SignIn() {
         if (error) throw error;
         if (!data.session) {
           // Email confirmation is enabled — no session until they confirm.
-          // Preserve the selected plan so it sticks through the confirm-then-signin step.
+          // Stash the plan choice so it sticks through confirm-then-signin.
+          // Read back in the signin branch below and applied via /api/upgrade
+          // once they're actually signed in.
+          if (plan !== "free") {
+            try { sessionStorage.setItem(PENDING_UPGRADE_KEY, plan); } catch { /* private mode */ }
+          }
           setNotice("Check your email to confirm your account, then sign in.");
           setMode("signin");
           setLoading(false);
           return;
         }
-        // Auto-apply paid plan if the user selected one on the signup form.
+        // Auto-apply paid plan if the user selected one on the signup form
+        // AND we got an immediate session (email confirmation OFF).
         if (plan !== "free") {
-          const res = await fetch("/api/upgrade", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tier: plan }),
-          });
-          if (!res.ok) {
-            // Upgrade failed but the account exists — send them to /upgrade so they can retry.
+          const ok = await applyUpgrade(plan);
+          if (!ok) {
             router.push("/upgrade");
             router.refresh();
             return;
           }
-          router.push("/app?upgraded=1");
-          router.refresh();
+          // Hard reload so useTier + AccountMenu + ModelPicker locked-IDs
+          // all see the new tier. router.push leaves the React tree intact
+          // and they stay stale. See AGG-36 HIGH finding.
+          window.location.assign("/app?upgraded=1");
           return;
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // Check for a pending upgrade left over from a prior signup +
+        // email-confirmation round-trip.
+        let pending: string | null = null;
+        try { pending = sessionStorage.getItem(PENDING_UPGRADE_KEY); } catch { /* ignore */ }
+        if (pending === "pro" || pending === "premium") {
+          try { sessionStorage.removeItem(PENDING_UPGRADE_KEY); } catch { /* ignore */ }
+          const ok = await applyUpgrade(pending);
+          if (!ok) {
+            router.push("/upgrade");
+            router.refresh();
+            return;
+          }
+          window.location.assign("/app?upgraded=1");
+          return;
+        }
       }
       router.push(next);
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setLoading(false);
+    }
+  }
+
+  // Fires /api/upgrade and returns whether it succeeded.
+  async function applyUpgrade(tier: "pro" | "premium"): Promise<boolean> {
+    try {
+      const res = await fetch("/api/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+      return res.ok;
+    } catch {
+      return false;
     }
   }
 

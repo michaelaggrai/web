@@ -56,13 +56,22 @@ export default function PrivacyPage() {
               models you selected, returning their answers).</li>
             <li>To enforce tier limits and prevent abuse.</li>
             <li>To improve the Service — for example by caching responses to common
-              questions so they load instantly for everyone.</li>
+              questions so they load instantly for everyone, and by logging how
+              our internal question classifier categorised your input so we can
+              tune it over time.</li>
+            <li>To respond to support requests submitted via our contact form
+              (stored with your name, email and message until we&apos;ve replied).</li>
             <li>To respond to support requests and security incidents.</li>
             <li>To comply with legal obligations.</li>
           </ul>
           <p>
             We do <strong>not</strong> sell your personal data and we do <strong>not</strong> use your
             personal questions to train our own models.
+          </p>
+          <p className="text-sm text-white/40">
+            <em>Note</em>: your recent comparisons are also kept in your browser tab&apos;s
+            session storage so you can switch between them instantly. That data
+            never leaves your device and is cleared when you close the tab.
           </p>
 
           <h2>3. Third-party AI providers</h2>

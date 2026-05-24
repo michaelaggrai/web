@@ -64,8 +64,17 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: "Not yet. Shareable links for comparisons are on the roadmap.",
   },
   {
-    q: "How do I cancel my subscription?",
-    a: "Subscriptions can be changed or cancelled from your account. Cancellations take effect at the end of the current billing period.",
+    q: "How do I cancel or downgrade my plan?",
+    a: (
+      <>
+        For now, email{" "}
+        <a href="mailto:hello@aggrai.com" className="text-teal-300 hover:underline">
+          hello@aggrai.com
+        </a>{" "}
+        and we&apos;ll handle it manually. Self-serve cancellation and
+        downgrade ship alongside our proper billing rollout.
+      </>
+    ),
   },
   {
     q: "I found a bug / I have feedback.",
