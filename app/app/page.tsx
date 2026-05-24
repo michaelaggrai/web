@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Gem, MessageCircle } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
@@ -121,42 +121,19 @@ function overallScore(s: Scores): number {
   return Math.round(((s.comprehension + s.thought_provoking + s.nuance + s.clarity) / 4) * 20);
 }
 
-// The summariser produces markdown with three sections:
-//   ## Where they agree
-//   ## Where they differ
-//   ## Best answer
-// We promote the "Best answer" content to its own hero card at the top of
-// the results — that's the synthesised answer the user came for. The other
-// two sections stay in the Summary card as supporting context.
+// The summariser produces markdown with a single section:
+//   ## Best answer    (a full rewritten answer using all models, weighted
+//                      by their scores — see backend summariser prompt)
+// We split it out so we can render the Best Answer with a stronger visual
+// hierarchy inside the Summary card. If the section header is missing
+// (e.g. legacy cached responses with the old multi-section format), the
+// whole `summary` string is rendered as-is.
 function splitSummary(summary: string): { best: string | null; rest: string } {
   const match = summary.match(/^[ \t]*##\s*Best\s+answer\s*\n([\s\S]*?)(?=^\s*##\s|\Z)/im);
   if (!match) return { best: null, rest: summary };
   const best = match[1].trim();
   const rest = summary.replace(match[0], "").trim();
   return { best, rest };
-}
-
-// The hero card on the results page — the synthesised "best answer" drawn
-// from all the models. This is what users come for; everything below it
-// (scores, comparison, raw answers) is the explanation of how we got here.
-function BestAnswerCard({ markdown }: { markdown: string }) {
-  return (
-    <div className="rounded-2xl border border-teal-400/25 bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-xl p-7 shadow-xl shadow-teal-500/5">
-      <div className="flex items-center gap-2 mb-4">
-        <Gem className="w-4 h-4 text-teal-300" />
-        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">
-          Best answer
-        </p>
-        <span className="text-[10px] text-white/30">synthesised from all models</span>
-      </div>
-      <div className="prose prose-sm sm:prose-base prose-invert max-w-none
-        prose-p:my-2 prose-strong:text-white prose-ul:my-2 prose-li:my-1">
-        <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
-          {markdown}
-        </ReactMarkdown>
-      </div>
-    </div>
-  );
 }
 
 // Highlights the single highest-scoring model alongside a CTA to continue
@@ -235,14 +212,17 @@ function WinnerBlock({
   );
 }
 
-// Stacked bars under the summary showing how much each model's content
-// influenced the synthesised "Best answer". Source is the summariser's
-// self-reported attribution; values sum to ~100.
-function ContributionBreakdown({ contributions }: { contributions: Contribution[] }) {
+// Stacked bars at the top of the Summary card showing how much each
+// model's content influenced the rewritten Best answer below. Source is
+// the summariser's self-reported attribution; values sum to ~100.
+//
+// Rendered above the Best answer so the reader knows *who's behind this*
+// before they read the synthesis — sets context, not a footnote.
+function ContributionsTop({ contributions }: { contributions: Contribution[] }) {
   if (contributions.length === 0) return null;
   const sorted = [...contributions].sort((a, b) => b.pct - a.pct);
   return (
-    <div className="mt-5 pt-4 border-t border-white/10">
+    <div className="mb-5 pb-4 border-b border-white/10">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-3">
         Where the summary came from
       </p>
@@ -656,10 +636,9 @@ function Home() {
           {loading && (
             intentHint === "compare" && selected.size > 1 ? (
               <div className="space-y-4">
-                <LoadingBlock title="Best answer" gradientId="ld-best" className="min-h-[160px]" />
                 <LoadingBlock title="Strongest single answer" gradientId="ld-winner" />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <LoadingBlock title="How they compared" gradientId="ld-summary" className="lg:h-full" />
+                  <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full min-h-[280px]" />
                   <LoadingBlock title="Quality scores" gradientId="ld-sm" />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -693,17 +672,16 @@ function Home() {
                 </div>
               ) : (
                 <>
-                  {/* Multi-model results — three layers, top-down:
-                      1. The synthesised Best answer (the product).
-                      2. The Strongest single answer + Continue CTA (next action).
-                      3. Two-col supporting evidence: Summary (agree/differ +
-                         contribution bars) on the left, Scores & Metrics on
-                         the right. */}
+                  {/* Multi-model results — top-down:
+                      1. Strongest single answer + Continue CTA (next action).
+                      2. Two-col main content:
+                         - LEFT: Summary card = Contributions (where it came
+                           from) on top, then Best Answer (the rewrite).
+                         - RIGHT: Quality scores. */}
                   {result.answers.length > 1 && (() => {
-                    const { best, rest } = splitSummary(result.summary);
+                    const { best } = splitSummary(result.summary);
                     return (
                       <>
-                        {best && <BestAnswerCard markdown={best} />}
                         {result.answers.some(a => a.scores) && (
                           <WinnerBlock
                             answers={result.answers}
@@ -715,19 +693,30 @@ function Home() {
                             <div className="flex items-center gap-2 mb-4">
                               <Layers className="w-3.5 h-3.5 text-teal-300" />
                               <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">
-                                {best ? "How they compared" : "Summary"}
+                                Summary
                               </p>
                             </div>
-                            <div className="prose prose-sm prose-invert max-w-none
-                              prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
-                              prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
+
+                            {/* Contributions FIRST — explains where the
+                                rewritten Best answer's content came from
+                                before the user reads the rewrite itself. */}
+                            {result.contributions && result.contributions.length > 0 && (
+                              <ContributionsTop contributions={result.contributions} />
+                            )}
+
+                            {/* Best answer — the rewritten synthesis, the
+                                hero content of this card. */}
+                            <div className="prose prose-sm sm:prose-base prose-invert max-w-none
+                              prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
+                              prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
+                              prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2 not-prose">
+                                Best answer
+                              </p>
                               <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
-                                {rest || result.summary}
+                                {best || result.summary}
                               </ReactMarkdown>
                             </div>
-                            {result.contributions && result.contributions.length > 0 && (
-                              <ContributionBreakdown contributions={result.contributions} />
-                            )}
                           </div>
                           <div className="min-w-0">
                             <ScoresAndMetrics answers={result.answers} />
