@@ -340,6 +340,62 @@ function Home() {
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Session-scoped recents: kept in sessionStorage so they survive page
+  // reloads within the same tab but vanish when the tab closes. Persistent
+  // cross-session memory is a V2 feature; this is the bridge that already
+  // makes the sidebar's Recents area useful today.
+  type SessionRecent = {
+    id: string;
+    question: string;
+    models: string[];
+    result: Result;
+    timestamp: number;
+  };
+  const SESSION_RECENTS_KEY = "aggrai_session_recents_v1";
+  const MAX_RECENTS = 20;
+  const [sessionRecents, setSessionRecents] = useState<SessionRecent[]>([]);
+  const [activeRecentId, setActiveRecentId] = useState<string | null>(null);
+
+  // Hydrate from sessionStorage on first mount only
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_RECENTS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setSessionRecents(parsed);
+      }
+    } catch { /* corrupt storage — start empty */ }
+  }, []);
+
+  // Persist any change back to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(SESSION_RECENTS_KEY, JSON.stringify(sessionRecents));
+    } catch { /* quota / private-mode — degrade silently */ }
+  }, [sessionRecents]);
+
+  function pushRecent(question: string, models: Set<string>, result: Result) {
+    const id = `r_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+    setSessionRecents(prev => {
+      // Dedupe by question text — if the same question was just asked again,
+      // replace its entry rather than stack a duplicate.
+      const filtered = prev.filter(r => r.question.trim().toLowerCase() !== question.trim().toLowerCase());
+      return [{ id, question, models: [...models], result, timestamp: Date.now() }, ...filtered].slice(0, MAX_RECENTS);
+    });
+    setActiveRecentId(id);
+  }
+
+  function selectRecent(id: string) {
+    const found = sessionRecents.find(r => r.id === id);
+    if (!found) return;
+    setActiveRecentId(id);
+    setQuestion(found.question);
+    setResult(found.result);
+    setSelected(new Set(found.models));
+    setError("");
+    setIntentHint(null);
+    setSidebarOpen(false);
+  }
   const [showUpgradedBanner, setShowUpgradedBanner] = useState(searchParams.get("upgraded") === "1");
   const [signedIn, setSignedIn] = useState(false);
   // Per-model raw answers are collapsed by default. User clicks a card header
@@ -497,6 +553,9 @@ function Home() {
           if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
         }
         setResult(pendingResult);
+        // Capture into session recents so the sidebar shows it and the
+        // user can jump back to this comparison without re-querying.
+        pushRecent(q.trim(), models, pendingResult);
       } else {
         throw new Error("Empty response from server");
       }
@@ -522,6 +581,7 @@ function Home() {
     setQuestion("");
     setError("");
     setIntentHint(null);
+    setActiveRecentId(null);
     setSidebarOpen(false);
   }
 
@@ -535,6 +595,9 @@ function Home() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onNewComparison={newComparison}
+        recents={sessionRecents.map(r => ({ id: r.id, question: r.question }))}
+        activeId={activeRecentId}
+        onSelectRecent={selectRecent}
       />
 
       <div className="relative z-10 flex flex-1 flex-col min-w-0">
