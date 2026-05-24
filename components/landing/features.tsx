@@ -156,7 +156,7 @@ export function Features() {
   return (
     <section
       id="features"
-      className="relative py-24 sm:py-28 bg-gradient-to-b from-background via-[#252547] to-navy scroll-mt-20 overflow-hidden"
+      className="relative py-24 sm:py-28 bg-gradient-to-b from-navy via-[#252547] to-navy scroll-mt-20 overflow-hidden"
     >
       {/* Soft accent orbs to match the rest of the dark sections */}
       <div className="pointer-events-none absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[140px]" />

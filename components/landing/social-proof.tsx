@@ -68,12 +68,11 @@ export function SocialProof() {
     { name: "Grok", logo: XAILogo },
   ]
 
-  // Smoother dark-to-light transition: extra `via` stop + more vertical padding
-  // gives the gradient room to breathe instead of slamming navy into white in
-  // the same band as the logos. The page is Hero(dark) → here → Features(light),
-  // so the gradient HAS to bridge those colours; we just stretch the bridge.
+  // The entire landing is now dark navy end-to-end — we don't need the
+  // bridging white gradient any more. Section stays in the [#252547]→navy
+  // range so the transition to Features is invisible.
   return (
-    <section className="py-24 bg-gradient-to-b from-[#252547] via-[#6a6a87] to-background">
+    <section className="py-24 bg-gradient-to-b from-[#252547] to-navy">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <p className="text-center text-sm text-white/70 mb-8">
           Works with all major AI models
