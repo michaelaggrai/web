@@ -206,11 +206,11 @@ export default function UpgradePage() {
         </div>
 
         <p className="mt-8 text-center text-xs text-white/30">
-          Need to downgrade or cancel? Email{" "}
-          <a href="mailto:hello@aggrai.com" className="text-white/50 hover:text-white underline underline-offset-2">
-            hello@aggrai.com
-          </a>{" "}
-          — self-serve downgrade lands with our billing rollout.{" "}
+          Need to downgrade?{" "}
+          <Link href="/settings" className="text-white/60 hover:text-white underline underline-offset-2">
+            Go to Settings → Plan
+          </Link>
+          .{" "}
           <Link href="/app" className="text-white/40 hover:text-white/70 underline underline-offset-2">
             Back to app
           </Link>

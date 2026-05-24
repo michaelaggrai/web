@@ -5,12 +5,15 @@ import { createAdminClient } from "@/lib/supabase/server-admin";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-const VALID_TIERS = ["pro", "premium"] as const;
-type UpgradeTier = (typeof VALID_TIERS)[number];
+// Route name is legacy "upgrade" but it accepts any tier — used for both
+// upgrades (free→pro, pro→premium, etc.) and downgrades (premium→free,
+// pro→free, etc.). Downgrade UX lives in /settings; upgrades in /upgrade.
+const VALID_TIERS = ["free", "pro", "premium"] as const;
+type TargetTier = (typeof VALID_TIERS)[number];
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const tier = body?.tier as UpgradeTier | undefined;
+  const tier = body?.tier as TargetTier | undefined;
 
   if (!tier || !VALID_TIERS.includes(tier)) {
     return NextResponse.json({ error: "Invalid tier" }, { status: 400 });

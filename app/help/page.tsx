@@ -67,12 +67,14 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     q: "How do I cancel or downgrade my plan?",
     a: (
       <>
-        For now, email{" "}
+        Head to <Link href="/settings">Settings → Plan</Link> and pick the
+        plan you want — downgrades take effect immediately. (Full self-serve
+        cancellation and refund handling ship alongside our proper billing
+        rollout; until then, email{" "}
         <a href="mailto:hello@aggrai.com" className="text-teal-300 hover:underline">
           hello@aggrai.com
         </a>{" "}
-        and we&apos;ll handle it manually. Self-serve cancellation and
-        downgrade ship alongside our proper billing rollout.
+        if you need anything special.)
       </>
     ),
   },

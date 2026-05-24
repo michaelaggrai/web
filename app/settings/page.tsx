@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { User, CreditCard, Globe, Cookie, Download, Trash2, LogOut, ArrowLeft } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  User, CreditCard, Globe, Cookie, Download, Trash2, LogOut, ArrowLeft,
+  Sparkles, Zap, Crown, AlertTriangle,
+} from "lucide-react";
 import { Logo } from "@/components/logo";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
@@ -15,12 +18,52 @@ const TIER_LABEL: Record<Tier, string> = {
   premium: "Premium",
 };
 
+// Numeric rank used to decide direction (upgrade vs downgrade) when the
+// user picks a different plan in the picker below.
+const TIER_RANK: Record<Tier, number> = { free: 0, pro: 1, premium: 2 };
+
+type PlanOption = {
+  key: Tier;
+  name: string;
+  price: string;
+  period: string;
+  tagline: string;
+  icon: typeof Sparkles;
+  iconColor: string;
+};
+
+const PLAN_OPTIONS: PlanOption[] = [
+  { key: "free",    name: "Free",    price: "£0",  period: "forever", tagline: "3 basic models, up to 3 per comparison",      icon: Sparkles, iconColor: "text-white/50" },
+  { key: "pro",     name: "Pro",     price: "£9",  period: "/mo",     tagline: "Full catalog, up to 3 models per comparison", icon: Zap,      iconColor: "text-teal-300" },
+  { key: "premium", name: "Premium", price: "£19", period: "/mo",     tagline: "Full catalog, up to 5 models per comparison", icon: Crown,    iconColor: "text-amber-300" },
+];
+
 export default function SettingsPage() {
+  // Wrap in Suspense so useSearchParams (used for the ?changed=1 banner)
+  // doesn't blow up the page render before the params resolve.
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-b from-navy via-navy to-[#252547]" />}>
+      <Settings />
+    </Suspense>
+  );
+}
+
+function Settings() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState<string | null>(null);
   const [tier, setTier] = useState<Tier>("free");
   const [loaded, setLoaded] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  // Plan-change state. `changingTo` shows the spinner on the target row;
+  // `confirmingDowngrade` shows the inline confirmation card for the
+  // selected downgrade target (null when no downgrade is being confirmed).
+  const [changingTo, setChangingTo] = useState<Tier | null>(null);
+  const [confirmingDowngrade, setConfirmingDowngrade] = useState<Tier | null>(null);
+  const [planError, setPlanError] = useState("");
+  // Post-change banner: set when we land on /settings?changed=1 after a
+  // hard reload from a successful plan change. Dismissable.
+  const [showChangedBanner, setShowChangedBanner] = useState(searchParams.get("changed") === "1");
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -62,6 +105,45 @@ export default function SettingsPage() {
     window.location.assign("/");
   }
 
+  // Issue the actual plan-change call. Used by both the upgrade path
+  // (direct click) and the downgrade path (post-confirmation). Hard-reloads
+  // the page on success so useTier + AccountMenu + ModelPicker locked-ids
+  // all pick up the new tier. router.refresh() alone leaves cached state.
+  async function changePlan(target: Tier) {
+    if (changingTo !== null) return;
+    setChangingTo(target);
+    setPlanError("");
+    try {
+      const res = await fetch("/api/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier: target }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.error ?? "Plan change failed");
+      }
+      window.location.assign("/settings?changed=1");
+    } catch (err) {
+      setPlanError(err instanceof Error ? err.message : "Something went wrong");
+      setChangingTo(null);
+    }
+  }
+
+  // Entry point for a row's Upgrade/Downgrade button.
+  // - Upgrade direction: go straight through (matches /upgrade page UX).
+  // - Downgrade direction: surface an inline confirmation card so the user
+  //   has to opt in to losing flagship access / model slots.
+  function handlePlanClick(target: Tier) {
+    if (target === tier) return;
+    if (TIER_RANK[target] < TIER_RANK[tier]) {
+      setConfirmingDowngrade(target);
+      setPlanError("");
+    } else {
+      changePlan(target);
+    }
+  }
+
   if (!loaded) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-navy via-navy to-[#252547]" />
@@ -90,6 +172,24 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-semibold text-white tracking-tight mb-1">Settings</h1>
         <p className="text-sm text-white/40 mb-8">Manage your account and preferences.</p>
 
+        {showChangedBanner && (
+          <div
+            role="status"
+            className="mb-6 rounded-xl border border-teal-400/30 bg-teal-400/10 px-4 py-3 flex items-center justify-between gap-3"
+          >
+            <p className="text-sm text-teal-200">
+              Plan updated — you&apos;re now on <strong className="text-white">{TIER_LABEL[tier]}</strong>.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowChangedBanner(false)}
+              className="text-teal-300/60 hover:text-teal-200 text-xs"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Account */}
         <Section icon={User} title="Account">
           <Row label="Email" value={email ?? "—"} />
@@ -112,23 +212,128 @@ export default function SettingsPage() {
 
         {/* Plan */}
         <Section icon={CreditCard} title="Plan">
-          <Row
-            label="Current plan"
-            value={TIER_LABEL[tier]}
-            valueAccent={tier !== "free"}
-            action={
-              tier === "premium" ? (
-                <span className="text-xs text-white/40">Top tier</span>
-              ) : (
-                <Link
-                  href="/upgrade"
-                  className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-teal-500 to-teal-400 px-3 py-1.5 text-xs font-medium text-white hover:from-teal-400 hover:to-teal-400 transition"
+          <p className="text-sm text-white/50 leading-relaxed mb-4">
+            Switch any time. Downgrades take effect immediately.{" "}
+            <Link
+              href="/pricing"
+              className="text-teal-300 hover:text-teal-200 underline-offset-2 hover:underline"
+            >
+              Compare plans →
+            </Link>
+          </p>
+
+          <ul className="space-y-2" aria-label="Plan options">
+            {PLAN_OPTIONS.map(plan => {
+              const PlanIcon = plan.icon;
+              const isCurrent = plan.key === tier;
+              const isUpgrade = TIER_RANK[plan.key] > TIER_RANK[tier];
+              const isLoadingThis = changingTo === plan.key;
+              const anyChanging = changingTo !== null;
+
+              return (
+                <li
+                  key={plan.key}
+                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                    isCurrent
+                      ? "border-teal-400/40 bg-teal-400/[0.06]"
+                      : "border-white/10 bg-white/[0.03]"
+                  }`}
                 >
-                  {tier === "free" ? "Upgrade" : "Change plan"}
-                </Link>
-              )
-            }
-          />
+                  <PlanIcon className={`w-4 h-4 shrink-0 ${plan.iconColor}`} aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className={`text-sm font-semibold ${isCurrent ? "text-white" : "text-white/85"}`}>
+                        {plan.name}
+                      </span>
+                      <span className="text-xs text-white/50 tabular-nums">
+                        <span className="text-white/70">{plan.price}</span>
+                        <span className="text-white/35">{plan.period}</span>
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-white/40 mt-0.5 leading-snug">{plan.tagline}</p>
+                  </div>
+
+                  {isCurrent ? (
+                    <span className="shrink-0 rounded-full border border-teal-400/30 bg-teal-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-teal-300">
+                      Current
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handlePlanClick(plan.key)}
+                      disabled={anyChanging}
+                      className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed ${
+                        isUpgrade
+                          ? "bg-gradient-to-r from-teal-500 to-teal-400 text-white hover:from-teal-400 hover:to-teal-400 shadow-sm shadow-teal-500/20"
+                          : "border border-white/15 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      {isLoadingThis ? "…" : isUpgrade ? "Upgrade" : "Downgrade"}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Inline confirmation card for downgrades. Renders below the
+              plan list so the action and its consequence stay visually
+              connected. role="alertdialog" because it's a modal decision
+              point even though it's not a popup. */}
+          {confirmingDowngrade && (
+            <div
+              role="alertdialog"
+              aria-label="Confirm downgrade"
+              className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/[0.08] p-4"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-amber-100">
+                    Downgrade to <strong className="text-white">{TIER_LABEL[confirmingDowngrade]}</strong>?
+                  </p>
+                  <p className="mt-1 text-xs text-amber-200/80 leading-relaxed">
+                    {confirmingDowngrade === "free"
+                      ? "You'll lose access to flagship models (GPT-4o, Claude Sonnet, Gemini 2.5 Pro, etc.) and your selection will be reset to the 3 basic models."
+                      : confirmingDowngrade === "pro" && tier === "premium"
+                        ? "You'll keep access to flagship models but be limited to 3 models per comparison instead of 5."
+                        : "Your access will be reduced."}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDowngrade(null)}
+                  disabled={changingTo !== null}
+                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10 hover:text-white transition disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = confirmingDowngrade;
+                    setConfirmingDowngrade(null);
+                    changePlan(target);
+                  }}
+                  disabled={changingTo !== null}
+                  className="rounded-lg bg-amber-400/20 border border-amber-400/30 px-3 py-1.5 text-xs font-medium text-amber-100 hover:bg-amber-400/30 transition disabled:opacity-40"
+                >
+                  {changingTo === confirmingDowngrade ? "Downgrading…" : "Yes, downgrade"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {planError && (
+            <div
+              role="alert"
+              className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+            >
+              {planError}
+            </div>
+          )}
         </Section>
 
         {/* Coming soon — placeholders for v2 GDPR + i18n work */}
