@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3, Menu, ChevronDown, Trophy, Gem, MessageCircle } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Gem, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
@@ -87,35 +87,6 @@ const MARKDOWN_COMPONENTS = {
   strong: ({ children }: { children?: React.ReactNode }) => <strong>{highlightNode(children, "s")}</strong>,
   em: ({ children }: { children?: React.ReactNode }) => <em>{highlightNode(children, "e")}</em>,
 };
-
-function wordCount(s: string) {
-  return s.trim().split(/\s+/).filter(Boolean).length;
-}
-
-function countSyllables(word: string): number {
-  const w = word.toLowerCase().replace(/[^a-z]/g, "");
-  if (!w) return 0;
-  if (w.length <= 3) return 1;
-  const trimmed = w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "").replace(/^y/, "");
-  const groups = trimmed.match(/[aeiouy]{1,2}/g);
-  return Math.max(1, groups ? groups.length : 1);
-}
-
-function fleschReadingEase(text: string): number {
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0).length || 1;
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return 0;
-  const syllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
-  return 206.835 - 1.015 * (words.length / sentences) - 84.6 * (syllables / words.length);
-}
-
-function readabilityLabel(score: number): string {
-  if (score >= 80) return "Very easy";
-  if (score >= 60) return "Easy";
-  if (score >= 40) return "Moderate";
-  if (score >= 20) return "Difficult";
-  return "Complex";
-}
 
 function LoadingBlock({ title, gradientId, className = "" }: { title: string; gradientId: string; className?: string }) {
   return (
@@ -294,36 +265,21 @@ function ContributionBreakdown({ contributions }: { contributions: Contribution[
   );
 }
 
-// Combined block: per-model overall quality score, 4 quality sub-metrics
-// (Haiku-judged), and 3 raw metrics (speed, readability, length) in one
-// card. Replaces the old separate QualityScores + MetricsCompare pair.
+// Per-model overall quality score + the 4 quality sub-metrics that compose
+// it (Comprehension, Thought-provoking, Nuance, Clarity — Haiku-judged).
+// Only the sub-metrics that ROLL UP into the headline 0-100 belong here;
+// runtime/readability/length are descriptive but not part of the quality
+// score, so they're shown on the per-answer card headers instead.
 function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
   const scored = answers.filter((a): a is Answer & { scores: Scores } => !!a.scores);
   if (scored.length === 0) return null;
 
-  // Augment with derived metrics so we can sort by overall and find winners
-  // for each dimension in one pass.
-  const enriched = scored.map(a => ({
-    ...a,
-    overall: overallScore(a.scores),
-    words: wordCount(a.answer),
-    readability: fleschReadingEase(a.answer),
-  }));
-
-  const fastest      = enriched.reduce((p, c) => (c.runtime_ms < p.runtime_ms ? c : p));
-  const mostReadable = enriched.reduce((p, c) => (c.readability > p.readability ? c : p));
-  const longest      = enriched.reduce((p, c) => (c.words > p.words ? c : p));
-  const topByDim     = SCORE_KEYS.map(({ key }) => ({
+  const enriched = scored.map(a => ({ ...a, overall: overallScore(a.scores) }));
+  const topByDim = SCORE_KEYS.map(({ key }) => ({
     key,
     model: enriched.reduce((p, c) => (c.scores[key] > p.scores[key] ? c : p)).model,
   }));
-
-  const maxRuntime = Math.max(...enriched.map(a => a.runtime_ms));
-  const maxWords   = Math.max(...enriched.map(a => a.words));
-  const maxRead    = Math.max(...enriched.map(a => Math.max(0, a.readability)));
   const maxOverall = Math.max(...enriched.map(a => a.overall));
-
-  // Render rows ordered by overall score (winner first)
   const ranked = [...enriched].sort((a, b) => b.overall - a.overall);
 
   const Bar = ({ pct, accent }: { pct: number; accent?: boolean }) => (
@@ -337,25 +293,12 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
-      <div className="mb-5">
-        <div className="flex items-center gap-2 mb-3">
-          <BarChart3 className="w-3.5 h-3.5 text-teal-300" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">
-            Scores &amp; metrics
-          </p>
-          <span className="text-[10px] text-white/30">judged by Haiku</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5 text-[10px]">
-          <span className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
-            <Zap className="w-3 h-3" /> Fastest: {modelLabel(fastest.model)}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
-            <BookOpen className="w-3 h-3" /> Most readable: {modelLabel(mostReadable.model)}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
-            <FileText className="w-3 h-3" /> Most detailed: {modelLabel(longest.model)}
-          </span>
-        </div>
+      <div className="mb-5 flex items-center gap-2">
+        <BarChart3 className="w-3.5 h-3.5 text-teal-300" />
+        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">
+          Quality scores
+        </p>
+        <span className="text-[10px] text-white/30">judged by Haiku · 0–100 overall</span>
       </div>
 
       <div className="space-y-5">
@@ -375,54 +318,20 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
               </div>
             </div>
 
-            {/* Quality sub-metrics — 4 cells */}
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">Quality</div>
-              <div className="grid grid-cols-4 gap-2">
-                {SCORE_KEYS.map(({ key, label }) => {
-                  const isTop = topByDim.find(t => t.key === key)?.model === a.model;
-                  return (
-                    <div key={key} className="min-w-0">
-                      <div className="text-[10px] text-white/40 truncate">{label}</div>
-                      <div className={`text-xs mb-1 tabular-nums ${isTop ? "text-teal-200" : "text-white/70"}`}>
-                        {a.scores[key].toFixed(1)}
-                      </div>
-                      <Bar pct={a.scores[key] / 5} accent={isTop} />
+            {/* The 4 sub-metrics that roll up into the overall score */}
+            <div className="grid grid-cols-4 gap-2">
+              {SCORE_KEYS.map(({ key, label }) => {
+                const isTop = topByDim.find(t => t.key === key)?.model === a.model;
+                return (
+                  <div key={key} className="min-w-0">
+                    <div className="text-[10px] text-white/40 truncate">{label}</div>
+                    <div className={`text-xs mb-1 tabular-nums ${isTop ? "text-teal-200" : "text-white/70"}`}>
+                      {a.scores[key].toFixed(1)}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Raw metrics — 3 cells */}
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">Performance</div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="min-w-0">
-                  <div className="text-[10px] text-white/40 truncate">Speed</div>
-                  <div className={`text-xs mb-1 tabular-nums ${a.model === fastest.model ? "text-teal-200" : "text-white/70"}`}>
-                    {(a.runtime_ms / 1000).toFixed(1)}s
+                    <Bar pct={a.scores[key] / 5} accent={isTop} />
                   </div>
-                  <Bar pct={1 - a.runtime_ms / maxRuntime} accent={a.model === fastest.model} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] text-white/40 truncate">Readability</div>
-                  <div className={`text-xs mb-1 truncate ${a.model === mostReadable.model ? "text-teal-200" : "text-white/70"}`}>
-                    {readabilityLabel(a.readability)}
-                  </div>
-                  <Bar
-                    pct={maxRead > 0 ? Math.max(0, a.readability) / maxRead : 0}
-                    accent={a.model === mostReadable.model}
-                  />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] text-white/40 truncate">Detail</div>
-                  <div className={`text-xs mb-1 tabular-nums ${a.model === longest.model ? "text-teal-200" : "text-white/70"}`}>
-                    {a.words}w
-                  </div>
-                  <Bar pct={a.words / maxWords} accent={a.model === longest.model} />
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -751,7 +660,7 @@ function Home() {
                 <LoadingBlock title="Strongest single answer" gradientId="ld-winner" />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <LoadingBlock title="How they compared" gradientId="ld-summary" className="lg:h-full" />
-                  <LoadingBlock title="Scores & metrics" gradientId="ld-sm" />
+                  <LoadingBlock title="Quality scores" gradientId="ld-sm" />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {[...selected].map(id => (
