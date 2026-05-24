@@ -56,6 +56,8 @@ function XAILogo({ className }: { className?: string }) {
   )
 }
 
+import Link from "next/link"
+
 export function SocialProof() {
   const models = [
     { name: "Claude", logo: AnthropicLogo },
@@ -66,10 +68,14 @@ export function SocialProof() {
     { name: "Grok", logo: XAILogo },
   ]
 
+  // Smoother dark-to-light transition: extra `via` stop + more vertical padding
+  // gives the gradient room to breathe instead of slamming navy into white in
+  // the same band as the logos. The page is Hero(dark) → here → Features(light),
+  // so the gradient HAS to bridge those colours; we just stretch the bridge.
   return (
-    <section className="py-16 bg-gradient-to-b from-[#252547] to-background">
+    <section className="py-24 bg-gradient-to-b from-[#252547] via-[#6a6a87] to-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-sm text-muted-foreground mb-8">
+        <p className="text-center text-sm text-white/70 mb-8">
           Works with all major AI models
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4">
@@ -78,16 +84,22 @@ export function SocialProof() {
             return (
               <div
                 key={model.name}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-muted/50 border border-border hover:border-border/80 transition-colors"
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm"
               >
-                <Logo className="w-5 h-5 text-foreground/70" />
-                <span className="text-sm font-medium text-foreground/80">{model.name}</span>
+                <Logo className="w-5 h-5 text-white/80" />
+                <span className="text-sm font-medium text-white/90">{model.name}</span>
               </div>
             )
           })}
-          <div className="px-4 py-2.5 rounded-full bg-gradient-to-r from-teal-500/10 to-teal-500/5 border border-teal-500/20">
-            <span className="text-sm font-medium bg-gradient-to-r from-teal-500 to-teal-400 bg-clip-text text-transparent">+20 more</span>
-          </div>
+          <Link
+            href="/pricing"
+            className="px-4 py-2.5 rounded-full bg-gradient-to-r from-teal-500/15 to-teal-500/10 border border-teal-400/30 hover:border-teal-400/60 hover:from-teal-500/25 hover:to-teal-500/15 transition-colors"
+            aria-label="See all available models"
+          >
+            <span className="text-sm font-medium bg-gradient-to-r from-teal-300 to-teal-200 bg-clip-text text-transparent">
+              +20 more →
+            </span>
+          </Link>
         </div>
       </div>
     </section>
