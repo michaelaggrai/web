@@ -69,7 +69,16 @@ body {
   stroke-linecap: round;
   stroke-dasharray: 4 9;
 }
+/* Default node — `currentColor` is the fallback if a node ever ships
+   without a brand class. Brand-coloured nodes override below. */
 .aggrai-node { fill: currentColor; }
+/* Each outer dot picks up its provider's brand colour. Going clockwise
+   from the top: Anthropic, OpenAI, Google (Gemini), Meta, Mistral. */
+.aggrai-node-anthropic { fill: #D97757; }
+.aggrai-node-openai    { fill: #10A37F; }
+.aggrai-node-google    { fill: #4285F4; }
+.aggrai-node-meta      { fill: #0467DF; }
+.aggrai-node-mistral   { fill: #FF7000; }
 .aggrai-core { fill: var(--aggrai-teal); transform-origin: 50px 50px; }
 .aggrai-mesh {
   transform-origin: 50px 50px;
@@ -123,14 +132,33 @@ body {
    pulse-back-to-rest so the exit feels as alive as the entry. */
 .aggrai-logo.is-expanding .aggrai-mesh { animation: aggrai-pulse 0.9s cubic-bezier(.4, 0, .2, 1) 1; }
 
-/* Loading spinner — apply .is-loading to a stand-alone .aggrai-icon */
+/* Loading spinner — apply .is-loading to a stand-alone .aggrai-icon.
+   Layered animation:
+   - Whole icon "breathes" (gentle scale pulse) so the spinner feels alive
+     even before you focus on the inner detail.
+   - Mesh rotates slowly.
+   - Spokes' dashes flow inward toward the core — signals "gathering /
+     synthesising" rather than "broadcasting outward". (Reversed sign on
+     stroke-dashoffset vs. the original outward flow.)
+   - Core beats. */
+.aggrai-icon.is-loading {
+  animation: aggrai-breathe 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
 .aggrai-icon.is-loading .aggrai-mesh { transform: scale(1); animation: aggrai-rot 5.5s linear infinite; }
 .aggrai-icon.is-loading .aggrai-spoke { animation: aggrai-flow 0.85s linear infinite; }
 .aggrai-icon.is-loading .aggrai-core { animation: aggrai-beat 2.2s ease-in-out infinite; }
 
-@keyframes aggrai-flow { to { stroke-dashoffset: -13; } }
+/* Positive offset = dashes shift opposite to stroke direction.
+   Spokes are drawn center→node, so positive offset = dashes flow
+   from node back toward the center (visually: inward). */
+@keyframes aggrai-flow { to { stroke-dashoffset: 13; } }
 @keyframes aggrai-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(.62); } }
 @keyframes aggrai-rot { to { transform: rotate(360deg); } }
+@keyframes aggrai-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(0.88); }
+}
 /* Hover pulse — expand outward then return to rest size (1.32).
    Never shrinks below the default, so the icon stays readable. */
 @keyframes aggrai-pulse {
@@ -141,7 +169,10 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .aggrai-word, .aggrai-word b, .aggrai-mesh { transition-duration: 0.001ms; }
-  .aggrai-spoke, .aggrai-core, .aggrai-icon.is-loading .aggrai-mesh { animation: none; }
+  .aggrai-spoke,
+  .aggrai-core,
+  .aggrai-icon.is-loading,
+  .aggrai-icon.is-loading .aggrai-mesh { animation: none; }
 }
 
 /* ============================================================

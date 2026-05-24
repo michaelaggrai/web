@@ -11,6 +11,12 @@ type LogoProps = {
   symbolOnly?: boolean
 }
 
+// Each outer node carries a brand-coloured class so the pentagon visually
+// reads as "five model providers around the synthesised core". Colours
+// chosen from each provider's primary brand palette:
+//   anthropic = Claude orange, openai = green/teal, google = Gemini blue,
+//   meta = Meta blue, mistral = Mistral orange. Spokes stay neutral so the
+//   coloured dots are the visual focus.
 const MESH = (
   <g className="aggrai-mesh">
     <path className="aggrai-edge" d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" />
@@ -19,11 +25,11 @@ const MESH = (
     <line className="aggrai-spoke" x1="50" y1="50" x2="68" y2="74" />
     <line className="aggrai-spoke" x1="50" y1="50" x2="32" y2="74" />
     <line className="aggrai-spoke" x1="50" y1="50" x2="22" y2="41" />
-    <circle className="aggrai-node" cx="50" cy="20" r="4" />
-    <circle className="aggrai-node" cx="78" cy="41" r="4" />
-    <circle className="aggrai-node" cx="68" cy="74" r="4" />
-    <circle className="aggrai-node" cx="32" cy="74" r="4" />
-    <circle className="aggrai-node" cx="22" cy="41" r="4" />
+    <circle className="aggrai-node aggrai-node-anthropic" cx="50" cy="20" r="4" />
+    <circle className="aggrai-node aggrai-node-openai"    cx="78" cy="41" r="4" />
+    <circle className="aggrai-node aggrai-node-google"    cx="68" cy="74" r="4" />
+    <circle className="aggrai-node aggrai-node-meta"      cx="32" cy="74" r="4" />
+    <circle className="aggrai-node aggrai-node-mistral"   cx="22" cy="41" r="4" />
   </g>
 )
 
