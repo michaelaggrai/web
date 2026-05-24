@@ -2,48 +2,42 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Sparkles } from "lucide-react"
+import { ArrowRight, Sparkles, Shuffle } from "lucide-react"
 import { ModelPicker } from "@/components/model-picker"
 import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, type ModelEntry } from "@/lib/models"
 import { useTier } from "@/lib/use-tier"
 
-// Static pool — mirrors backend EXAMPLE_PROMPTS. Renders instantly without
-// waiting on a network roundtrip. Backend is still the source of truth for
-// cache lookups (same exact strings), so click-through still hits the cache.
-const EXAMPLE_POOL = [
+// Static fallback — used until /api/prompts responds with the live pool.
+// These also serve as the displayed prompts if the API is unreachable.
+const FALLBACK_POOL = [
   "Should I learn Rust or Go in 2026?",
   "Explain CRISPR like I'm five",
-  "Compare React Server Components vs Astro Islands",
-  "What's the best way to invest £10k right now?",
   "How does GPS actually work?",
-  "Compare Python and TypeScript for a small startup",
-  "What makes a great manager?",
   "Why does entropy always increase?",
-  "Should I do a PhD or join a startup?",
-  "Explain the difference between AI and AGI",
-  "How do I learn a new language fast?",
-  "What's the strongest argument against free will?",
-  "Compare electric vs hybrid cars for daily commuting",
-  "How should a junior engineer use AI tools?",
-  "What's the best way to learn to draw as an adult?",
-  "Is intermittent fasting actually effective?",
+  "What makes a great manager?",
   "Explain transformer attention in plain English",
-  "What's wrong with the standard model of physics?",
 ]
 
-function pickThree<T>(arr: T[]): T[] {
+const VISIBLE_COUNT = 6
+
+// Fisher-Yates partial shuffle: returns N random items from arr.
+function pickN<T>(arr: T[], n: number): T[] {
   const copy = [...arr]
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[copy[i], copy[j]] = [copy[j], copy[i]]
   }
-  return copy.slice(0, 3)
+  return copy.slice(0, Math.min(n, copy.length))
 }
 
 export function Hero() {
   const [query, setQuery] = useState("")
-  // Initialise immediately on mount — no network wait
-  const [examples, setExamples] = useState<string[]>(() => pickThree(EXAMPLE_POOL))
+  // `pool` is the full set of available prompts (loaded from /api/prompts).
+  // `examples` is the VISIBLE_COUNT-sized subset currently shown. Shuffle
+  // picks a new subset from `pool`. We keep both so Shuffle is instant —
+  // no network roundtrip per click.
+  const [pool, setPool] = useState<string[]>(FALLBACK_POOL)
+  const [examples, setExamples] = useState<string[]>(() => pickN(FALLBACK_POOL, VISIBLE_COUNT))
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS)
   const [selected, setSelected] = useState<Set<string>>(new Set(TIER_DEFAULTS.free))
   const router = useRouter()
@@ -59,7 +53,35 @@ export function Hero() {
         if (Array.isArray(d.models) && d.models.length > 0) setAllModels(d.models)
       })
       .catch(() => {})
+    // Load the full pool so the Shuffle button has more than 6 options to draw
+    // from. Falls back silently to the static FALLBACK_POOL on error.
+    fetch("/api/prompts?all=1")
+      .then(r => r.json())
+      .then((d: { prompts?: string[] }) => {
+        if (Array.isArray(d.prompts) && d.prompts.length >= VISIBLE_COUNT) {
+          setPool(d.prompts)
+          setExamples(pickN(d.prompts, VISIBLE_COUNT))
+        }
+      })
+      .catch(() => {})
   }, [])
+
+  function shuffle() {
+    // Avoid showing exactly the same 6 twice in a row when the pool is large
+    // enough to make that statistically unlikely anyway, but the user clicked
+    // Shuffle so they should see *something* change.
+    if (pool.length <= VISIBLE_COUNT) {
+      setExamples(pickN(pool, VISIBLE_COUNT))
+      return
+    }
+    let next = pickN(pool, VISIBLE_COUNT)
+    let attempts = 0
+    while (attempts < 5 && next.every(p => examples.includes(p))) {
+      next = pickN(pool, VISIBLE_COUNT)
+      attempts++
+    }
+    setExamples(next)
+  }
 
   // Navigate to /app carrying both the question and the model selection
   function goToApp(prompt: string) {
@@ -130,8 +152,8 @@ export function Hero() {
                 />
               </div>
 
-              {/* Example prompts */}
-              <div className="mt-5 flex flex-wrap justify-center gap-2">
+              {/* Example prompts + Shuffle */}
+              <div className="mt-5 flex flex-wrap justify-center items-center gap-2">
                 {examples.map((prompt) => (
                   <button
                     key={prompt}
@@ -142,6 +164,17 @@ export function Hero() {
                     {prompt}
                   </button>
                 ))}
+                {pool.length > VISIBLE_COUNT && (
+                  <button
+                    type="button"
+                    onClick={shuffle}
+                    aria-label="Show different example questions"
+                    className="inline-flex items-center gap-1.5 text-sm text-white/40 hover:text-teal-300 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
+                  >
+                    <Shuffle className="w-3.5 h-3.5" />
+                    Shuffle
+                  </button>
+                )}
               </div>
             </form>
           </div>
