@@ -1,145 +1,152 @@
-import { Check, Minus, AlertCircle, Sparkles } from "lucide-react"
+import { Trophy, Layers, BarChart3 } from "lucide-react"
+import { AnthropicIcon, OpenAIIcon, GoogleIcon } from "@/components/brand-icons"
 
-interface ModelResponse {
-  name: string
-  color: string
-  response: string
-  agreement: "agree" | "partial" | "disagree"
-}
-
-const mockResponses: ModelResponse[] = [
-  {
-    name: "Claude",
-    color: "#00B5A3",
-    response: "Climate change is primarily caused by human activities, particularly the burning of fossil fuels...",
-    agreement: "agree"
-  },
-  {
-    name: "GPT-4o",
-    color: "#10B981",
-    response: "The scientific consensus strongly supports anthropogenic climate change as the dominant driver...",
-    agreement: "agree"
-  },
-  {
-    name: "Gemini",
-    color: "#3B82F6",
-    response: "Human-induced climate change is well-documented, with CO2 emissions being the primary factor...",
-    agreement: "agree"
-  },
-  {
-    name: "Mistral",
-    color: "#F59E0B",
-    response: "While natural factors play a role, human activities are the main contributor to recent warming...",
-    agreement: "partial"
-  },
-  {
-    name: "Llama",
-    color: "#EC4899",
-    response: "Evidence points to human activity as the primary cause of observed climate changes...",
-    agreement: "agree"
-  }
-]
-
-function AgreementIcon({ agreement }: { agreement: ModelResponse["agreement"] }) {
-  switch (agreement) {
-    case "agree":
-      return <Check className="w-3.5 h-3.5 text-emerald-500" />
-    case "partial":
-      return <Minus className="w-3.5 h-3.5 text-amber-500" />
-    case "disagree":
-      return <AlertCircle className="w-3.5 h-3.5 text-red-400" />
-  }
-}
-
+// Mockup of the headline results UI shown in /app — a Strongest-single-answer
+// block on top, then a Summary card with contributions + Aggrai's answer.
+// Static content; matches the real product shape so the marketing visual
+// stays honest as the product evolves.
 function ResultsMockup() {
   return (
-    <div className="bg-card rounded-3xl border border-border overflow-hidden shadow-xl shadow-black/5">
-      {/* Search bar */}
-      <div className="p-5 border-b border-border bg-muted/30">
-        <div className="flex items-center gap-3 bg-background rounded-xl px-4 py-3 border border-border">
-          <Sparkles className="w-4 h-4 text-teal-500" />
-          <span className="text-sm text-foreground">What causes climate change?</span>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-4 sm:p-5 shadow-2xl shadow-black/30 space-y-3">
+      {/* Question */}
+      <div className="text-xs text-white/40">
+        <span className="text-white/25">You asked:</span> Why do recessions hurt the poor more?
+      </div>
+
+      {/* Strongest single answer mini block */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3 flex items-center gap-3">
+        <div className="shrink-0 rounded-lg bg-amber-300/10 border border-amber-300/20 p-1.5">
+          <Trophy className="w-3.5 h-3.5 text-amber-300" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">Strongest single answer</p>
+          <div className="flex items-baseline gap-2 mt-0.5">
+            <AnthropicIcon className="w-3 h-3 self-center text-white/80" />
+            <span className="text-xs font-semibold text-white truncate">Claude Sonnet 4.6</span>
+            <span className="text-base font-bold text-teal-300 tabular-nums">92</span>
+            <span className="text-[10px] text-white/40">/100</span>
+          </div>
         </div>
       </div>
-      
-      {/* Results */}
-      <div className="divide-y divide-border">
-        {mockResponses.map((model) => (
-          <div key={model.name} className="p-5 hover:bg-muted/30 transition-colors">
-            <div className="flex items-start gap-3.5">
-              <div 
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-semibold shrink-0 shadow-sm"
-                style={{ backgroundColor: model.color }}
-              >
-                {model.name.charAt(0)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="font-medium text-foreground text-sm">{model.name}</span>
-                  <AgreementIcon agreement={model.agreement} />
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                  {model.response}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
+
+      {/* Summary card with contributions + aggrai's answer */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
+        <div className="flex items-center gap-1.5 mb-2.5">
+          <Layers className="w-3 h-3 text-teal-300" />
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+        </div>
+
+        {/* Contribution bars */}
+        <div className="space-y-1.5 mb-3 pb-3 border-b border-white/10">
+          <p className="text-[8px] font-semibold uppercase tracking-wider text-white/30 mb-1">Where the summary came from</p>
+          <ContribRow Icon={AnthropicIcon} label="Claude Sonnet 4.6" pct={48} />
+          <ContribRow Icon={GoogleIcon}    label="Gemini 2.5 Pro"    pct={32} />
+          <ContribRow Icon={OpenAIIcon}    label="GPT-4o"             pct={20} />
+        </div>
+
+        {/* Aggrai's answer */}
+        <p className="text-[9px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1">
+          Aggrai&apos;s answer
+        </p>
+        <p className="text-[11px] text-white/70 leading-relaxed">
+          Recessions hurt the poor more fundamentally because poverty itself is a state of economic fragility—one without buffers, options, or recovery assets…
+        </p>
+      </div>
+
+      {/* Quality scores mini block */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
+        <div className="flex items-center gap-1.5 mb-2">
+          <BarChart3 className="w-3 h-3 text-teal-300" />
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-teal-300/80">Quality scores</p>
+        </div>
+        <div className="space-y-1.5">
+          <ScoreRow Icon={AnthropicIcon} label="Claude Sonnet 4.6" score={92} winner />
+          <ScoreRow Icon={GoogleIcon}    label="Gemini 2.5 Pro"    score={86} />
+          <ScoreRow Icon={OpenAIIcon}    label="GPT-4o"             score={81} />
+        </div>
       </div>
     </div>
   )
 }
 
-function MetricsExplanation() {
+function ContribRow({ Icon, label, pct }: { Icon: typeof AnthropicIcon; label: string; pct: number }) {
+  return (
+    <div className="flex items-center gap-2 text-[10px]">
+      <Icon className="w-2.5 h-2.5 shrink-0 text-white/70" />
+      <span className="text-white/60 truncate w-24 shrink-0">{label}</span>
+      <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-teal-400/80 to-teal-300/80"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-white/50 tabular-nums w-7 text-right shrink-0">{pct}%</span>
+    </div>
+  )
+}
+
+function ScoreRow({ Icon, label, score, winner = false }: { Icon: typeof AnthropicIcon; label: string; score: number; winner?: boolean }) {
+  return (
+    <div className="flex items-center gap-2 text-[10px]">
+      <Icon className="w-2.5 h-2.5 shrink-0 text-white/70" />
+      <span className="text-white/60 truncate w-24 shrink-0">{label}</span>
+      <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${winner ? "bg-gradient-to-r from-teal-400 to-teal-300" : "bg-white/30"}`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+      <span className={`tabular-nums w-7 text-right shrink-0 ${winner ? "text-teal-300 font-semibold" : "text-white/50"}`}>{score}</span>
+    </div>
+  )
+}
+
+function FeaturesExplanation() {
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-3xl sm:text-4xl font-semibold text-foreground leading-tight">
-          See the full
-          <br />
-          <span className="bg-gradient-to-r from-teal-500 to-teal-400 bg-clip-text text-transparent">picture</span>
+        <h3 className="text-3xl sm:text-4xl font-semibold text-white leading-tight">
+          One answer.{" "}
+          <span className="bg-gradient-to-r from-teal-400 to-teal-300 bg-clip-text text-transparent">
+            All the models.
+          </span>
         </h3>
-        <p className="mt-4 text-muted-foreground text-lg leading-relaxed">
-          Query multiple AI models at once and instantly see where they agree or differ.
+        <p className="mt-4 text-white/60 text-base sm:text-lg leading-relaxed">
+          Aggrai sends your question to multiple AI models in parallel, scores each answer,
+          and synthesises a single best answer using the strongest content from each.
         </p>
       </div>
 
-      <div className="space-y-5">
-        <div className="flex items-start gap-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-            <Check className="w-5 h-5 text-emerald-500" />
-          </div>
-          <div>
-            <h4 className="font-medium text-foreground">Agreement Score</h4>
-            <p className="text-sm text-muted-foreground mt-1">
-              See when models reach the same conclusion.
-            </p>
-          </div>
-        </div>
+      <div className="space-y-4">
+        <FeatureRow
+          Icon={Layers}
+          title="Aggrai's answer"
+          body="A rewritten answer drawn from all the models, weighted by how well each one performed. Read this and skip the noise."
+        />
+        <FeatureRow
+          Icon={BarChart3}
+          title="Quality scores"
+          body="Every answer is judged on comprehension, depth, nuance and clarity. So you can see why the synthesis chose what it chose."
+        />
+        <FeatureRow
+          Icon={Trophy}
+          title="Strongest single answer"
+          body="If you want to keep chatting with one model, we tell you which one had the best individual answer for this question."
+        />
+      </div>
+    </div>
+  )
+}
 
-        <div className="flex items-start gap-4 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-            <Minus className="w-5 h-5 text-amber-500" />
-          </div>
-          <div>
-            <h4 className="font-medium text-foreground">Nuanced Differences</h4>
-            <p className="text-sm text-muted-foreground mt-1">
-              Spot subtle differences in interpretation.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-4 p-4 rounded-2xl bg-red-500/5 border border-red-500/10">
-          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
-            <AlertCircle className="w-5 h-5 text-red-400" />
-          </div>
-          <div>
-            <h4 className="font-medium text-foreground">Conflicting Views</h4>
-            <p className="text-sm text-muted-foreground mt-1">
-              Know when to dig deeper on complex topics.
-            </p>
-          </div>
-        </div>
+function FeatureRow({ Icon, title, body }: { Icon: typeof Trophy; title: string; body: string }) {
+  return (
+    <div className="flex items-start gap-3.5 p-4 rounded-xl bg-white/[0.03] border border-white/10">
+      <div className="w-9 h-9 rounded-lg bg-teal-400/10 border border-teal-400/20 flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-teal-300" />
+      </div>
+      <div>
+        <h4 className="font-semibold text-white text-sm">{title}</h4>
+        <p className="text-sm text-white/55 mt-1 leading-relaxed">{body}</p>
       </div>
     </div>
   )
@@ -147,17 +154,25 @@ function MetricsExplanation() {
 
 export function Features() {
   return (
-    <section id="features" className="py-24 bg-background scroll-mt-20">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+    <section
+      id="features"
+      className="relative py-24 sm:py-28 bg-gradient-to-b from-background via-[#252547] to-navy scroll-mt-20 overflow-hidden"
+    >
+      {/* Soft accent orbs to match the rest of the dark sections */}
+      <div className="pointer-events-none absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[140px]" />
+      <div className="pointer-events-none absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-teal-500/8 rounded-full blur-[120px]" />
+
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="order-2 lg:order-1">
             <ResultsMockup />
           </div>
           <div className="order-1 lg:order-2">
-            <MetricsExplanation />
+            <FeaturesExplanation />
           </div>
         </div>
       </div>
+
     </section>
   )
 }
