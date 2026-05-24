@@ -685,7 +685,11 @@ function Home() {
                         {result.answers.some(a => a.scores) && (
                           <WinnerBlock
                             answers={result.answers}
-                            onContinue={handleContinueWith}
+                            // 'Continue with X' button hidden until V2
+                            // persistent conversation lands. handleContinueWith
+                            // is left in place so the wire-up is ready when
+                            // we re-enable; just don't pass it for now.
+                            // onContinue={handleContinueWith}
                           />
                         )}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
