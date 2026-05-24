@@ -33,6 +33,7 @@ type Answer = {
 };
 
 type Contribution = { model: string; pct: number };
+type SectionAttribution = { heading: string; primary: string; supporting: string[] };
 
 type Result =
   | { type: "product"; answer: string; question: string; cached?: boolean }
@@ -42,6 +43,7 @@ type Result =
       answers: Answer[];
       question: string;
       contributions?: Contribution[] | null;
+      section_attributions?: SectionAttribution[] | null;
       failed?: { model: string; error: string }[];
       cached?: boolean;
     };
@@ -87,6 +89,140 @@ const MARKDOWN_COMPONENTS = {
   strong: ({ children }: { children?: React.ReactNode }) => <strong>{highlightNode(children, "s")}</strong>,
   em: ({ children }: { children?: React.ReactNode }) => <em>{highlightNode(children, "e")}</em>,
 };
+
+// Extract plain text from arbitrary ReactMarkdown children (strings, fragments,
+// nested elements). Used by the heading-detection logic that looks for
+// "**Bold heading:**" style paragraphs to attach attribution chips to.
+function extractText(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join("");
+  if (React.isValidElement(node)) {
+    const props = node.props as { children?: React.ReactNode };
+    return extractText(props.children);
+  }
+  return "";
+}
+
+// True if a paragraph's children are ONLY a single bold child (with optional
+// trailing colon / whitespace). Matches the "## Heading"-via-bold pattern the
+// summariser tends to produce: `**Your foundation matters first:**`
+function isBoldOnlyParagraph(children: React.ReactNode): boolean {
+  const arr = React.Children.toArray(children);
+  // Allow optional trailing colon/punctuation text nodes
+  const meaningful = arr.filter(c => {
+    if (typeof c === "string") return c.trim().length > 0;
+    return true;
+  });
+  if (meaningful.length === 0) return false;
+  const first = meaningful[0];
+  if (!React.isValidElement(first)) return false;
+  // Tag name check — handles both `strong` and `b`
+  const tag = (first as { type?: string | { displayName?: string } }).type;
+  const tagName = typeof tag === "string" ? tag : "";
+  if (tagName !== "strong" && tagName !== "b") return false;
+  // Any remaining children must be tiny punctuation-only text (e.g. ":")
+  const rest = meaningful.slice(1);
+  return rest.every(c => typeof c === "string" && /^[\s:.;!?–—-]*$/.test(c));
+}
+
+// Normalise a heading string for fuzzy matching: lowercase, strip trailing
+// colons + punctuation + whitespace so "Your foundation matters first:" and
+// "your foundation matters FIRST" both match the same attribution entry.
+function normHeading(s: string): string {
+  return s.trim().toLowerCase().replace(/[\s:.,!?]+$/g, "");
+}
+
+// Small chip rendered after each attributed heading — "via Claude · Gemini"
+// in muted text. Validates the model IDs exist in answers before showing
+// (silently drops invalid ones from the chip).
+function AttributionChip({
+  attribution,
+  knownModelIds,
+}: {
+  attribution: SectionAttribution;
+  knownModelIds: Set<string>;
+}) {
+  const primaryOk = knownModelIds.has(attribution.primary);
+  if (!primaryOk) return null;
+  const supporting = (attribution.supporting ?? []).filter(m => knownModelIds.has(m) && m !== attribution.primary);
+  return (
+    <span
+      className="inline-flex items-center gap-1 ml-2 align-middle text-[10px] text-white/40 font-normal not-prose"
+      title={`Summariser estimate — content for this section drew mostly from ${modelLabel(attribution.primary)}${supporting.length > 0 ? `, with input from ${supporting.map(modelLabel).join(", ")}` : ""}`}
+    >
+      <span>via</span>
+      <ProviderLogo provider={providerOf(attribution.primary)} className="w-3 h-3 self-center" />
+      <span className="text-white/55">{modelLabel(attribution.primary)}</span>
+      {supporting.length > 0 && (
+        <>
+          <span className="text-white/30">·</span>
+          {supporting.map(m => (
+            <span key={m} className="inline-flex items-center gap-0.5 text-white/40">
+              <ProviderLogo provider={providerOf(m)} className="w-3 h-3 self-center" />
+              {modelLabel(m)}
+            </span>
+          ))}
+        </>
+      )}
+    </span>
+  );
+}
+
+// Factory: returns ReactMarkdown components that inject attribution chips
+// after each heading-like element (h2 or bold-only paragraph) when a
+// matching section_attribution exists. Used only for the Aggrai's answer
+// render — the default MARKDOWN_COMPONENTS handles everything else.
+function makeAggraiAnswerComponents(
+  attributions: SectionAttribution[],
+  knownModelIds: Set<string>,
+) {
+  // Index by normalised heading for O(1) lookup
+  const byHeading = new Map<string, SectionAttribution>();
+  for (const a of attributions) {
+    byHeading.set(normHeading(a.heading), a);
+  }
+  const lookup = (text: string) => byHeading.get(normHeading(text));
+
+  return {
+    p: ({ children }: { children?: React.ReactNode }) => {
+      if (isBoldOnlyParagraph(children)) {
+        const text = extractText(children);
+        const attribution = lookup(text);
+        return (
+          <p>
+            {highlightNode(children, "p")}
+            {attribution && <AttributionChip attribution={attribution} knownModelIds={knownModelIds} />}
+          </p>
+        );
+      }
+      return <p>{highlightNode(children, "p")}</p>;
+    },
+    h2: ({ children }: { children?: React.ReactNode }) => {
+      const text = extractText(children);
+      const attribution = lookup(text);
+      return (
+        <h2>
+          {highlightNode(children, "h2")}
+          {attribution && <AttributionChip attribution={attribution} knownModelIds={knownModelIds} />}
+        </h2>
+      );
+    },
+    h3: ({ children }: { children?: React.ReactNode }) => {
+      const text = extractText(children);
+      const attribution = lookup(text);
+      return (
+        <h3>
+          {highlightNode(children, "h3")}
+          {attribution && <AttributionChip attribution={attribution} knownModelIds={knownModelIds} />}
+        </h3>
+      );
+    },
+    li: ({ children }: { children?: React.ReactNode }) => <li>{highlightNode(children, "li")}</li>,
+    strong: ({ children }: { children?: React.ReactNode }) => <strong>{highlightNode(children, "s")}</strong>,
+    em: ({ children }: { children?: React.ReactNode }) => <em>{highlightNode(children, "e")}</em>,
+  };
+}
 
 function LoadingBlock({ title, gradientId, className = "" }: { title: string; gradientId: string; className?: string }) {
   return (
@@ -832,9 +968,24 @@ function Home() {
                                   · combined from all models, weighted by score
                                 </span>
                               </p>
-                              <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
-                                {best || result.summary}
-                              </ReactMarkdown>
+                              {(() => {
+                                // If we have section attributions, use the
+                                // attribution-aware components factory so each
+                                // section heading gets a "via X" chip.
+                                // Otherwise fall back to plain markdown — no
+                                // visual difference for users on legacy cached
+                                // responses without attributions.
+                                const attrs = result.section_attributions ?? [];
+                                const knownIds = new Set(result.answers.map(a => a.model));
+                                const components = attrs.length > 0
+                                  ? makeAggraiAnswerComponents(attrs, knownIds)
+                                  : MARKDOWN_COMPONENTS;
+                                return (
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+                                    {best || result.summary}
+                                  </ReactMarkdown>
+                                );
+                              })()}
                             </div>
                           </div>
                           <div className="min-w-0">
