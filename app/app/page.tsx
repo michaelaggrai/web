@@ -125,15 +125,37 @@ function overallScore(s: Scores): number {
 //   ## Best answer    (a full rewritten answer using all models, weighted
 //                      by their scores — see backend summariser prompt)
 // We split it out so we can render the Best Answer with a stronger visual
-// hierarchy inside the Summary card. If the section header is missing
-// (e.g. legacy cached responses with the old multi-section format), the
-// whole `summary` string is rendered as-is.
+// hierarchy inside the Summary card. Legacy multi-section responses (with
+// "Where they agree" / "Where they differ") still parse correctly — best
+// answer is everything between the heading and the next "##" or the end.
+//
+// IMPORTANT: JavaScript regex has NO `\Z` end-of-string assertion (unlike
+// Perl). An earlier version of this function used `\Z` in a lookahead;
+// JS regex interpreted it as the literal letter Z, so any answer
+// containing a Z (e.g. "specialized", "amazing", "size") got truncated
+// at the first Z. Procedural string slicing here avoids the trap.
 function splitSummary(summary: string): { best: string | null; rest: string } {
-  const match = summary.match(/^[ \t]*##\s*Best\s+answer\s*\n([\s\S]*?)(?=^\s*##\s|\Z)/im);
-  if (!match) return { best: null, rest: summary };
-  const best = match[1].trim();
-  const rest = summary.replace(match[0], "").trim();
-  return { best, rest };
+  const headerMatch = summary.match(/##\s*Best\s+answer\s*\n/i);
+  if (!headerMatch || headerMatch.index === undefined) {
+    return { best: null, rest: summary };
+  }
+  const start = headerMatch.index;
+  const afterHeader = start + headerMatch[0].length;
+  const remainder = summary.slice(afterHeader);
+  // Find next "## " heading after the Best Answer section, if any
+  const nextHeadingRel = remainder.search(/\n##\s/);
+  if (nextHeadingRel === -1) {
+    // No more headings — best answer runs to end of string
+    return {
+      best: remainder.trim(),
+      rest: summary.slice(0, start).trim(),
+    };
+  }
+  const end = afterHeader + nextHeadingRel;
+  return {
+    best: summary.slice(afterHeader, end).trim(),
+    rest: (summary.slice(0, start) + summary.slice(end + 1)).trim(),
+  };
 }
 
 // Highlights the single highest-scoring model alongside a CTA to continue
