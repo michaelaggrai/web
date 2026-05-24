@@ -7,18 +7,15 @@ import { ModelPicker } from "@/components/model-picker"
 import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, type ModelEntry } from "@/lib/models"
 import { useTier } from "@/lib/use-tier"
 
-// Static fallback — used until /api/prompts responds with the live pool.
-// These also serve as the displayed prompts if the API is unreachable.
+// Static fallback — used until /api/prompts responds with the live pool,
+// and as the displayed prompts if the API is unreachable.
 const FALLBACK_POOL = [
-  "Should I learn Rust or Go in 2026?",
-  "Explain CRISPR like I'm five",
+  "Why do recessions hurt the poor more?",
+  "Can democracy survive extreme wealth inequality?",
   "How does GPS actually work?",
-  "Why does entropy always increase?",
-  "What makes a great manager?",
-  "Explain transformer attention in plain English",
 ]
 
-const VISIBLE_COUNT = 6
+const VISIBLE_COUNT = 3
 
 // Fisher-Yates partial shuffle: returns N random items from arr.
 function pickN<T>(arr: T[], n: number): T[] {
