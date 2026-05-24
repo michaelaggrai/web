@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3, Menu, ChevronDown } from "lucide-react";
+import { ArrowRight, Zap, BookOpen, FileText, Sparkles, Layers, BarChart3, Menu, ChevronDown, Trophy } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
@@ -32,9 +32,19 @@ type Answer = {
   scores?: Scores | null;
 };
 
+type Contribution = { model: string; pct: number };
+
 type Result =
   | { type: "product"; answer: string; question: string; cached?: boolean }
-  | { type: "compare"; summary: string; answers: Answer[]; question: string; failed?: { model: string; error: string }[]; cached?: boolean };
+  | {
+      type: "compare";
+      summary: string;
+      answers: Answer[];
+      question: string;
+      contributions?: Contribution[] | null;
+      failed?: { model: string; error: string }[];
+      cached?: boolean;
+    };
 
 let _modelLabels: Record<string, string> = Object.fromEntries(FALLBACK_MODELS.map(m => [m.id, m.label]));
 function setModelLabels(catalog: ModelEntry[]) {
@@ -132,57 +142,92 @@ const SCORE_KEYS: { key: keyof Scores; label: string }[] = [
   { key: "clarity",           label: "Clarity" },
 ];
 
-function QualityScores({ answers }: { answers: Answer[] }) {
+// Map each scored answer's 4 dimensions (each 0-5) to a single 0-100
+// quality score. Simple unweighted average × 20. This is a stand-in until
+// AGG-7's weighted 5-dimension Quality Score lands; the layout is already
+// shaped to plug that in (one big number + sub-metric breakdown).
+function overallScore(s: Scores): number {
+  return Math.round(((s.comprehension + s.thought_provoking + s.nuance + s.clarity) / 4) * 20);
+}
+
+// Big "winner" block shown at the very top of results when 2+ models compared.
+// Surfaces the single highest-scoring answer so the user instantly sees who
+// "won" — the rest of the page is then the explanation of why.
+function WinnerBlock({ answers }: { answers: Answer[] }) {
   const scored = answers.filter((a): a is Answer & { scores: Scores } => !!a.scores);
   if (scored.length === 0) return null;
 
-  const winners = SCORE_KEYS.map(({ key, label }) => {
-    const top = scored.reduce((p, c) => (c.scores[key] > p.scores[key] ? c : p));
-    return { key, label, model: top.model, value: top.scores[key] };
-  });
+  const ranked = [...scored]
+    .map(a => ({ ...a, overall: overallScore(a.scores) }))
+    .sort((a, b) => b.overall - a.overall);
+  const winner = ranked[0];
+  const runnerUp = ranked[1];
 
-  const ScoreBar = ({ value, accent }: { value: number; accent?: boolean }) => (
-    <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
-      <div
-        className={`h-full rounded-full ${accent ? "bg-gradient-to-r from-teal-400 to-teal-300" : "bg-white/30"}`}
-        style={{ width: `${(value / 5) * 100}%` }}
-      />
-    </div>
-  );
+  // Find which dimensions the winner topped (helps the "Strongest on …" copy)
+  const wonOn = SCORE_KEYS.filter(({ key }) => {
+    const top = scored.reduce((p, c) => (c.scores[key] > p.scores[key] ? c : p));
+    return top.model === winner.model;
+  }).map(k => k.label);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
-      <div className="mb-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-3.5 h-3.5 text-teal-300" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Quality scores</p>
-          <span className="text-[10px] text-white/30">judged by Haiku · 0–5</span>
+    <div className="rounded-2xl border border-teal-400/30 bg-gradient-to-br from-teal-500/[0.08] to-teal-500/[0.02] backdrop-blur-xl p-6 shadow-xl shadow-teal-500/10">
+      <div className="flex items-start gap-4">
+        <div className="shrink-0 rounded-xl bg-teal-400/15 border border-teal-400/30 p-2.5">
+          <Trophy className="w-5 h-5 text-teal-300" />
         </div>
-        <div className="flex flex-wrap gap-2 text-[10px]">
-          {winners.map(w => (
-            <span key={w.key} className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
-              {w.label}: {modelLabel(w.model)}
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1">
+            Best answer
+          </p>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <ProviderLogo provider={providerOf(winner.model)} className="w-5 h-5 self-center shrink-0" />
+            <span className="text-xl sm:text-2xl font-semibold text-white truncate">
+              {modelLabel(winner.model)}
             </span>
-          ))}
+            <span className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-teal-300 to-teal-200 bg-clip-text text-transparent tabular-nums">
+              {winner.overall}
+            </span>
+            <span className="text-xs text-white/40">/100</span>
+            {runnerUp && (
+              <span className="text-xs text-white/40">
+                · {modelLabel(runnerUp.model)} {runnerUp.overall}
+              </span>
+            )}
+          </div>
+          {wonOn.length > 0 && (
+            <p className="mt-1 text-xs text-white/50">
+              Strongest on {wonOn.join(", ").toLowerCase()}.
+            </p>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="space-y-4">
-        {scored.map(a => (
-          <div key={a.model} className="grid grid-cols-1 sm:grid-cols-[130px_1fr] gap-2 sm:gap-4 items-center">
-            <div className="text-xs font-medium text-white/80 truncate">{modelLabel(a.model)}</div>
-            <div className="grid grid-cols-2 gap-3">
-              {SCORE_KEYS.map(({ key, label }) => (
-                <div key={key} className="min-w-0">
-                  <div className="text-[10px] text-white/40 truncate">{label}</div>
-                  <div className="text-xs text-white/70 mb-1 truncate">{a.scores[key].toFixed(1)}</div>
-                  <ScoreBar
-                    value={a.scores[key]}
-                    accent={winners.find(w => w.key === key)?.model === a.model}
-                  />
-                </div>
-              ))}
+// Stacked bars under the summary showing how much each model's content
+// influenced the synthesised "Best answer". Source is the summariser's
+// self-reported attribution; values sum to ~100.
+function ContributionBreakdown({ contributions }: { contributions: Contribution[] }) {
+  if (contributions.length === 0) return null;
+  const sorted = [...contributions].sort((a, b) => b.pct - a.pct);
+  return (
+    <div className="mt-5 pt-4 border-t border-white/10">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-3">
+        Where the summary came from
+      </p>
+      <div className="space-y-2">
+        {sorted.map(({ model, pct }) => (
+          <div key={model} className="flex items-center gap-2 text-xs">
+            <ProviderLogo provider={providerOf(model)} className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-white/70 w-32 truncate shrink-0">{modelLabel(model)}</span>
+            <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-teal-400/80 to-teal-300/80"
+                style={{ width: `${Math.max(2, pct)}%` }}
+              />
             </div>
+            <span className="text-white/60 tabular-nums w-10 text-right shrink-0">{pct}%</span>
           </div>
         ))}
       </div>
@@ -190,25 +235,43 @@ function QualityScores({ answers }: { answers: Answer[] }) {
   );
 }
 
-function MetricsCompare({ answers }: { answers: Answer[] }) {
-  const enriched = answers.map(a => ({
+// Combined block: per-model overall quality score, 4 quality sub-metrics
+// (Haiku-judged), and 3 raw metrics (speed, readability, length) in one
+// card. Replaces the old separate QualityScores + MetricsCompare pair.
+function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
+  const scored = answers.filter((a): a is Answer & { scores: Scores } => !!a.scores);
+  if (scored.length === 0) return null;
+
+  // Augment with derived metrics so we can sort by overall and find winners
+  // for each dimension in one pass.
+  const enriched = scored.map(a => ({
     ...a,
+    overall: overallScore(a.scores),
     words: wordCount(a.answer),
     readability: fleschReadingEase(a.answer),
   }));
-  const fastest = enriched.reduce((p, c) => (c.runtime_ms < p.runtime_ms ? c : p));
+
+  const fastest      = enriched.reduce((p, c) => (c.runtime_ms < p.runtime_ms ? c : p));
   const mostReadable = enriched.reduce((p, c) => (c.readability > p.readability ? c : p));
-  const longest = enriched.reduce((p, c) => (c.words > p.words ? c : p));
+  const longest      = enriched.reduce((p, c) => (c.words > p.words ? c : p));
+  const topByDim     = SCORE_KEYS.map(({ key }) => ({
+    key,
+    model: enriched.reduce((p, c) => (c.scores[key] > p.scores[key] ? c : p)).model,
+  }));
 
   const maxRuntime = Math.max(...enriched.map(a => a.runtime_ms));
   const maxWords   = Math.max(...enriched.map(a => a.words));
   const maxRead    = Math.max(...enriched.map(a => Math.max(0, a.readability)));
+  const maxOverall = Math.max(...enriched.map(a => a.overall));
+
+  // Render rows ordered by overall score (winner first)
+  const ranked = [...enriched].sort((a, b) => b.overall - a.overall);
 
   const Bar = ({ pct, accent }: { pct: number; accent?: boolean }) => (
     <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
       <div
         className={`h-full rounded-full ${accent ? "bg-gradient-to-r from-teal-400 to-teal-300" : "bg-white/30"}`}
-        style={{ width: `${Math.max(4, pct * 100)}%` }}
+        style={{ width: `${Math.max(2, Math.min(100, pct * 100))}%` }}
       />
     </div>
   );
@@ -218,9 +281,12 @@ function MetricsCompare({ answers }: { answers: Answer[] }) {
       <div className="mb-5">
         <div className="flex items-center gap-2 mb-3">
           <BarChart3 className="w-3.5 h-3.5 text-teal-300" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Comparison</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">
+            Scores &amp; metrics
+          </p>
+          <span className="text-[10px] text-white/30">judged by Haiku</span>
         </div>
-        <div className="flex flex-wrap gap-2 text-[10px]">
+        <div className="flex flex-wrap gap-1.5 text-[10px]">
           <span className="inline-flex items-center gap-1 rounded-full bg-teal-400/15 text-teal-200 border border-teal-400/20 px-2 py-0.5">
             <Zap className="w-3 h-3" /> Fastest: {modelLabel(fastest.model)}
           </span>
@@ -233,28 +299,70 @@ function MetricsCompare({ answers }: { answers: Answer[] }) {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {enriched.map(a => (
-          <div key={a.model} className="grid grid-cols-1 sm:grid-cols-[130px_1fr] gap-2 sm:gap-4 items-center">
-            <div className="text-xs font-medium text-white/80 truncate">{modelLabel(a.model)}</div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="min-w-0">
-                <div className="text-[10px] text-white/40 truncate">Speed</div>
-                <div className="text-xs text-white/70 mb-1 truncate">{(a.runtime_ms / 1000).toFixed(1)}s</div>
-                <Bar pct={1 - a.runtime_ms / maxRuntime} accent={a.model === fastest.model} />
+      <div className="space-y-5">
+        {ranked.map(a => (
+          <div key={a.model} className="space-y-2">
+            {/* Per-model header: name + big overall score */}
+            <div className="flex items-baseline justify-between gap-2 border-b border-white/5 pb-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-xs font-medium text-white/90 truncate">{modelLabel(a.model)}</span>
               </div>
-              <div className="min-w-0">
-                <div className="text-[10px] text-white/40 truncate">Readability</div>
-                <div className="text-xs text-white/70 mb-1 truncate">{readabilityLabel(a.readability)}</div>
-                <Bar
-                  pct={maxRead > 0 ? Math.max(0, a.readability) / maxRead : 0}
-                  accent={a.model === mostReadable.model}
-                />
+              <div className="flex items-baseline gap-1 shrink-0">
+                <span className={`text-base font-semibold tabular-nums ${a.overall === maxOverall ? "text-teal-300" : "text-white/80"}`}>
+                  {a.overall}
+                </span>
+                <span className="text-[10px] text-white/40">/100</span>
               </div>
-              <div className="min-w-0">
-                <div className="text-[10px] text-white/40 truncate">Detail</div>
-                <div className="text-xs text-white/70 mb-1 truncate">{a.words}w</div>
-                <Bar pct={a.words / maxWords} />
+            </div>
+
+            {/* Quality sub-metrics — 4 cells */}
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">Quality</div>
+              <div className="grid grid-cols-4 gap-2">
+                {SCORE_KEYS.map(({ key, label }) => {
+                  const isTop = topByDim.find(t => t.key === key)?.model === a.model;
+                  return (
+                    <div key={key} className="min-w-0">
+                      <div className="text-[10px] text-white/40 truncate">{label}</div>
+                      <div className={`text-xs mb-1 tabular-nums ${isTop ? "text-teal-200" : "text-white/70"}`}>
+                        {a.scores[key].toFixed(1)}
+                      </div>
+                      <Bar pct={a.scores[key] / 5} accent={isTop} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Raw metrics — 3 cells */}
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">Performance</div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="min-w-0">
+                  <div className="text-[10px] text-white/40 truncate">Speed</div>
+                  <div className={`text-xs mb-1 tabular-nums ${a.model === fastest.model ? "text-teal-200" : "text-white/70"}`}>
+                    {(a.runtime_ms / 1000).toFixed(1)}s
+                  </div>
+                  <Bar pct={1 - a.runtime_ms / maxRuntime} accent={a.model === fastest.model} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] text-white/40 truncate">Readability</div>
+                  <div className={`text-xs mb-1 truncate ${a.model === mostReadable.model ? "text-teal-200" : "text-white/70"}`}>
+                    {readabilityLabel(a.readability)}
+                  </div>
+                  <Bar
+                    pct={maxRead > 0 ? Math.max(0, a.readability) / maxRead : 0}
+                    accent={a.model === mostReadable.model}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] text-white/40 truncate">Detail</div>
+                  <div className={`text-xs mb-1 tabular-nums ${a.model === longest.model ? "text-teal-200" : "text-white/70"}`}>
+                    {a.words}w
+                  </div>
+                  <Bar pct={a.words / maxWords} accent={a.model === longest.model} />
+                </div>
               </div>
             </div>
           </div>
@@ -559,12 +667,10 @@ function Home() {
           {loading && (
             intentHint === "compare" && selected.size > 1 ? (
               <div className="space-y-4">
+                <LoadingBlock title="Best answer" gradientId="ld-winner" />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full" />
-                  <div className="space-y-4">
-                    <LoadingBlock title="Comparison" gradientId="ld-cmp" />
-                    <LoadingBlock title="Quality scores" gradientId="ld-q" />
-                  </div>
+                  <LoadingBlock title="Scores & metrics" gradientId="ld-sm" />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {[...selected].map(id => (
@@ -597,25 +703,34 @@ function Home() {
                 </div>
               ) : (
                 <>
-                  {/* Summary + (Comparison stacked over Quality scores) — only when comparing 2+ models */}
+                  {/* Multi-model results: Winner banner on top, then 2-col
+                      with Summary (+ contribution bars) on left and combined
+                      Scores & Metrics on right. */}
                   {result.answers.length > 1 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Layers className="w-3.5 h-3.5 text-teal-300" />
-                          <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+                    <>
+                      {result.answers.some(a => a.scores) && (
+                        <WinnerBlock answers={result.answers} />
+                      )}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
+                          <div className="flex items-center gap-2 mb-4">
+                            <Layers className="w-3.5 h-3.5 text-teal-300" />
+                            <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+                          </div>
+                          <div className="prose prose-sm prose-invert max-w-none
+                            prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
+                            prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>{result.summary}</ReactMarkdown>
+                          </div>
+                          {result.contributions && result.contributions.length > 0 && (
+                            <ContributionBreakdown contributions={result.contributions} />
+                          )}
                         </div>
-                        <div className="prose prose-sm prose-invert max-w-none
-                          prose-h2:text-sm prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
-                          prose-ul:my-1 prose-li:my-0.5 prose-p:my-2 prose-strong:text-white">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>{result.summary}</ReactMarkdown>
+                        <div className="min-w-0">
+                          <ScoresAndMetrics answers={result.answers} />
                         </div>
                       </div>
-                      <div className="space-y-4 min-w-0">
-                        <MetricsCompare answers={result.answers} />
-                        {result.answers.some(a => a.scores) && <QualityScores answers={result.answers} />}
-                      </div>
-                    </div>
+                    </>
                   )}
 
                   {/* Per-model answers — full width if only one */}
