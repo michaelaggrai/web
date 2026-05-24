@@ -320,17 +320,24 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
               </div>
             </div>
 
-            {/* The 4 sub-metrics that roll up into the overall score */}
-            <div className="grid grid-cols-4 gap-2">
+            {/* The 4 sub-metrics that roll up into the overall score —
+                2×2 grid so the card stays narrow on desktop (was 4-wide
+                which forced the column too wide and squeezed the
+                Summary card next to it). */}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
               {SCORE_KEYS.map(({ key, label }) => {
                 const isTop = topByDim.find(t => t.key === key)?.model === a.model;
                 return (
-                  <div key={key} className="min-w-0">
-                    <div className="text-[10px] text-white/40 truncate">{label}</div>
-                    <div className={`text-xs mb-1 tabular-nums ${isTop ? "text-teal-200" : "text-white/70"}`}>
-                      {a.scores[key].toFixed(1)}
+                  <div key={key} className="min-w-0 flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-1">
+                        <span className="text-[10px] text-white/40 truncate">{label}</span>
+                        <span className={`text-xs tabular-nums shrink-0 ${isTop ? "text-teal-200" : "text-white/70"}`}>
+                          {a.scores[key].toFixed(1)}
+                        </span>
+                      </div>
+                      <Bar pct={a.scores[key] / 5} accent={isTop} />
                     </div>
-                    <Bar pct={a.scores[key] / 5} accent={isTop} />
                   </div>
                 );
               })}
@@ -797,7 +804,7 @@ function Home() {
                             // onContinue={handleContinueWith}
                           />
                         )}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                        <div className="grid grid-cols-1 lg:grid-cols-[5fr_3fr] gap-4 items-start">
                           <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
                             <div className="flex items-center gap-2 mb-4">
                               <Layers className="w-3.5 h-3.5 text-teal-300" />
