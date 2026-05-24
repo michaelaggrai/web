@@ -557,6 +557,10 @@ function Home() {
     setQuestion(found.question);
     setResult(found.result);
     setSelected(new Set(found.models));
+    // Mark as user-chosen so the tier-defaults sync effect doesn't clobber
+    // the restored selection on the next render (e.g. if useTier resolves
+    // a different tier right after we restore).
+    userOwnsSelection.current = true;
     setError("");
     setIntentHint(null);
     setSidebarOpen(false);
@@ -637,7 +641,10 @@ function Home() {
     if (q && !autoSubmitted.current) {
       autoSubmitted.current = true;
       setQuestion(q);
-      submitQuestion(q, modelsParam ?? new Set(TIER_DEFAULTS.free));
+      // Fall back to the CURRENT tier's defaults, not always Free defaults —
+      // a Pro/Premium user opening a URL like /app?q=... should hit their
+      // flagship defaults, not free.
+      submitQuestion(q, modelsParam ?? new Set(TIER_DEFAULTS[tier]));
     }
   }, []);
 
