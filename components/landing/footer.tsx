@@ -24,7 +24,7 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
   ],
   Company: [
     { label: "About",   href: "/about" },
-    { label: "Contact", href: "mailto:hello@aggrai.com", external: true },
+    { label: "Contact", href: "/contact" },
   ],
   Legal: [
     { label: "Privacy", href: "/privacy" },
