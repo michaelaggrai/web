@@ -511,6 +511,26 @@ function Home() {
   }, [tier, allModels]);
 
   async function submitQuestion(q: string, models: Set<string>) {
+    // Local cache check: if this exact (question, models) combo is in our
+    // session-recents, restore that result instead of hitting the API.
+    // Saves a round-trip + a real LLM cost when the user re-submits an
+    // already-asked question (e.g. clicking a recent then pressing Enter
+    // without changing anything).
+    const qNorm = q.trim().toLowerCase();
+    const modelsKey = [...models].sort().join(",");
+    const cached = sessionRecents.find(r =>
+      r.question.trim().toLowerCase() === qNorm &&
+      [...r.models].sort().join(",") === modelsKey
+    );
+    if (cached) {
+      setResult(cached.result);
+      setActiveRecentId(cached.id);
+      setQuestion("");
+      setError("");
+      setIntentHint(null);
+      return;
+    }
+
     const startedAt = Date.now();
     setLoading(true);
     setResult(null);
