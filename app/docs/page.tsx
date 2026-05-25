@@ -74,11 +74,10 @@ export default function DocsPage() {
 
         <h2>How questions are routed</h2>
         <p>
-          We send your question in parallel to each selected model via
-          <a href="https://openrouter.ai" target="_blank" rel="noreferrer"> OpenRouter</a>,
-          which acts as a thin pass-through to the provider. We don&apos;t modify your
-          question. The summariser and quality scorer use Anthropic&apos;s Claude
-          Haiku because it&apos;s fast and cheap and good at structured output.
+          We send your question in parallel to each selected model. We
+          don&apos;t modify your question. The summariser and quality
+          scorer both use Claude Haiku because it&apos;s fast, cheap, and
+          good at structured output.
         </p>
 
         <h2>Caching</h2>
