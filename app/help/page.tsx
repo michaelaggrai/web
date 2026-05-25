@@ -9,15 +9,20 @@ export const metadata = {
 const FAQ: { q: string; a: React.ReactNode }[] = [
   {
     q: "What does aggrai do?",
-    a: "You type a question, pick up to 5 AI models, and aggrai sends your question to all of them in parallel. You get every model's answer side-by-side, plus a short summary highlighting where they agree and disagree, and quality scores for each.",
+    a: "You type a question, pick the AI models you want to compare (3 on Free/Pro, up to 5 on Premium), and aggrai sends your question to all of them in parallel. You get every model's answer side-by-side, a single rewritten \"Aggrai's answer\" that synthesises the strongest content from each, contribution attribution showing which model drove which part, and a 0–100 quality score per model judged on accuracy, completeness, calibration, clarity and insight.",
   },
   {
     q: "Which models can I use?",
     a: (
       <>
-        Currently: Claude (Sonnet 4.6, Haiku 4.5), OpenAI (GPT-4o, GPT-4o Mini),
-        Google (Gemini 2.5 Pro, Gemini 2.5 Flash), Mistral (Large, Small),
-        and Meta (Llama 3.3 70B, Llama 3.1 8B). We add models as they ship.
+        30 models across 8 providers: Anthropic (Claude Opus 4.7, Sonnet 4.6,
+        Haiku 4.5…), OpenAI (GPT-5.5 Pro, GPT-5.4, GPT-4o, GPT-4o Mini,
+        Codex variants…), Google (Gemini 3.1 Pro, Gemini 2.5 Pro, Gemini 2.5
+        Flash…), xAI (Grok 4.20), Meta (Llama 3.3 70B, Llama 3.1 8B),
+        Mistral, DeepSeek, and Qwen. Organised into Fast / Creative /
+        Reasoning / Coding / Multimodal / Frontier categories. See the
+        full <Link href="/models">model catalog</Link> for the current list.
+        We add models as they ship.
       </>
     ),
   },
@@ -61,7 +66,16 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Can I share a comparison?",
-    a: "Not yet. Shareable links for comparisons are on the roadmap.",
+    a: (
+      <>
+        Partially. You can share the <em>question + model selection</em> by
+        copying the URL — anything like
+        {" "}<code className="text-teal-200 bg-white/10 rounded px-1 py-0.5 text-xs">/app?q=…&amp;models=…</code>{" "}
+        auto-submits when the recipient opens it. Sharing the <em>exact
+        result</em> (so the recipient sees your answers without re-running
+        them) is on the roadmap.
+      </>
+    ),
   },
   {
     q: "How do I cancel or downgrade my plan?",

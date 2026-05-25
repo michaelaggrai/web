@@ -25,7 +25,7 @@ export default function DocsPage() {
           <li>Open <Link href="/app">the app</Link>.</li>
           <li>Type a question.</li>
           <li>Pick the models you want to compare (we&apos;ve picked sensible defaults).</li>
-          <li>Hit submit. You&apos;ll get each model&apos;s answer, a summary, and quality scores.</li>
+          <li>Hit submit. Each model streams its answer in parallel; once they&apos;re in, you get a single rewritten &ldquo;Aggrai&apos;s answer,&rdquo; per-model quality scores, and contribution attribution.</li>
         </ol>
         <p>That&apos;s it. The rest of this page is just background.</p>
 
@@ -33,25 +33,21 @@ export default function DocsPage() {
 
         <h3>Per-model answers</h3>
         <p>
-          One card per model with the full response. Each card shows runtime and
-          token usage so you can see which model was fastest and which was most
-          verbose.
+          One card per model with the full response. Each card header shows
+          runtime and token usage so you can see which model was fastest and
+          which was most verbose.
         </p>
 
-        <h3>Summary (compare mode)</h3>
+        <h3>Aggrai&apos;s answer</h3>
         <p>
-          When you select more than one model, we run a small summariser pass
-          (Claude Haiku, kept short) to highlight where the models agree, where
-          they disagree, and which one made claims the others didn&apos;t. Model
-          names in the summary are highlighted so you can trace any claim back
-          to the model that made it.
-        </p>
-
-        <h3>Comparison metrics</h3>
-        <p>
-          For each model: speed, readability (Flesch-Kincaid score), and detail
-          (word count). Quick visual to spot the fastest, the clearest, and the
-          most detailed answer.
+          When you select more than one model, we run a summariser pass
+          (Claude Haiku) that synthesises a single rewritten answer drawn from
+          the strongest content across all the models, weighted by each
+          model&apos;s quality scores. Under it, contribution bars show what
+          percentage of the rewrite came from each model, and per-section
+          attribution chips name the model whose content drove each part.
+          Read just this section and you have a complete answer; the
+          per-model cards are there if you want to see who said what.
         </p>
 
         <h3>Quality scores</h3>
@@ -68,8 +64,8 @@ export default function DocsPage() {
 
         <h2>Tiers and limits</h2>
         <ul>
-          <li><strong>Free</strong> — 3 basic models per comparison (Haiku 4.5, GPT-4o Mini, Gemini Flash). No account needed.</li>
-          <li><strong>Pro</strong> — Full catalog (basic + flagship), still 3 per comparison.</li>
+          <li><strong>Free</strong> — 3 basic models per comparison (Claude Haiku 4.5, GPT-4o Mini, Gemini 2.5 Flash). No account needed.</li>
+          <li><strong>Pro</strong> — Full 30-model catalog across 8 providers (basic + flagship), still 3 per comparison.</li>
           <li><strong>Premium</strong> — Full catalog, up to 5 models per comparison.</li>
         </ul>
         <p>
@@ -109,10 +105,10 @@ export default function DocsPage() {
 
         <h2>Roadmap</h2>
         <ul>
-          <li>Shareable comparison links</li>
-          <li>Save / revisit past comparisons</li>
+          <li>Shareable result pages (your exact answers, no re-run needed)</li>
+          <li>Save / revisit past comparisons across devices</li>
           <li>Public API</li>
-          <li>Streaming per-model answers (currently we wait for all to finish before rendering)</li>
+          <li>Conversation mode (follow up on a comparison without losing context)</li>
         </ul>
 
         <h2>Still stuck?</h2>

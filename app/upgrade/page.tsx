@@ -13,6 +13,12 @@ import { useEffect } from "react";
 
 type Tier = "free" | "pro" | "premium";
 
+// AGG-33: features list mirrors /pricing PLANS exactly. Anything that
+// diverges here will read as a contradiction to a user comparing the
+// two pages. If /pricing changes, mirror it here. Eventually consider
+// hoisting both to a shared constant in lib/plans.ts, but the shapes
+// differ enough (Tier key, cta semantics, current-plan highlight) that
+// duplication is simpler than abstraction for now.
 const PLANS = [
   {
     key: "free" as Tier,
@@ -24,8 +30,9 @@ const PLANS = [
     description: "Get started instantly, no account needed.",
     features: [
       "3 basic AI models",
-      "Compare side-by-side",
+      "Up to 3 models per comparison",
       "Quality scores & metrics",
+      "Unified summary across models",
     ],
     cta: "Current plan",
     highlight: false,
@@ -39,8 +46,9 @@ const PLANS = [
     iconColor: "text-teal-300",
     description: "Access flagship models for deeper comparisons.",
     features: [
-      "3 models from the full catalog",
-      "Flagship models (GPT-4o, Claude Sonnet, Gemini Pro…)",
+      "Full catalog (basic + flagship)",
+      "GPT-4o, Claude Sonnet 4.6, Gemini 2.5 Pro…",
+      "Up to 3 models per comparison",
       "Everything in Free",
     ],
     cta: "Upgrade to Pro",
@@ -55,8 +63,9 @@ const PLANS = [
     iconColor: "text-amber-300",
     description: "Maximum models for the most thorough comparisons.",
     features: [
-      "5 models simultaneously",
-      "Full catalog access",
+      "Full catalog (basic + flagship)",
+      "Up to 5 models per comparison",
+      "Priority for new model launches",
       "Everything in Pro",
     ],
     cta: "Upgrade to Premium",

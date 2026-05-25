@@ -32,10 +32,13 @@ export default function AboutPage() {
           to ship — one perspective isn&apos;t enough.
         </p>
         <p>
-          aggrai sends your question to several leading models at once and shows
-          you their answers side-by-side, with a unified summary of where they
-          agree and disagree. You stop guessing which model to use and start
-          comparing what they actually say.
+          aggrai sends your question to several leading models at once, shows
+          you their answers side-by-side, and synthesises a single
+          rewritten &ldquo;Aggrai&apos;s answer&rdquo; from the strongest content across
+          all of them. Each answer gets a 0&ndash;100 quality score so you can
+          see at a glance which model handled the question best. You stop
+          guessing which model to use and start comparing what they
+          actually say.
         </p>
 
         <h2>What we believe</h2>
@@ -53,11 +56,15 @@ export default function AboutPage() {
 
         <h2>How it works</h2>
         <p>
-          When you submit a question we fan it out in parallel to the AI models
-          you&apos;ve selected (via OpenRouter), then run a small summariser pass on
-          the responses to highlight agreement, disagreement, and per-model
-          quality scores. Common example questions are cached so they load
-          instantly. See the <Link href="/docs">docs</Link> for the details.
+          When you submit a question we fan it out in parallel to the AI
+          models you&apos;ve selected (via OpenRouter). A summariser pass
+          (Claude Haiku) then scores each answer on five dimensions
+          &mdash; accuracy, completeness, calibration, clarity and insight
+          &mdash; and rewrites a single &ldquo;Aggrai&apos;s answer&rdquo; that
+          draws the strongest content from each model, weighted by those
+          scores. Per-section attribution chips name the model behind each
+          part of the rewrite. Common example questions are cached so they
+          load instantly. See the <Link href="/docs">docs</Link> for the details.
         </p>
 
         <h2>Who we are</h2>

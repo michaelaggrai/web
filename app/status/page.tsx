@@ -35,7 +35,7 @@ export default function StatusPage() {
   return (
     <LegalShell
       title="Status"
-      subtitle="Live state of the aggrai stack. Updated manually for now — automated checks are on the roadmap."
+      subtitle="Live state of the aggrai stack. A synthetic uptime check probes the API every 5 minutes and reports failures to Sentry; the per-system summary below is updated manually when an incident is confirmed. A fully live status page (driven directly from the synthetic check) is on the V2 roadmap."
     >
       {/* Headline banner */}
       <div className={`rounded-2xl border bg-white/[0.04] p-5 flex items-center gap-3 ${
