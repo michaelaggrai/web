@@ -35,6 +35,10 @@ type Answer = {
   runtime_ms: number;
   tokens: number;
   cost_usd: number | null;
+  /** True when the provider hit our max_tokens cap (finish_reason=length).
+   *  Surface in the UI so a low quality score on a truncated answer doesn't
+   *  read as "the model was bad" — it reads as "we cut it off." */
+  truncated?: boolean;
   scores?: Scores | null;
 };
 
@@ -379,10 +383,22 @@ function WinnerBlock({
   const winner = ranked[0];
   const runnerUp = ranked[1];
 
-  const wonOn = SCORE_KEYS.filter(({ key }) => {
-    const top = scored.reduce((p, c) => (c.scores[key] > p.scores[key] ? c : p));
-    return top.model === winner.model;
-  }).map(k => k.label);
+  // When sub-scores tie across models (very common with frontier models —
+  // four of them might all hit 5.0 on Accuracy), the previous strict `>`
+  // reduce kept the first-in-array model, which is just user-selection
+  // order. The overall winner could end up "Strongest on nothing" while
+  // its tied-but-arbitrarily-first peer claimed every credit. Tie-break
+  // on overall score now: when sub-scores match, the model with the
+  // higher composite wins the highlight.
+  const topByOverallAndScore = (key: keyof Scores) =>
+    ranked.reduce((p, c) => {
+      if (c.scores[key] > p.scores[key]) return c;
+      if (c.scores[key] === p.scores[key] && c.overall > p.overall) return c;
+      return p;
+    });
+  const wonOn = SCORE_KEYS.filter(({ key }) =>
+    topByOverallAndScore(key).model === winner.model
+  ).map(k => k.label);
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.05] backdrop-blur-xl p-5 shadow-lg">
@@ -474,9 +490,16 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
   if (scored.length === 0) return null;
 
   const enriched = scored.map(a => ({ ...a, overall: overallScore(a.scores) }));
+  // Tie-break on overall score so the overall winner claims tied sub-metrics
+  // (was first-in-array, which is just user-selection order). See WinnerBlock
+  // for the same logic + reasoning.
   const topByDim = SCORE_KEYS.map(({ key }) => ({
     key,
-    model: enriched.reduce((p, c) => (c.scores[key] > p.scores[key] ? c : p)).model,
+    model: enriched.reduce((p, c) => {
+      if (c.scores[key] > p.scores[key]) return c;
+      if (c.scores[key] === p.scores[key] && c.overall > p.overall) return c;
+      return p;
+    }).model,
   }));
   const maxOverall = Math.max(...enriched.map(a => a.overall));
   const ranked = [...enriched].sort((a, b) => b.overall - a.overall);
@@ -1184,6 +1207,14 @@ function Home() {
                             <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
                               <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate">{modelLabel(a.model)}</span>
+                              {a.truncated && (
+                                <span
+                                  title="The provider hit our token cap and the answer was cut off mid-response. Quality scores below reflect what was returned, not what the model intended."
+                                  className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
+                                >
+                                  Truncated
+                                </span>
+                              )}
                             </span>
                             <div className="flex items-center gap-3 text-xs text-white/40 shrink-0">
                               <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>
