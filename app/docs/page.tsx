@@ -56,9 +56,13 @@ export default function DocsPage() {
 
         <h3>Quality scores</h3>
         <p>
-          A second pass scores each answer 0–5 on comprehension,
-          thought-provokingness, nuance, and clarity. The scoring is also done
-          by Haiku, so treat it as one model&apos;s opinion — useful as a tiebreaker,
+          A second pass scores each answer 0–5 on five dimensions —
+          accuracy, completeness, calibration (epistemic honesty),
+          clarity, and insight — then combines them into a single 0–100
+          quality score. Accuracy carries the most weight (30%); a
+          confidently-wrong answer is capped at 40 regardless of how
+          well-written it is. The scoring is done by Claude Haiku, so
+          treat it as one model&apos;s opinion — useful as a tiebreaker,
           not gospel.
         </p>
 

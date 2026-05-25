@@ -126,7 +126,7 @@ function FeaturesExplanation() {
         <FeatureRow
           Icon={BarChart3}
           title="Quality scores"
-          body="Every answer is judged on comprehension, depth, nuance and clarity. So you can see why the synthesis chose what it chose."
+          body="Every answer is judged on accuracy, completeness, calibration, clarity and insight — then combined into a single quality score. So you can see why the synthesis chose what it chose."
         />
         <FeatureRow
           Icon={Trophy}

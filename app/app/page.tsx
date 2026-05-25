@@ -16,11 +16,17 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parseModelsParam, type ModelEntry } from "@/lib/models";
 
+// AGG-7 v2 (2026-05-25): switched from 4-dim (comprehension /
+// thought_provoking / nuance / clarity) to research-backed 5-dim.
+// Each sub-score is 0-5 from the judge; overallScore() weights them
+// into a single 0-100 with a fatal-flaw cap on Accuracy.
+// See /Users/ms/assistant/research/scoring-metric-2026-05-24.md.
 type Scores = {
-  comprehension: number;
-  thought_provoking: number;
-  nuance: number;
-  clarity: number;
+  accuracy:     number;
+  completeness: number;
+  calibration:  number;
+  clarity:      number;
+  insight:      number;
 };
 
 type Answer = {
@@ -257,19 +263,56 @@ function ModelLoadingBlock({ modelId }: { modelId: string }) {
   );
 }
 
+// AGG-7 v2: Accuracy first (it's the most consequential dimension),
+// Insight last (lowest weight, the "nice to have"). Order here is
+// also the order they render in the 5-segment breakdown bar.
 const SCORE_KEYS: { key: keyof Scores; label: string }[] = [
-  { key: "comprehension",     label: "Comprehension" },
-  { key: "thought_provoking", label: "Thought-provoking" },
-  { key: "nuance",            label: "Nuance" },
-  { key: "clarity",           label: "Clarity" },
+  { key: "accuracy",     label: "Accuracy" },
+  { key: "completeness", label: "Completeness" },
+  { key: "calibration",  label: "Calibration" },
+  { key: "clarity",      label: "Clarity" },
+  { key: "insight",      label: "Insight" },
 ];
 
-// Map each scored answer's 4 dimensions (each 0-5) to a single 0-100
-// quality score. Simple unweighted average × 20. This is a stand-in until
-// AGG-7's weighted 5-dimension Quality Score lands; the layout is already
-// shaped to plug that in (one big number + sub-metric breakdown).
+// AGG-7 v2: weighted composite of the 5 sub-scores (each 0-5) into a
+// single 0-100 quality score, plus a fatal-flaw cap: if Accuracy ≤ 1.0
+// (confidently-wrong or fabricated) the composite is capped at 40 no
+// matter how high the other dims are. "A beautifully-written wrong
+// answer is not a good answer."
+//
+// Weights (sum to 1.0):
+//   accuracy     30%   factual correctness, no hallucination
+//   completeness 25%   addresses the actual question + evident intent
+//   calibration  20%   confidence matches evidence (epistemic honesty)
+//   clarity      15%   structure + appropriate length, no padding
+//   insight      10%   non-obvious angles, novel framing
+//
+// Source: research/scoring-metric-2026-05-24.md §4 (composite formula
+// + worked examples) and §7.3 (fatal-flaw cap UX).
 function overallScore(s: Scores): number {
-  return Math.round(((s.comprehension + s.thought_provoking + s.nuance + s.clarity) / 4) * 20);
+  const weighted =
+    s.accuracy     * 0.30 +
+    s.completeness * 0.25 +
+    s.calibration  * 0.20 +
+    s.clarity      * 0.15 +
+    s.insight      * 0.10;
+  const raw = Math.round((weighted / 5) * 100);
+  return s.accuracy <= 1.0 ? Math.min(raw, 40) : raw;
+}
+
+// True when the fatal-flaw cap on Accuracy actually changed the
+// score (raw > 40 but accuracy ≤ 1.0). Used to surface a "score
+// limited — contains factual errors" hint so users understand why
+// the badge is low when sub-scores look mixed.
+function isAccuracyCapped(s: Scores): boolean {
+  if (s.accuracy > 1.0) return false;
+  const raw =
+    s.accuracy     * 0.30 +
+    s.completeness * 0.25 +
+    s.calibration  * 0.20 +
+    s.clarity      * 0.15 +
+    s.insight      * 0.10;
+  return Math.round((raw / 5) * 100) > 40;
 }
 
 // The summariser produces markdown with a single section:
@@ -418,8 +461,8 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
   );
 }
 
-// Per-model overall quality score + the 4 quality sub-metrics that compose
-// it (Comprehension, Thought-provoking, Nuance, Clarity — Haiku-judged).
+// Per-model overall quality score + the 5 quality sub-metrics that compose
+// it (Accuracy, Completeness, Calibration, Clarity, Insight — Haiku-judged).
 // Only the sub-metrics that ROLL UP into the headline 0-100 belong here;
 // runtime/readability/length are descriptive but not part of the quality
 // score, so they're shown on the per-answer card headers instead.
@@ -457,11 +500,24 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
       <div className="space-y-5">
         {ranked.map(a => (
           <div key={a.model} className="space-y-2">
-            {/* Per-model header: name + big overall score */}
+            {/* Per-model header: name + big overall score. When the
+                Accuracy fatal-flaw cap has reduced the composite (raw
+                > 40 but accuracy ≤ 1), surface a small "score limited"
+                hint so the user understands why an answer with
+                middling sub-scores is showing a 40. Without it, the
+                cap looks like a bug. */}
             <div className="flex items-baseline justify-between gap-2 border-b border-white/5 pb-1.5">
               <div className="flex items-center gap-1.5 min-w-0">
                 <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
                 <span className="text-xs font-medium text-white/90 truncate">{modelLabel(a.model)}</span>
+                {isAccuracyCapped(a.scores) && (
+                  <span
+                    title="Score limited — contains factual errors. Accuracy ≤ 1.0 caps the overall quality at 40."
+                    className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
+                  >
+                    Limited
+                  </span>
+                )}
               </div>
               <div className="flex items-baseline gap-1 shrink-0">
                 <span className={`text-base font-semibold tabular-nums ${a.overall === maxOverall ? "text-teal-300" : "text-white/80"}`}>
@@ -471,10 +527,11 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
               </div>
             </div>
 
-            {/* The 4 sub-metrics that roll up into the overall score —
-                2×2 grid so the card stays narrow on desktop (was 4-wide
-                which forced the column too wide and squeezed the
-                Summary card next to it). */}
+            {/* The 5 sub-metrics that roll up into the overall score.
+                Two-column grid keeps the card narrow on desktop (was 4-wide
+                which forced the column too wide and squeezed the Summary
+                card next to it). With 5 dims that's 2+2+1 — the last row
+                has the lowest-weight dim (Insight) on its own. */}
             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
               {SCORE_KEYS.map(({ key, label }) => {
                 const isTop = topByDim.find(t => t.key === key)?.model === a.model;
