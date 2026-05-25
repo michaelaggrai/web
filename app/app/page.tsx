@@ -233,12 +233,13 @@ function makeAggraiAnswerComponents(
 // Two sizes for the loading blocks — they're tuned to look *visually*
 // equivalent even though the numbers differ. The aggrai pentagon mesh is
 // an open outline (5 dots + thin spokes + thin edge) with lots of negative
-// space, while brand icons (Claude wordmark, OpenAI spiral, Google G) are
-// filled shapes that fill their box more densely. The aggrai "breathe"
-// loading animation also shrinks to 0.88 mid-cycle, so its effective
-// rendered size is smaller than the prop. Bumping the aggrai size up by
-// ~25% lands both rows at the same perceptual weight on /app.
-const LOADING_BRAND_SIZE = 64;   // ProviderLogo for per-model loaders
+// space, while brand icons (Claude A, OpenAI spiral, Google G, Llama M,
+// Mistral grid) are filled shapes that fill their box more densely.
+// Original bump (44 → 64) overshot — at 64 the filled brand icons looked
+// noticeably larger than the open-mesh aggrai at 84. Pulled brand back to
+// 52 (still a touch above the pre-bump 44 to keep some perceptual buffer
+// for the breathe-shrink the aggrai does and the brand-pulse doesn't).
+const LOADING_BRAND_SIZE = 52;   // ProviderLogo for per-model loaders
 const LOADING_AGGRAI_SIZE = 84;  // Aggrai pentagon for summary / scores / winner loaders
 
 function LoadingBlock({ title, gradientId, className = "" }: { title: string; gradientId: string; className?: string }) {
