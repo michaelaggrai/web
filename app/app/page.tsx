@@ -232,8 +232,8 @@ function makeAggraiAnswerComponents(
 // loading animation also shrinks to 0.88 mid-cycle, so its effective
 // rendered size is smaller than the prop. Bumping the aggrai size up by
 // ~25% lands both rows at the same perceptual weight on /app.
-const LOADING_BRAND_SIZE = 44;   // ProviderLogo for per-model loaders
-const LOADING_AGGRAI_SIZE = 56;  // Aggrai pentagon for summary / scores / winner loaders
+const LOADING_BRAND_SIZE = 64;   // ProviderLogo for per-model loaders
+const LOADING_AGGRAI_SIZE = 84;  // Aggrai pentagon for summary / scores / winner loaders
 
 function LoadingBlock({ title, gradientId, className = "" }: { title: string; gradientId: string; className?: string }) {
   return (
@@ -834,26 +834,31 @@ function Home() {
               <Menu className="h-5 w-5" />
             </button>
             <Link href={signedIn ? "/app" : "/"} aria-label="aggrai home">
-              <Logo height={24} gradientId="topbar-logo" />
+              <Logo height={32} gradientId="topbar-logo" />
             </Link>
           </div>
 
           <div className="flex-1" />
 
-          {/* Auth buttons — anonymous only */}
+          {/* Auth buttons — anonymous only. On mobile (<sm) the Log-in
+              text button is hidden because the sidebar already exposes a
+              Log-in link at the bottom — keeping both on a 360px viewport
+              pushed Sign-up off-screen (see AGG-37 M10). Sign-up text
+              shortens to "Sign up" on mobile so it stays inside the
+              header at narrow widths. */}
           {!signedIn && (
             <div className="flex items-center gap-2">
               <Link
                 href="/signin"
-                className="rounded-lg px-3 py-1.5 text-sm text-white/60 transition hover:text-white"
+                className="hidden sm:inline-flex rounded-lg px-3 py-1.5 text-sm text-white/60 transition hover:text-white"
               >
                 Log in
               </Link>
               <Link
                 href="/signin?mode=signup"
-                className="rounded-lg bg-white px-3.5 py-1.5 text-sm font-medium text-navy transition hover:bg-white/90"
+                className="rounded-lg bg-white px-3 sm:px-3.5 py-1.5 text-sm font-medium text-navy transition hover:bg-white/90 whitespace-nowrap"
               >
-                Sign up for free
+                Sign up<span className="hidden sm:inline"> for free</span>
               </Link>
             </div>
           )}
