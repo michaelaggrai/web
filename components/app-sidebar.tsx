@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import Link from "next/link";
 import { Plus, X, Settings } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -17,6 +17,9 @@ type Props = {
   recents?: RecentItem[];
   activeId?: string | null;
   onSelectRecent?: (id: string) => void;
+  /** Element to restore focus to when the mobile drawer closes (typically
+   *  the menu button that opened it). */
+  triggerRef?: RefObject<HTMLButtonElement | null>;
 };
 
 export function AppSidebar({
@@ -26,15 +29,69 @@ export function AppSidebar({
   recents = [],
   activeId = null,
   onSelectRecent,
+  triggerRef,
 }: Props) {
   const [signedIn, setSignedIn] = useState(false);
   const tier = useTier();
   const canUpgrade = signedIn && tier !== "premium";
 
+  // Track viewport so we only apply dialog semantics on mobile. On
+  // lg+ the sidebar is a static panel — not a dialog, not modal,
+  // never aria-hidden.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  // Where we want focus to land when the drawer opens (mobile). Close
+  // button is a safe target — visible only on mobile, always in the
+  // tab order, gets the user oriented inside the dialog.
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     createClient().auth.getUser().then(({ data }) => setSignedIn(!!data.user));
   }, []);
+
+  // Focus + Escape only kick in when the drawer is actually open AND
+  // we're on mobile (where it functions as a dialog). On desktop these
+  // are no-ops.
+  useEffect(() => {
+    if (!open || !isMobile) return;
+    // Defer focus to next tick so the transform animation has started
+    // and the close button is actually onscreen.
+    const t = window.setTimeout(() => closeBtnRef.current?.focus(), 50);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, isMobile, onClose]);
+
+  // Restore focus to the trigger when the drawer transitions closed.
+  // Tracks previous `open` so we only fire on the open→close edge.
+  const prevOpen = useRef(open);
+  useEffect(() => {
+    if (prevOpen.current && !open && isMobile) {
+      triggerRef?.current?.focus();
+    }
+    prevOpen.current = open;
+  }, [open, isMobile, triggerRef]);
+
+  // Mobile-only flags. On desktop, none of these apply — sidebar is
+  // just part of the page layout.
+  const isHiddenDrawer = isMobile && !open;
+  const isModalOverlay = isMobile && open;
 
   return (
     <>
@@ -48,6 +105,15 @@ export function AppSidebar({
       )}
 
       <aside
+        id="app-sidebar"
+        role={isMobile ? "dialog" : undefined}
+        aria-modal={isModalOverlay || undefined}
+        aria-label={isMobile ? "Main menu" : undefined}
+        aria-hidden={isHiddenDrawer || undefined}
+        /* `inert` blocks focus + pointer events when the drawer is
+            translated off-screen on mobile so SR users can't tab into
+            hidden content. React 19 accepts inert as a boolean prop. */
+        inert={isHiddenDrawer || undefined}
         className={`fixed lg:static inset-y-0 left-0 z-40 flex h-dvh w-64 shrink-0 flex-col
           border-r border-white/5 bg-navy/90 backdrop-blur-xl transition-transform duration-200
           lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
@@ -58,10 +124,11 @@ export function AppSidebar({
             <Logo height={28} gradientId="sidebar-logo" />
           </Link>
           <button
+            ref={closeBtnRef}
             type="button"
             onClick={onClose}
-            className="lg:hidden text-white/40 hover:text-white transition"
-            aria-label="Close sidebar"
+            className="lg:hidden inline-flex items-center justify-center p-2 -mr-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition"
+            aria-label="Close menu"
           >
             <X className="h-5 w-5" />
           </button>

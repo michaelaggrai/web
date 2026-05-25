@@ -588,6 +588,9 @@ function Home() {
   const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
   useEffect(() => { setExpandedAnswers(new Set()); }, [result]);
   const questionInputRef = useRef<HTMLTextAreaElement | null>(null);
+  // Reference to the mobile menu button so the AppSidebar can restore
+  // focus here when the drawer closes (a11y — Escape, X click, backdrop).
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // "Continue with X" — narrow the model picker to just that model, clear
   // the visible result, and scroll the question input into view focused.
@@ -805,6 +808,7 @@ function Home() {
         recents={sessionRecents.map(r => ({ id: r.id, question: r.question }))}
         activeId={activeRecentId}
         onSelectRecent={selectRecent}
+        triggerRef={menuButtonRef}
       />
 
       <div className="relative z-10 flex flex-1 flex-col min-w-0">
@@ -813,6 +817,7 @@ function Home() {
           {/* Mobile: menu toggle + logo */}
           <div className="flex items-center gap-3 lg:hidden">
             <button
+              ref={menuButtonRef}
               type="button"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
