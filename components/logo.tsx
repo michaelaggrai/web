@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react"
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
 
 type LogoProps = {
   height?: number
@@ -54,20 +54,13 @@ export function Logo({
   // window completes so subsequent hovers play the pulse fresh.
   const [expanding, setExpanding] = useState(false)
   const expandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Only enable mouseenter/leave animations on devices that actually
-  // have a hover-capable pointer (desktop). On touch, the mouseenter
-  // fires on tap and the resulting animation visually competes with
-  // the link navigation — users perceive "the logo lit up but nothing
-  // happened". Gating on (hover: hover) leaves touch navigation crisp.
-  const [hoverable, setHoverable] = useState(false)
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return
-    const mq = window.matchMedia("(hover: hover)")
-    const apply = () => setHoverable(mq.matches)
-    apply()
-    mq.addEventListener("change", apply)
-    return () => mq.removeEventListener("change", apply)
-  }, [])
+  // Originally gated mouseenter/leave on (hover: hover) under the
+  // theory that the touch tap animation was competing with the link
+  // click. Real root cause turned out to be elsewhere (same-page Link
+  // no-ops on /app, signed-in routing). Animation + click coexist
+  // fine now that those are fixed — keep mouseenter/leave enabled on
+  // every device so touch users get the same delightful pulse as
+  // desktop users do.
 
   // Measure the wrapper's natural width once after mount, then pin it.
   // We deliberately measure BEFORE the collapsed state ever applies so
@@ -100,17 +93,17 @@ export function Logo({
     <span
       ref={wrapperRef}
       className="aggrai-logo-wrap"
-      onMouseEnter={hoverable ? () => {
+      onMouseEnter={() => {
         if (expandTimer.current) clearTimeout(expandTimer.current)
         setExpanding(false)
         setCollapsed(true)
-      } : undefined}
-      onMouseLeave={hoverable ? () => {
+      }}
+      onMouseLeave={() => {
         setCollapsed(false)
         setExpanding(true)
         if (expandTimer.current) clearTimeout(expandTimer.current)
         expandTimer.current = setTimeout(() => setExpanding(false), 900)
-      } : undefined}
+      }}
       style={{
         display: "inline-block",
         // Lock the bounding box at the natural expanded width. The inner
