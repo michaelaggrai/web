@@ -120,9 +120,23 @@ export function AppSidebar({
       >
         {/* Brand */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-white/5">
-          <Link href={signedIn ? "/app" : "/"} aria-label="aggrai">
-            <Logo height={28} gradientId="sidebar-logo" />
-          </Link>
+          {signedIn ? (
+            // Signed-in users are on /app, so a Link back to /app is a
+            // no-op. Tap → reset to a new comparison (and the helper
+            // already closes the sidebar on mobile).
+            <button
+              type="button"
+              onClick={onNewComparison}
+              aria-label="New comparison"
+              className="inline-flex items-center"
+            >
+              <Logo height={28} gradientId="sidebar-logo" />
+            </button>
+          ) : (
+            <Link href="/" aria-label="aggrai" className="inline-flex items-center">
+              <Logo height={28} gradientId="sidebar-logo" />
+            </Link>
+          )}
           <button
             ref={closeBtnRef}
             type="button"

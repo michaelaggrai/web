@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Check, Sparkles, Zap, Crown } from "lucide-react";
-import { Logo } from "@/components/logo";
+import { HomeLink } from "@/components/home-link";
 import { AccountMenu } from "@/components/account-menu";
 
 export const metadata = {
@@ -68,9 +68,7 @@ export default function PricingPage() {
       <div className="relative z-10 mx-auto max-w-4xl">
         {/* Top bar — logo + account menu, then the centered hero below */}
         <div className="mb-12 flex items-center justify-between gap-3">
-          <Link href="/" aria-label="aggrai" className="opacity-80 hover:opacity-100 transition-opacity">
-            <Logo height={28} gradientId="pricing-logo" />
-          </Link>
+          <HomeLink height={28} gradientId="pricing-logo" className="opacity-80 hover:opacity-100 transition-opacity" />
           <AccountMenu variant="topbar" />
         </div>
 

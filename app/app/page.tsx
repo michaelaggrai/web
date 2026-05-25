@@ -833,9 +833,24 @@ function Home() {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <Link href={signedIn ? "/app" : "/"} aria-label="aggrai home">
-              <Logo height={32} gradientId="topbar-logo" />
-            </Link>
+            {signedIn ? (
+              // Signed-in user is already on their home page (/app), so
+              // a Link to /app would be a no-op. Make the tap a real
+              // action: reset to a fresh comparison (same UX as the
+              // sidebar's "New comparison" button).
+              <button
+                type="button"
+                onClick={newComparison}
+                aria-label="New comparison"
+                className="inline-flex items-center"
+              >
+                <Logo height={32} gradientId="topbar-logo" />
+              </button>
+            ) : (
+              <Link href="/" aria-label="aggrai home" className="inline-flex items-center">
+                <Logo height={32} gradientId="topbar-logo" />
+              </Link>
+            )}
           </div>
 
           <div className="flex-1" />

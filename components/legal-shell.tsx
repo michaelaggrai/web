@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "@/components/logo";
+import { HomeLink } from "@/components/home-link";
 import { AccountMenu } from "@/components/account-menu";
 
 type Props = {
@@ -23,9 +23,7 @@ export function LegalShell({ title, subtitle, children }: Props) {
 
       <div className="relative z-10 mx-auto max-w-3xl">
         <div className="mb-10 flex items-center justify-between gap-3">
-          <Link href="/" aria-label="aggrai" className="inline-block">
-            <Logo height={28} gradientId="page-logo" />
-          </Link>
+          <HomeLink height={28} gradientId="page-logo" className="inline-block" />
           <AccountMenu variant="topbar" />
         </div>
 

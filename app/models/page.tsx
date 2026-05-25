@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Lock } from "lucide-react";
-import { Logo } from "@/components/logo";
+import { HomeLink } from "@/components/home-link";
 import { AccountMenu } from "@/components/account-menu";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import {
@@ -68,9 +68,7 @@ export default function ModelsPage() {
             Home
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/" className="opacity-70 hover:opacity-100 transition-opacity">
-              <Logo height={26} gradientId="models-logo" />
-            </Link>
+            <HomeLink height={26} gradientId="models-logo" className="opacity-70 hover:opacity-100 transition-opacity" />
             <AccountMenu variant="topbar" />
           </div>
         </div>

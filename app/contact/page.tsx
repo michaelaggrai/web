@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowLeft, MessageSquare, Bug, Sparkles, Handshake, Mic } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { HomeLink } from "@/components/home-link";
 import { AccountMenu } from "@/components/account-menu";
 
 type Topic = "general" | "bug" | "feature" | "partnership" | "press";
@@ -111,9 +112,7 @@ export default function ContactPage() {
             Home
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/" className="opacity-70 hover:opacity-100 transition-opacity">
-              <Logo height={24} gradientId="contact-logo" />
-            </Link>
+            <HomeLink height={24} gradientId="contact-logo" className="opacity-70 hover:opacity-100 transition-opacity" />
             <AccountMenu variant="topbar" />
           </div>
         </div>

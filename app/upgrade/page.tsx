@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, Sparkles, Zap, Crown } from "lucide-react";
-import { Logo } from "@/components/logo";
+import { HomeLink } from "@/components/home-link";
 import { AccountMenu } from "@/components/account-menu";
 import { useTier } from "@/lib/use-tier";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -116,9 +116,7 @@ export default function UpgradePage() {
       <div className="relative z-10 w-full max-w-4xl">
         {/* Top bar — logo + account menu, then the centered hero below */}
         <div className="mb-10 flex items-center justify-between gap-3">
-          <Link href="/app" aria-label="aggrai" className="opacity-80 hover:opacity-100 transition-opacity">
-            <Logo height={28} gradientId="upgrade-logo" />
-          </Link>
+          <HomeLink height={28} gradientId="upgrade-logo" className="opacity-80 hover:opacity-100 transition-opacity" />
           <AccountMenu variant="topbar" />
         </div>
 

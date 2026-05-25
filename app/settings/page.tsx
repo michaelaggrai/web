@@ -7,7 +7,7 @@ import {
   User, CreditCard, Globe, Cookie, Download, Trash2, LogOut, ArrowLeft,
   Sparkles, Zap, Crown, AlertTriangle,
 } from "lucide-react";
-import { Logo } from "@/components/logo";
+import { HomeLink } from "@/components/home-link";
 import { AccountMenu } from "@/components/account-menu";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
@@ -166,9 +166,7 @@ function Settings() {
             Back to app
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/" className="opacity-70 hover:opacity-100 transition-opacity">
-              <Logo height={24} gradientId="settings-logo" />
-            </Link>
+            <HomeLink height={24} gradientId="settings-logo" className="opacity-70 hover:opacity-100 transition-opacity" />
             <AccountMenu variant="topbar" />
           </div>
         </div>
