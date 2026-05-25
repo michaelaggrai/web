@@ -3,9 +3,9 @@
 import { Plus, X, Check, Lock } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ProviderLogo } from "@/components/brand-icons"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { CATEGORIES, type ModelCategory, type ModelEntry } from "@/lib/models"
+import { CATEGORIES, PROVIDERS, type ModelCategory, type ModelEntry } from "@/lib/models"
 
 export type { ModelEntry }
 
@@ -22,13 +22,39 @@ type Props = {
 // Premium unlocks more slots.
 const PREMIUM_MAX = 5
 
+type GroupBy = "category" | "provider"
+
+const GROUP_BY_PERSIST_KEY = "aggrai_picker_group_by_v1"
+
 export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Props) {
   const [open, setOpen] = useState(false)
+  // Which axis we're grouping the tabs by. Defaults to category (the
+  // original behaviour); persists per-browser so the user's preference
+  // sticks across navigations.
+  const [groupBy, setGroupBy] = useState<GroupBy>("category")
   const [activeCategory, setActiveCategory] = useState<ModelCategory>("fast")
+  // activeProvider starts empty and gets set to the first visible
+  // provider after the byProvider memo runs (see effect below). Keeping
+  // category + provider as separate state means flipping the toggle
+  // doesn't lose the user's previous tab pick on the other axis.
+  const [activeProvider, setActiveProvider] = useState<string>("")
   // Brief in-popover toast "Swapped X for Y" when at-max swap fires.
   const [swapNotice, setSwapNotice] = useState<string | null>(null)
   const locked = lockedIds ?? new Set<string>()
   const limitReached = selected.size >= max
+
+  // Restore persisted groupBy preference on first mount.
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(GROUP_BY_PERSIST_KEY)
+      if (stored === "category" || stored === "provider") setGroupBy(stored)
+    } catch { /* private mode — ignore */ }
+  }, [])
+
+  // Persist any change.
+  useEffect(() => {
+    try { localStorage.setItem(GROUP_BY_PERSIST_KEY, groupBy) } catch { /* ignore */ }
+  }, [groupBy])
 
   // Group models by category once per render. Only categories that have
   // at least one model are shown as tabs — keeps the UI honest if the
@@ -42,8 +68,53 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
     return map
   }, [all])
 
+  // Same shape but keyed by provider for the provider grouping.
+  const byProvider = useMemo(() => {
+    const map = new Map<string, ModelEntry[]>()
+    for (const m of all) {
+      ;(map.get(m.provider) ?? map.set(m.provider, []).get(m.provider)!).push(m)
+    }
+    return map
+  }, [all])
+
   const visibleCategories = CATEGORIES.filter(c => byCategory.has(c.id))
-  const activeList = byCategory.get(activeCategory) ?? []
+  const visibleProviders = PROVIDERS.filter(p => byProvider.has(p.id))
+
+  // Initialise / re-anchor activeProvider when the catalog resolves.
+  // Picks the first visible provider so the popover never shows an
+  // empty tab strip in provider mode.
+  useEffect(() => {
+    if (visibleProviders.length === 0) return
+    if (!activeProvider || !visibleProviders.find(p => p.id === activeProvider)) {
+      setActiveProvider(visibleProviders[0].id)
+    }
+  }, [activeProvider, visibleProviders])
+
+  // Unify the two groupings behind a single `groups` array so the tab
+  // strip renderer doesn't have to branch on groupBy.
+  type GroupTab = { id: string; label: string; description: string; count: number; active: boolean; onSelect: () => void }
+  const groups: GroupTab[] = groupBy === "category"
+    ? visibleCategories.map(c => ({
+        id: c.id,
+        label: c.label,
+        description: c.description,
+        count: byCategory.get(c.id)?.length ?? 0,
+        active: c.id === activeCategory,
+        onSelect: () => setActiveCategory(c.id),
+      }))
+    : visibleProviders.map(p => ({
+        id: p.id,
+        label: p.label,
+        description: p.description,
+        count: byProvider.get(p.id)?.length ?? 0,
+        active: p.id === activeProvider,
+        onSelect: () => setActiveProvider(p.id),
+      }))
+
+  const activeGroup = groups.find(g => g.active) ?? groups[0]
+  const activeList = groupBy === "category"
+    ? (byCategory.get(activeCategory) ?? [])
+    : (byProvider.get(activeProvider) ?? [])
 
   function toggle(id: string) {
     if (locked.has(id)) return
@@ -129,33 +200,56 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
             </span>
           </div>
 
-          {/* Category tabs — horizontal scroll on narrow viewports */}
-          <div className="flex gap-0.5 px-2 border-b border-white/5 overflow-x-auto scrollbar-none">
-            {visibleCategories.map(c => {
-              const isActive = c.id === activeCategory
-              const count = byCategory.get(c.id)?.length ?? 0
+          {/* Group-by segmented toggle. Lets the user flip the tab strip
+              between the curated category buckets (Fast / Creative / …)
+              and a raw provider split (Anthropic / OpenAI / …). The
+              choice persists in localStorage. */}
+          <div className="flex items-center gap-1 px-3 pb-2 -mt-1">
+            <span className="text-[10px] uppercase tracking-wider text-white/30 mr-1.5">Group by</span>
+            {(["category", "provider"] as const).map(mode => {
+              const isActive = groupBy === mode
               return (
                 <button
-                  key={c.id}
+                  key={mode}
                   type="button"
-                  onClick={() => setActiveCategory(c.id)}
+                  onClick={() => setGroupBy(mode)}
                   aria-pressed={isActive}
-                  className={`shrink-0 px-3 py-2.5 text-[11px] font-medium rounded-t-md transition-colors border-b-2 min-h-[36px] ${
+                  className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider transition-colors ${
                     isActive
-                      ? "border-teal-400 text-white bg-white/[0.04]"
-                      : "border-transparent text-white/50 hover:text-white/80"
+                      ? "bg-white/10 text-white"
+                      : "text-white/40 hover:text-white/70"
                   }`}
                 >
-                  {c.label}
-                  <span className="ml-1 text-[10px] text-white/30">{count}</span>
+                  {mode === "category" ? "Category" : "Provider"}
                 </button>
               )
             })}
           </div>
 
-          {/* Category description */}
+          {/* Tab strip — horizontal scroll on narrow viewports. Shape is
+              the same whether we're showing categories or providers. */}
+          <div className="flex gap-0.5 px-2 border-b border-white/5 overflow-x-auto scrollbar-none">
+            {groups.map(g => (
+              <button
+                key={g.id}
+                type="button"
+                onClick={g.onSelect}
+                aria-pressed={g.active}
+                className={`shrink-0 px-3 py-2.5 text-[11px] font-medium rounded-t-md transition-colors border-b-2 min-h-[36px] ${
+                  g.active
+                    ? "border-teal-400 text-white bg-white/[0.04]"
+                    : "border-transparent text-white/50 hover:text-white/80"
+                }`}
+              >
+                {g.label}
+                <span className="ml-1 text-[10px] text-white/30">{g.count}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Description of the active group (category or provider). */}
           <p className="px-3 py-2 text-[10px] leading-snug text-white/40 border-b border-white/5">
-            {CATEGORIES.find(c => c.id === activeCategory)?.description}
+            {activeGroup?.description}
           </p>
 
           {/* Model list for the active category */}

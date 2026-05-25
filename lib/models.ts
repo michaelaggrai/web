@@ -21,6 +21,24 @@ export const CATEGORIES: { id: ModelCategory; label: string; description: string
   { id: "frontier",   label: "Frontier",   description: "Cutting edge / very large / experimental." },
 ]
 
+// Display metadata per provider — used by ModelPicker when the user
+// flips the Group-by toggle from Category → Provider. `id` must match
+// the `provider` field on ModelEntry exactly (case-sensitive).
+//
+// Order is roughly "most familiar to a Western audience first" — the
+// ordering also doubles as the tab strip's left-to-right order so
+// Anthropic/OpenAI/Google lead.
+export const PROVIDERS: { id: string; label: string; description: string }[] = [
+  { id: "Anthropic", label: "Anthropic", description: "Claude family — careful, nuanced, hedge-leaning answers." },
+  { id: "OpenAI",    label: "OpenAI",    description: "GPT family — confident, example-rich, broad coverage." },
+  { id: "Google",    label: "Google",    description: "Gemini family — concise, strong multimodal." },
+  { id: "Meta",      label: "Meta",      description: "Llama family — open-weight, direct, no hedging." },
+  { id: "Mistral",   label: "Mistral",   description: "European, fast and to the point." },
+  { id: "DeepSeek",  label: "DeepSeek",  description: "Strong reasoning specialist." },
+  { id: "Qwen",      label: "Qwen",      description: "Alibaba, multilingual + reasoning." },
+  { id: "xAI",       label: "xAI",       description: "Grok, frontier multi-agent experiments." },
+]
+
 // Fallback catalog used until /api/models responds (or if it fails).
 // Mirrors the backend MODEL_CATALOG in api/server.js. Every ID was
 // live-verified against OpenRouter on 2026-05-23.
