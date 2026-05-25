@@ -579,6 +579,13 @@ function Home() {
     setError("");
     setIntentHint(null);
     setSidebarOpen(false);
+    // Scroll back to the top of the document — without this, after the
+    // AGG-38 body-scroll refactor the user who's scrolled mid-answer
+    // and taps a recent would end up viewing the new result from a
+    // random scroll depth.
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
   const [showUpgradedBanner, setShowUpgradedBanner] = useState(searchParams.get("upgraded") === "1");
   const [signedIn, setSignedIn] = useState(false);
@@ -791,7 +798,12 @@ function Home() {
     await submitQuestion(question, selected);
   }
 
-  // Reset to a blank comparison ("New comparison" in the sidebar).
+  // Reset to a blank comparison ("New comparison" in the sidebar, or
+  // tap on the topbar / sidebar logo). After the AGG-38 body-scroll
+  // refactor, also scroll the document back to the top — otherwise a
+  // user who scrolled deep into a long answer would reset state but
+  // stay scrolled past the (now empty) question input and feel like
+  // nothing happened.
   function newComparison() {
     setResult(null);
     setQuestion("");
@@ -799,13 +811,26 @@ function Home() {
     setIntentHint(null);
     setActiveRecentId(null);
     setSidebarOpen(false);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   return (
-    <div className="relative flex h-dvh overflow-hidden bg-gradient-to-b from-navy via-navy to-[#252547]">
-      {/* Soft gradient orbs */}
-      <div className="pointer-events-none absolute top-20 left-1/3 w-[500px] h-[500px] bg-teal-500/12 rounded-full blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/8 rounded-full blur-[100px]" />
+    // AGG-38: body-scroll layout. Outer is `min-h-dvh` (not `h-dvh
+    // overflow-hidden`) and `<main>` no longer has its own
+    // `overflow-y-auto`, so the document itself scrolls. That makes
+    // iOS's tap-status-bar-to-scroll-to-top gesture work for free, and
+    // Android/desktop mouse-wheel/keyboard PgDn behave naturally too.
+    // Sidebar is `lg:fixed` (was `lg:static`) and content uses
+    // `lg:ml-64` to clear it. Header is `sticky top-0` with a
+    // backdrop so it stays visible while the body scrolls under it.
+    // Gradient orbs are `fixed` so they don't scroll out of view.
+    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547]">
+      {/* Soft gradient orbs — fixed so they stay anchored to the
+          viewport while the body scrolls. */}
+      <div className="pointer-events-none fixed top-20 left-1/3 w-[500px] h-[500px] bg-teal-500/12 rounded-full blur-[120px]" />
+      <div className="pointer-events-none fixed bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/8 rounded-full blur-[100px]" />
 
       <AppSidebar
         open={sidebarOpen}
@@ -817,9 +842,11 @@ function Home() {
         triggerRef={menuButtonRef}
       />
 
-      <div className="relative z-10 flex flex-1 flex-col min-w-0">
-        {/* Top bar */}
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-white/5 px-4">
+      <div className="relative z-10 flex flex-col min-h-dvh lg:ml-64">
+        {/* Top bar — sticky so it stays visible as the document scrolls.
+            Backdrop blur prevents content from "ghosting" through the
+            header text as you scroll under it. */}
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-white/5 bg-navy/80 backdrop-blur-md px-4">
           {/* Mobile: menu toggle + logo */}
           <div className="flex items-center gap-3 lg:hidden">
             <button
