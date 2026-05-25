@@ -42,7 +42,7 @@ export default function SettingsPage() {
   // Wrap in Suspense so useSearchParams (used for the ?changed=1 banner)
   // doesn't blow up the page render before the params resolve.
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gradient-to-b from-navy via-navy to-[#252547]" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547]" />}>
       <Settings />
     </Suspense>
   );
@@ -146,12 +146,12 @@ function Settings() {
 
   if (!loaded) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-navy via-navy to-[#252547]" />
+      <div className="min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547]" />
     );
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
+    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 

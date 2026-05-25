@@ -108,7 +108,7 @@ export default function UpgradePage() {
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-16 overflow-hidden">
+    <div className="relative min-h-dvh flex flex-col items-center bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-16 overflow-hidden">
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 

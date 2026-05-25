@@ -89,7 +89,7 @@ export function Hero() {
   }
 
   return (
-    <section className="relative min-h-[92vh] flex items-center bg-gradient-to-b from-navy via-navy to-[#252547] overflow-hidden">
+    <section className="relative min-h-[92svh] flex items-center bg-gradient-to-b from-navy via-navy to-[#252547] overflow-hidden">
       {/* Soft gradient orbs */}
       <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/20 rounded-full blur-[120px]" />
       <div className="absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />

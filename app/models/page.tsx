@@ -52,7 +52,7 @@ export default function ModelsPage() {
   const providerCount = new Set(models.map(m => m.provider)).size;
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
+    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/12 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 

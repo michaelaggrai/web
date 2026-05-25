@@ -50,7 +50,7 @@ export default function ContactPage() {
   // After a successful send — show a friendly confirmation rather than the form.
   if (sent) {
     return (
-      <div className="relative min-h-screen bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-16 overflow-hidden">
+      <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-16 overflow-hidden">
         <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
         <div className="relative z-10 mx-auto max-w-md text-center">
           <div className="mb-8 inline-block">
@@ -93,7 +93,7 @@ export default function ContactPage() {
   const selected = TOPICS.find(t => t.id === topic)!;
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
+    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 
