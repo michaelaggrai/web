@@ -180,7 +180,7 @@ function SignIn() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex justify-center">
-          <Link href="/" aria-label="aggrai home">
+          <Link href="/" aria-label="aggrai">
             <Logo height={40} gradientId="signin-logo" />
           </Link>
         </div>

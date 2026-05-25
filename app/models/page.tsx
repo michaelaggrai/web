@@ -155,7 +155,7 @@ function ModelCard({ model }: { model: ModelEntry }) {
   return (
     <div className="group rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.06] hover:border-white/20 transition-all p-4 flex items-center gap-3">
       <div className="shrink-0 w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-        <ProviderLogo provider={providerOf(model.id)} className="w-4.5 h-4.5 text-white/80" />
+        <ProviderLogo provider={providerOf(model.id)} className="w-[18px] h-[18px] text-white/80" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-white truncate">{model.label}</p>

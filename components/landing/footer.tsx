@@ -1,15 +1,7 @@
 import Link from "next/link"
+import { Logo as BrandLogo } from "@/components/logo"
 
-function Logo() {
-  return (
-    <span className="text-xl font-semibold tracking-tight">
-      <span className="text-white/90">aggr</span>
-      <span className="bg-gradient-to-r from-teal-400 to-teal-300 bg-clip-text text-transparent">ai</span>
-    </span>
-  )
-}
-
-type FooterLink = { label: string; href: string; external?: boolean }
+type FooterLink = { label: string; href: string }
 
 const FOOTER_LINKS: Record<string, FooterLink[]> = {
   Product: [
@@ -38,7 +30,9 @@ export function Footer() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
           <div className="col-span-2 md:col-span-1">
-            <Logo />
+            <Link href="/" aria-label="aggrai" className="inline-block">
+              <BrandLogo height={28} gradientId="footer-logo" />
+            </Link>
             <p className="mt-3 text-sm text-white/40 leading-relaxed">
               Compare AI models.
               <br />
@@ -52,21 +46,12 @@ export function Footer() {
               <ul className="space-y-2.5">
                 {links.map(link => (
                   <li key={link.label}>
-                    {link.external ? (
-                      <a
-                        href={link.href}
-                        className="text-sm text-white/40 hover:text-white/70 transition-colors"
-                      >
-                        {link.label}
-                      </a>
-                    ) : (
-                      <Link
-                        href={link.href}
-                        className="text-sm text-white/40 hover:text-white/70 transition-colors"
-                      >
-                        {link.label}
-                      </Link>
-                    )}
+                    <Link
+                      href={link.href}
+                      className="text-sm text-white/40 hover:text-white/70 transition-colors"
+                    >
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
