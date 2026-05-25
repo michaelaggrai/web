@@ -9,9 +9,52 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
 });
 
+// metadataBase lets Next.js resolve relative OG / Twitter image URLs.
+// Set to the canonical prod hostname; previews on Vercel preview URLs
+// still work (the helper falls back to the request origin).
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aggrai.com";
+
 export const metadata: Metadata = {
-  title: "Aggrai — Ask every AI at once",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Aggrai — Ask every AI at once",
+    template: "%s",
+  },
   description: "Compare answers from multiple AI models side by side, with a unified summary.",
+  applicationName: "Aggrai",
+  keywords: [
+    "AI comparison",
+    "LLM comparison",
+    "ChatGPT vs Claude",
+    "GPT-4o",
+    "Claude Sonnet",
+    "Gemini",
+    "multi-model AI",
+  ],
+  authors: [{ name: "Aggrai" }],
+  // openGraph + twitter make link previews in Slack / WhatsApp / Twitter
+  // / iMessage actually look like a product instead of a bare URL.
+  openGraph: {
+    type: "website",
+    siteName: "Aggrai",
+    title: "Aggrai — Ask every AI at once",
+    description: "Compare answers from multiple AI models side by side, with a unified summary.",
+    url: "/",
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Aggrai — Ask every AI at once",
+    description: "Compare answers from multiple AI models side by side, with a unified summary.",
+    creator: "@aggrai",
+  },
+  // app/icon.svg is auto-picked up by Next.js conventions; declaring
+  // explicitly here makes it discoverable + lets us add additional
+  // icon sizes later without changing the layout.
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+  },
 };
 
 // Mobile-first viewport. viewport-fit=cover so the navy gradient bleeds
