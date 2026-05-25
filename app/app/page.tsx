@@ -235,11 +235,13 @@ function makeAggraiAnswerComponents(
 // an open outline (5 dots + thin spokes + thin edge) with lots of negative
 // space, while brand icons (Claude A, OpenAI spiral, Google G, Llama M,
 // Mistral grid) are filled shapes that fill their box more densely.
-// Original bump (44 → 64) overshot — at 64 the filled brand icons looked
-// noticeably larger than the open-mesh aggrai at 84. Pulled brand back to
-// 52 (still a touch above the pre-bump 44 to keep some perceptual buffer
-// for the breathe-shrink the aggrai does and the brand-pulse doesn't).
-const LOADING_BRAND_SIZE = 52;   // ProviderLogo for per-model loaders
+// Sizing history: original 44 → bumped to 64 (overshot — brand felt
+// dominant) → pulled to 52 (still too big per user feedback) → 44
+// (back to original, filled-vs-mesh visual weight matches at this ratio).
+// The aggrai 84 with internal padding (viewBox -12 -12 124 124) renders
+// at ~68px visible mesh, which roughly matches brand 44 once you account
+// for the density difference between filled glyphs and open outlines.
+const LOADING_BRAND_SIZE = 44;   // ProviderLogo for per-model loaders
 const LOADING_AGGRAI_SIZE = 84;  // Aggrai pentagon for summary / scores / winner loaders
 
 function LoadingBlock({ title, gradientId, className = "" }: { title: string; gradientId: string; className?: string }) {
