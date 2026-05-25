@@ -38,7 +38,7 @@ export function Hero() {
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS)
   const [selected, setSelected] = useState<Set<string>>(new Set(TIER_DEFAULTS.free))
   const router = useRouter()
-  const tier = useTier()
+  const { tier } = useTier()
 
   const maxModels = maxModelsForTier(tier)
   const lockedIds = lockedModelIds(tier, allModels)

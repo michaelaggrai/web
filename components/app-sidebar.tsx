@@ -32,7 +32,7 @@ export function AppSidebar({
   triggerRef,
 }: Props) {
   const [signedIn, setSignedIn] = useState(false);
-  const tier = useTier();
+  const { tier } = useTier();
   const canUpgrade = signedIn && tier !== "premium";
 
   // Track viewport so we only apply dialog semantics on mobile. On

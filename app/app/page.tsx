@@ -511,7 +511,7 @@ export default function Page() {
 function Home() {
   const searchParams = useSearchParams();
   const modelsParam = parseModelsParam(searchParams.get("models"));
-  const tier = useTier();
+  const { tier, resolved: tierResolved } = useTier();
   const [question, setQuestion] = useState(searchParams.get("q") ?? "");
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
   const [selected, setSelected] = useState<Set<string>>(modelsParam ?? new Set(TIER_DEFAULTS.free));
@@ -655,16 +655,22 @@ function Home() {
   }, []);
 
   useEffect(() => {
+    // Wait for useTier to actually settle before auto-submitting — otherwise
+    // a signed-in Pro/Premium user opening /app?q=... with no ?models= would
+    // hit Free defaults (the initial useTier value) before their real tier
+    // resolves a moment later. Anonymous users + Supabase-not-configured
+    // both flip `tierResolved` true immediately, so they're unaffected.
+    if (!tierResolved) return;
     const q = searchParams.get("q");
     if (q && !autoSubmitted.current) {
       autoSubmitted.current = true;
       setQuestion(q);
-      // Fall back to the CURRENT tier's defaults, not always Free defaults —
-      // a Pro/Premium user opening a URL like /app?q=... should hit their
-      // flagship defaults, not free.
       submitQuestion(q, modelsParam ?? new Set(TIER_DEFAULTS[tier]));
     }
-  }, []);
+    // submitQuestion + setQuestion are stable closures over this render;
+    // we want this effect to fire exactly once when tier first resolves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tierResolved]);
 
   // Keep the selection valid for the current tier — trims flagship models /
   // excess count from a stale URL or after a tier change.

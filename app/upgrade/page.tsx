@@ -64,7 +64,7 @@ const PLANS = [
 ];
 
 export default function UpgradePage() {
-  const currentTier = useTier();
+  const { tier: currentTier } = useTier();
   const router = useRouter();
   const [loading, setLoading] = useState<Tier | null>(null);
   const [error, setError] = useState("");
