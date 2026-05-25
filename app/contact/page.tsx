@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowLeft, MessageSquare, Bug, Sparkles, Handshake, Mic } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { AccountMenu } from "@/components/account-menu";
 
 type Topic = "general" | "bug" | "feature" | "partnership" | "press";
 
@@ -101,7 +102,7 @@ export default function ContactPage() {
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 
       <div className="relative z-10 mx-auto max-w-xl">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between gap-3">
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors"
@@ -109,9 +110,12 @@ export default function ContactPage() {
             <ArrowLeft className="w-4 h-4" />
             Home
           </Link>
-          <Link href="/" className="opacity-70 hover:opacity-100 transition-opacity">
-            <Logo height={24} gradientId="contact-logo" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="opacity-70 hover:opacity-100 transition-opacity">
+              <Logo height={24} gradientId="contact-logo" />
+            </Link>
+            <AccountMenu variant="topbar" />
+          </div>
         </div>
 
         <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight mb-2">Get in touch</h1>

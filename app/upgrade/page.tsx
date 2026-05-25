@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, Sparkles, Zap, Crown } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { AccountMenu } from "@/components/account-menu";
 import { useTier } from "@/lib/use-tier";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { createClient } from "@/lib/supabase/client";
@@ -113,11 +114,16 @@ export default function UpgradePage() {
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 
       <div className="relative z-10 w-full max-w-4xl">
-        {/* Header */}
-        <div className="mb-10 flex flex-col items-center text-center">
-          <Link href="/app" className="mb-8 inline-block">
-            <Logo height={36} gradientId="upgrade-logo" />
+        {/* Top bar — logo + account menu, then the centered hero below */}
+        <div className="mb-10 flex items-center justify-between gap-3">
+          <Link href="/app" aria-label="aggrai" className="opacity-80 hover:opacity-100 transition-opacity">
+            <Logo height={28} gradientId="upgrade-logo" />
           </Link>
+          <AccountMenu variant="topbar" />
+        </div>
+
+        {/* Centered hero */}
+        <div className="mb-10 flex flex-col items-center text-center">
           <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">
             Choose your plan
           </h1>

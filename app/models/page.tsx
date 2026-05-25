@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Lock } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { AccountMenu } from "@/components/account-menu";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import {
   FALLBACK_MODELS,
@@ -58,7 +59,7 @@ export default function ModelsPage() {
 
       <div className="relative z-10 mx-auto max-w-5xl">
         {/* Header bar */}
-        <div className="mb-10 flex items-center justify-between">
+        <div className="mb-10 flex items-center justify-between gap-3">
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors"
@@ -66,9 +67,12 @@ export default function ModelsPage() {
             <ArrowLeft className="w-4 h-4" />
             Home
           </Link>
-          <Link href="/" className="opacity-70 hover:opacity-100 transition-opacity">
-            <Logo height={26} gradientId="models-logo" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="opacity-70 hover:opacity-100 transition-opacity">
+              <Logo height={26} gradientId="models-logo" />
+            </Link>
+            <AccountMenu variant="topbar" />
+          </div>
         </div>
 
         {/* Hero */}

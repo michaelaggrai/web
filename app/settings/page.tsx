@@ -8,6 +8,7 @@ import {
   Sparkles, Zap, Crown, AlertTriangle,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { AccountMenu } from "@/components/account-menu";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 type Tier = "free" | "pro" | "premium";
@@ -156,7 +157,7 @@ function Settings() {
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 
       <div className="relative z-10 mx-auto max-w-2xl">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between gap-3">
           <Link
             href="/app"
             className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors"
@@ -164,9 +165,12 @@ function Settings() {
             <ArrowLeft className="w-4 h-4" />
             Back to app
           </Link>
-          <Link href="/" className="opacity-70 hover:opacity-100 transition-opacity">
-            <Logo height={24} gradientId="settings-logo" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="opacity-70 hover:opacity-100 transition-opacity">
+              <Logo height={24} gradientId="settings-logo" />
+            </Link>
+            <AccountMenu variant="topbar" />
+          </div>
         </div>
 
         <h1 className="text-2xl font-semibold text-white tracking-tight mb-1">Settings</h1>

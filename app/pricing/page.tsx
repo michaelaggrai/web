@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check, Sparkles, Zap, Crown } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { AccountMenu } from "@/components/account-menu";
 
 export const metadata = {
   title: "Pricing — aggrai",
@@ -65,11 +66,16 @@ export default function PricingPage() {
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 
       <div className="relative z-10 mx-auto max-w-4xl">
-        {/* Header */}
-        <div className="flex flex-col items-center text-center mb-12">
-          <Link href="/" className="mb-10 inline-block">
-            <Logo height={30} gradientId="pricing-logo" />
+        {/* Top bar — logo + account menu, then the centered hero below */}
+        <div className="mb-12 flex items-center justify-between gap-3">
+          <Link href="/" aria-label="aggrai" className="opacity-80 hover:opacity-100 transition-opacity">
+            <Logo height={28} gradientId="pricing-logo" />
           </Link>
+          <AccountMenu variant="topbar" />
+        </div>
+
+        {/* Centered hero */}
+        <div className="flex flex-col items-center text-center mb-12">
           <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">
             Simple, honest pricing
           </h1>
