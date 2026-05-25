@@ -297,14 +297,21 @@ const SCORE_KEYS: { key: keyof Scores; label: string }[] = [
 // Source: research/scoring-metric-2026-05-24.md §4 (composite formula
 // + worked examples) and §7.3 (fatal-flaw cap UX).
 function overallScore(s: Scores): number {
-  const weighted =
-    s.accuracy     * 0.30 +
-    s.completeness * 0.25 +
-    s.calibration  * 0.20 +
-    s.clarity      * 0.15 +
-    s.insight      * 0.10;
+  // AGGRAI-WEB-9 hotfix: defensive coalesce. Backend filters out score
+  // entries with missing sub-dimensions before they reach the client,
+  // but if anything sneaks through (older cached responses, future
+  // shape drift, etc.) `undefined * 0.30 = NaN` poisons the whole
+  // weighted sum and renders as "NaN /100" in the UI. Coalesce each
+  // dim to 0 instead — a missing dim now reads as a 0 contribution
+  // rather than a render glitch.
+  const acc  = typeof s.accuracy     === 'number' ? s.accuracy     : 0;
+  const comp = typeof s.completeness === 'number' ? s.completeness : 0;
+  const cal  = typeof s.calibration  === 'number' ? s.calibration  : 0;
+  const clar = typeof s.clarity      === 'number' ? s.clarity      : 0;
+  const ins  = typeof s.insight      === 'number' ? s.insight      : 0;
+  const weighted = acc * 0.30 + comp * 0.25 + cal * 0.20 + clar * 0.15 + ins * 0.10;
   const raw = Math.round((weighted / 5) * 100);
-  return s.accuracy <= 1.0 ? Math.min(raw, 40) : raw;
+  return acc <= 1.0 ? Math.min(raw, 40) : raw;
 }
 
 // True when the fatal-flaw cap on Accuracy actually changed the
@@ -561,16 +568,23 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
               {SCORE_KEYS.map(({ key, label }) => {
                 const isTop = topByDim.find(t => t.key === key)?.model === a.model;
+                // AGGRAI-WEB-9 hotfix: defensive read. Backend now validates
+                // that summariser returns all 5 numeric sub-scores; the score
+                // entry is dropped server-side if any are missing. This is a
+                // belt-and-braces guard in case any sneak through (very old
+                // cached responses, future shape changes, etc) — render "—"
+                // instead of crashing on undefined.toFixed.
+                const v = typeof a.scores[key] === 'number' ? a.scores[key] : null;
                 return (
                   <div key={key} className="min-w-0 flex items-center gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-1">
                         <span className="text-[10px] text-white/40 truncate">{label}</span>
                         <span className={`text-xs tabular-nums shrink-0 ${isTop ? "text-teal-200" : "text-white/70"}`}>
-                          {a.scores[key].toFixed(1)}
+                          {v === null ? "—" : v.toFixed(1)}
                         </span>
                       </div>
-                      <Bar pct={a.scores[key] / 5} accent={isTop} />
+                      <Bar pct={v === null ? 0 : v / 5} accent={isTop} />
                     </div>
                   </div>
                 );
