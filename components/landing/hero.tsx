@@ -127,6 +127,7 @@ export function Hero() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="What would you like to know?"
+                  aria-label="Ask a question"
                   className="flex-1 bg-transparent text-white placeholder:text-white/30 px-6 py-5 text-base focus:outline-none rounded-2xl"
                 />
                 <button

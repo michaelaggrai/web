@@ -256,13 +256,15 @@ function SignIn() {
             );
           })()}
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-3" aria-label={mode === "signup" ? "Create account" : "Sign in"}>
             <input
               type="email"
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="Email"
+              aria-label="Email"
+              aria-invalid={error ? true : undefined}
               autoComplete="email"
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
             />
@@ -273,6 +275,8 @@ function SignIn() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="Password"
+              aria-label="Password"
+              aria-invalid={error ? true : undefined}
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
             />
@@ -307,8 +311,8 @@ function SignIn() {
               </label>
             )}
 
-            {error && <p className="text-sm text-red-300">{error}</p>}
-            {notice && <p className="text-sm text-teal-300">{notice}</p>}
+            {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
+            {notice && <p role="status" className="text-sm text-teal-300">{notice}</p>}
 
             <button
               type="submit"
@@ -335,6 +339,7 @@ function SignIn() {
                 setNotice("");
                 setAgreed(false);
               }}
+              aria-label={mode === "signup" ? "Switch to sign in" : "Switch to create account"}
               className="font-medium text-teal-300 hover:text-teal-200"
             >
               {mode === "signup" ? "Sign in" : "Sign up"}

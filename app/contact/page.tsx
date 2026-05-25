@@ -56,7 +56,10 @@ export default function ContactPage() {
           <div className="mb-8 inline-block">
             <Logo height={32} gradientId="contact-sent-logo" />
           </div>
-          <div className="rounded-2xl border border-teal-400/20 bg-teal-400/[0.06] p-10">
+          <div
+            role="status"
+            className="rounded-2xl border border-teal-400/20 bg-teal-400/[0.06] p-10"
+          >
             <h1 className="text-2xl font-semibold text-white mb-3">Message sent</h1>
             <p className="text-white/60 leading-relaxed text-sm">
               Thanks {name ? <span className="text-white">{name}</span> : "for getting in touch"}. We&apos;ve received it and will reply
@@ -130,7 +133,7 @@ export default function ContactPage() {
                     type="button"
                     onClick={() => setTopic(t.id)}
                     aria-pressed={active}
-                    className={`flex flex-col items-center rounded-xl border px-2 py-3 text-center transition ${
+                    className={`flex flex-col items-center justify-center rounded-xl border px-2 py-3 text-center transition min-h-[44px] ${
                       active
                         ? "border-teal-400/60 bg-teal-400/[0.08]"
                         : "border-white/10 bg-white/[0.03] hover:border-white/20"
@@ -159,6 +162,7 @@ export default function ContactPage() {
               placeholder="Jane Smith"
               autoComplete="name"
               maxLength={120}
+              aria-invalid={error ? true : undefined}
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
             />
           </div>
@@ -177,6 +181,7 @@ export default function ContactPage() {
               placeholder="jane@example.com"
               autoComplete="email"
               maxLength={200}
+              aria-invalid={error ? true : undefined}
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
             />
           </div>
@@ -201,12 +206,13 @@ export default function ContactPage() {
               rows={6}
               minLength={10}
               maxLength={5000}
+              aria-invalid={error ? true : undefined}
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors resize-y"
             />
             <p className="mt-1.5 text-[11px] text-white/30 text-right tabular-nums">{message.length} / 5000</p>
           </div>
 
-          {error && <p className="text-sm text-red-300">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
 
           <button
             type="submit"

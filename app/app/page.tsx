@@ -224,10 +224,25 @@ function makeAggraiAnswerComponents(
   };
 }
 
+// Two sizes for the loading blocks — they're tuned to look *visually*
+// equivalent even though the numbers differ. The aggrai pentagon mesh is
+// an open outline (5 dots + thin spokes + thin edge) with lots of negative
+// space, while brand icons (Claude wordmark, OpenAI spiral, Google G) are
+// filled shapes that fill their box more densely. The aggrai "breathe"
+// loading animation also shrinks to 0.88 mid-cycle, so its effective
+// rendered size is smaller than the prop. Bumping the aggrai size up by
+// ~25% lands both rows at the same perceptual weight on /app.
+const LOADING_BRAND_SIZE = 44;   // ProviderLogo for per-model loaders
+const LOADING_AGGRAI_SIZE = 56;  // Aggrai pentagon for summary / scores / winner loaders
+
 function LoadingBlock({ title, gradientId, className = "" }: { title: string; gradientId: string; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4 ${className}`}>
-      <Logo height={40} spinning symbolOnly gradientId={gradientId} />
+    <div
+      role="status"
+      aria-label={`Loading ${title}`}
+      className={`rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4 ${className}`}
+    >
+      <Logo height={LOADING_AGGRAI_SIZE} spinning symbolOnly gradientId={gradientId} />
       <p className="text-xs text-white/40">{title}</p>
     </div>
   );
@@ -236,7 +251,7 @@ function LoadingBlock({ title, gradientId, className = "" }: { title: string; gr
 function ModelLoadingBlock({ modelId }: { modelId: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4">
-      <ModelLoader modelId={modelId} size={36} />
+      <ModelLoader modelId={modelId} size={LOADING_BRAND_SIZE} label={modelLabel(modelId)} />
       <p className="text-xs text-white/40">{modelLabel(modelId)}</p>
     </div>
   );
@@ -801,7 +816,9 @@ function Home() {
               type="button"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
-              className="text-white/60 hover:text-white transition"
+              aria-controls="app-sidebar"
+              aria-expanded={sidebarOpen}
+              className="-ml-1.5 inline-flex items-center justify-center p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -835,7 +852,10 @@ function Home() {
           <div className="mx-auto max-w-4xl space-y-8">
 
           {showUpgradedBanner && (
-            <div className="rounded-xl border border-teal-400/30 bg-teal-400/10 px-4 py-3 flex items-center justify-between gap-3">
+            <div
+              role="status"
+              className="rounded-xl border border-teal-400/30 bg-teal-400/10 px-4 py-3 flex items-center justify-between gap-3"
+            >
               <p className="text-sm text-teal-200">
                 Plan upgraded — your new models are unlocked.
               </p>
@@ -858,6 +878,8 @@ function Home() {
                 onChange={e => setQuestion(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
                 placeholder="What would you like to know?"
+                aria-label="Ask a question"
+                aria-describedby="ask-hint"
                 rows={2}
                 className="flex-1 resize-none bg-transparent text-white placeholder:text-white/30 px-6 py-4 text-base focus:outline-none rounded-2xl"
               />
@@ -871,6 +893,14 @@ function Home() {
               </button>
             </div>
 
+            {/* Small kbd hint so users know Enter submits and Shift+Enter is
+                the escape hatch for a newline (referenced via the textarea's
+                aria-describedby above). */}
+            <p id="ask-hint" className="text-[11px] text-white/30 text-right -mt-2 px-1">
+              <kbd className="font-mono">Enter</kbd> to send ·{" "}
+              <kbd className="font-mono">Shift+Enter</kbd> for new line
+            </p>
+
             {/* Model selector */}
             <ModelPicker
               all={allModels}
@@ -882,7 +912,10 @@ function Home() {
           </form>
 
           {error && (
-            <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
+            <div
+              role="alert"
+              className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300"
+            >
               {error}
             </div>
           )}

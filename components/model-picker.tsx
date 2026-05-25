@@ -85,7 +85,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
       {orderedSelected.map(m => (
         <span
           key={m.id}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white/15 text-white border border-white/20 pl-2.5 pr-1.5 py-1 text-xs font-medium"
+          className="inline-flex items-center gap-1.5 rounded-full bg-white/15 text-white border border-white/20 pl-2.5 pr-1 py-1 text-xs font-medium"
         >
           <ProviderLogo provider={m.provider} className="w-3.5 h-3.5 shrink-0" />
           {m.label}
@@ -94,7 +94,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
             onClick={() => remove(m.id)}
             disabled={selected.size <= 1}
             aria-label={`Remove ${m.label}`}
-            className="rounded-full p-0.5 hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center justify-center min-w-[28px] min-h-[28px] rounded-full p-1.5 hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <X className="w-3 h-3" />
           </button>
@@ -139,7 +139,8 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                   key={c.id}
                   type="button"
                   onClick={() => setActiveCategory(c.id)}
-                  className={`shrink-0 px-2.5 py-1.5 text-[11px] font-medium rounded-t-md transition-colors border-b-2 ${
+                  aria-pressed={isActive}
+                  className={`shrink-0 px-3 py-2.5 text-[11px] font-medium rounded-t-md transition-colors border-b-2 min-h-[36px] ${
                     isActive
                       ? "border-teal-400 text-white bg-white/[0.04]"
                       : "border-transparent text-white/50 hover:text-white/80"
@@ -171,7 +172,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                       type="button"
                       onClick={() => toggle(m.id)}
                       disabled={disabled}
-                      className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-left transition-colors ${
+                      className={`w-full flex items-center gap-2 rounded-md px-2 py-2.5 text-xs text-left transition-colors min-h-[36px] ${
                         isSelected
                           ? "bg-teal-400/15 text-teal-100"
                           : disabled
