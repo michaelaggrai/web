@@ -57,7 +57,7 @@ export default function AboutPage() {
         <h2>How it works</h2>
         <p>
           When you submit a question we fan it out in parallel to the AI
-          models you&apos;ve selected (via OpenRouter). A summariser pass
+          models you&apos;ve selected. A summariser pass
           (Claude Haiku) then scores each answer on five dimensions
           &mdash; accuracy, completeness, calibration, clarity and insight
           &mdash; and rewrites a single &ldquo;Aggrai&apos;s answer&rdquo; that

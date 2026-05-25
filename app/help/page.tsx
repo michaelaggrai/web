@@ -49,10 +49,10 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         Your account data and your question history are private to you. Your
-        questions are forwarded to the AI providers you select (via OpenRouter)
-        for processing — see our <Link href="/privacy">Privacy Policy</Link> for
-        what they do with the data. We don&apos;t use your personal questions to
-        train our own models.
+        questions are forwarded to the AI providers you select for processing —
+        see our <Link href="/privacy">Privacy Policy</Link> for the full data
+        flow including which third-party processors are involved. We don&apos;t
+        use your personal questions to train our own models.
       </>
     ),
   },

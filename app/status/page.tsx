@@ -9,7 +9,7 @@ type SystemStatus = "operational" | "degraded" | "outage";
 
 const SYSTEMS: { name: string; status: SystemStatus; note?: string }[] = [
   { name: "Web app", status: "operational" },
-  { name: "Model routing (OpenRouter)", status: "operational" },
+  { name: "Model routing", status: "operational" },
   { name: "Authentication (Supabase)", status: "operational" },
   { name: "Example cache", status: "operational" },
 ];
