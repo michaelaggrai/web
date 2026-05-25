@@ -11,19 +11,15 @@ type LogoProps = {
   symbolOnly?: boolean
 }
 
-// Each outer node carries a brand-coloured class so the icon visually
+// Each outer node carries a brand-coloured class so the pentagon visually
 // reads as "five model providers around the synthesised core". Colours
 // chosen from each provider's primary brand palette:
 //   anthropic = Claude orange, openai = green/teal, google = Gemini blue,
 //   meta = Meta blue, mistral = Mistral orange. Spokes stay neutral so the
 //   coloured dots are the visual focus.
-// Perimeter is a circle (r=30 centred at 50,50) rather than a pentagon
-// edge — the 5 nodes sit on that same circle's circumference. The mesh
-// animations (breathe scale, spoke dash flow during loading) apply to
-// the whole <g> group so the change is purely visual.
 const MESH = (
   <g className="aggrai-mesh">
-    <circle className="aggrai-edge" cx="50" cy="50" r="30" />
+    <path className="aggrai-edge" d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" />
     <line className="aggrai-spoke" x1="50" y1="50" x2="50" y2="20" />
     <line className="aggrai-spoke" x1="50" y1="50" x2="78" y2="41" />
     <line className="aggrai-spoke" x1="50" y1="50" x2="68" y2="74" />
