@@ -928,8 +928,12 @@ function Home() {
       <div className="relative z-10 flex flex-col min-h-dvh lg:ml-64">
         {/* Top bar — sticky so it stays visible as the document scrolls.
             Backdrop blur prevents content from "ghosting" through the
-            header text as you scroll under it. */}
-        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-white/5 bg-navy/80 backdrop-blur-md px-4">
+            header text as you scroll under it.
+            AGG-38 #2: pt + pl + pr safe-area insets so notch/dynamic-island
+            don't overlap header content in landscape on iOS. h-14 stays as
+            the *minimum* visual height; safe-area extends the box upward
+            into the inset region without pushing the click targets down. */}
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-white/5 bg-navy/80 backdrop-blur-md px-4 pt-[env(safe-area-inset-top)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
           {/* Mobile: menu toggle + logo */}
           <div className="flex items-center gap-3 lg:hidden">
             <button

@@ -118,8 +118,11 @@ export function AppSidebar({
           border-r border-white/5 bg-navy/90 backdrop-blur-xl transition-transform duration-200
           lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
-        {/* Brand */}
-        <div className="flex h-16 items-center justify-between px-4 border-b border-white/5">
+        {/* Brand
+            AGG-38 #2: safe-area-inset-top so the sidebar header doesn't
+            sit under the notch on iOS landscape (sidebar is fixed at
+            every viewport since AGG-38 #1 body-scroll refactor). */}
+        <div className="flex h-16 items-center justify-between px-4 border-b border-white/5 pt-[env(safe-area-inset-top)]">
           {signedIn ? (
             // Signed-in users are on /app, so a Link back to /app is a
             // no-op. Tap → reset to a new comparison (and the helper
@@ -192,8 +195,11 @@ export function AppSidebar({
           )}
         </div>
 
-        {/* Bottom section */}
-        <div className="border-t border-white/5 p-3 space-y-2">
+        {/* Bottom section
+            AGG-38 #2: safe-area-inset-bottom so the Sign-out / settings
+            buttons clear the iOS home indicator on devices without a
+            physical home button. */}
+        <div className="border-t border-white/5 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-2">
           {signedIn ? (
             <>
               {canUpgrade && (

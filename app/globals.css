@@ -178,3 +178,21 @@
   animation: brand-pulse 1.4s ease-in-out infinite;
   display: inline-flex;
 }
+
+/* ============================================================
+   AGG-38 #3 — suppress iOS Safari's default grey/blue tap-highlight
+   on touch devices (`hover: none` is the standard query for "no real
+   hover capability"). Our buttons + links already have purpose-built
+   :active states (teal tints, scale changes, etc); the iOS overlay
+   competes visually with those and looks janky. Suppressing it gives
+   us consistent touch feedback driven by our own active styling.
+   No effect on desktop (where hover capability is present).
+   ============================================================ */
+@media (hover: none) {
+  button,
+  a,
+  [role="button"],
+  summary {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
