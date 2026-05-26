@@ -197,8 +197,14 @@ export function AccountMenu({ variant = "sidebar" }: { variant?: Variant }) {
 
         <DropdownMenuSeparator className="bg-white/10" />
 
-        {/* Tiny legal links */}
+        {/* Tiny secondary links. Models lives here because it's a useful
+            reference page users want to dip back into (which Pro models do
+            I get? What's in Premium?) but it's not a primary action like
+            Settings or Upgrade. Privacy + Terms keep their existing slot
+            alongside it. */}
         <div className="px-2 py-1.5 flex items-center gap-2 text-[11px] text-white/40">
+          <Link href="/models" className="hover:text-white/70 transition-colors">Models</Link>
+          <span>·</span>
           <Link href="/privacy" className="hover:text-white/70 transition-colors">Privacy</Link>
           <span>·</span>
           <Link href="/terms" className="hover:text-white/70 transition-colors">Terms</Link>
