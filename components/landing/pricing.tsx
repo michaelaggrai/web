@@ -36,7 +36,7 @@ const tiers: PricingTier[] = [
   },
   {
     name: "Pro",
-    price: "£9",
+    price: "£11",
     period: "per month",
     description: "Flagship models for deeper comparisons.",
     Icon: Zap,

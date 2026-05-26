@@ -37,7 +37,7 @@ const PLANS: Plan[] = [
   {
     id: "pro",
     name: "Pro",
-    price: "£9",
+    price: "£11",
     period: "/mo",
     icon: Zap,
     iconColor: "text-teal-300",

@@ -27,7 +27,7 @@ const PLANS = [
   },
   {
     name: "Pro",
-    price: "£9",
+    price: "£11",
     period: "per month",
     icon: Zap,
     iconColor: "text-teal-300",
