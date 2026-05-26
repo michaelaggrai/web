@@ -32,6 +32,17 @@ export async function POST(req: NextRequest) {
   res.cookies.set("auth", PASSWORD, {
     httpOnly: true,
     sameSite: "lax",
+    // `secure` is REQUIRED in production: modern browsers (Chrome incognito
+    // in particular, Safari with ITP) refuse to persist non-Secure cookies
+    // on HTTPS in privacy-protective contexts. Without it, incognito users
+    // would successfully POST /api/login, get a 200 back, navigate to /,
+    // but the auth cookie would silently not be set → middleware bounces
+    // them back to /login forever. (Filed by user 2026-05-26.)
+    //
+    // We gate on NODE_ENV instead of hardcoding true so local development
+    // over http://localhost still works (Secure cookies are dropped on
+    // non-HTTPS origins).
+    secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 30,
     path: "/",
   });

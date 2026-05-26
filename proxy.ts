@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PASSWORD = process.env.SITE_PASSWORD ?? "aggrai";
+// AGG-34 follow-up: keep this aligned with app/api/login/route.ts —
+// both used to share a `?? "aggrai"` failing-open fallback that we
+// removed from the route handler. Removed from middleware too: if
+// SITE_PASSWORD is unset, PASSWORD is undefined, the cookie compare
+// always fails, and every page redirects to /login. Loud, not silent.
+const PASSWORD = process.env.SITE_PASSWORD;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
