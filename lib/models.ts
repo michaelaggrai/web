@@ -54,8 +54,10 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "mistralai/mistral-small-3.2-24b-instruct", label: "Mistral Small",        provider: "Mistral",   class: "basic",    category: "fast" },
   { id: "meta-llama/llama-3.1-8b-instruct",         label: "Llama 3.1 8B",         provider: "Meta",      class: "basic",    category: "fast" },
   { id: "deepseek/deepseek-v3.2",                   label: "DeepSeek v3.2",        provider: "DeepSeek",  class: "basic",    category: "fast" },
-  { id: "openai/gpt-5.4-mini",                      label: "GPT-5.4 Mini",         provider: "OpenAI",    class: "flagship", category: "fast" },
-  { id: "google/gemini-3.1-flash-lite",             label: "Gemini 3.1 Flash Lite",provider: "Google",    class: "flagship", category: "fast" },
+  // Re-classed to "basic" 2026-05-26: priced in the same ballpark as the
+  // other basic models, no reason to gate. See backend MODEL_CATALOG.
+  { id: "openai/gpt-5.4-mini",                      label: "GPT-5.4 Mini",         provider: "OpenAI",    class: "basic",    category: "fast" },
+  { id: "google/gemini-3.1-flash-lite",             label: "Gemini 3.1 Flash Lite",provider: "Google",    class: "basic",    category: "fast" },
 
   // Creative
   { id: "anthropic/claude-sonnet-4-6",              label: "Claude Sonnet 4.6",    provider: "Anthropic", class: "flagship", category: "creative" },

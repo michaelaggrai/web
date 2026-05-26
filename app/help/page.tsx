@@ -28,17 +28,17 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Do I need to sign up?",
-    a: "No. Anyone can use the Free tier (6 basic models, 3 per comparison) without an account. You only need an account to upgrade — Pro unlocks every flagship model (Opus 4.7, GPT-4o, Sonnet, Grok…), Premium adds 5 reasoning specialists and lets you compare up to 5 models at once.",
+    a: "No. Anyone can use the Free tier (8 basic models, 3 per comparison) without an account. You only need an account to upgrade — Pro unlocks 17 advanced models (Opus 4.7, GPT-4o, Sonnet, Grok 4.20, Gemini Pro…), Premium adds 5 research models and lets you compare up to 5 at once.",
   },
   {
     q: "What's the difference between the plans?",
     a: (
       <>
-        <strong>Free</strong> — 6 basic models (Haiku 4.5, GPT-4o Mini, Gemini 2.5 Flash, Mistral Small, Llama 3.1 8B, DeepSeek v3.2). Up to 3 per comparison.
+        <strong>Free</strong> — 8 basic models. Haiku 4.5, GPT-4o Mini, GPT-5.4 Mini, Gemini 2.5 Flash, Gemini 3.1 Flash Lite, Mistral Small, Llama 3.1 8B, DeepSeek v3.2. Up to 3 per comparison.
         <br />
-        <strong>Pro</strong> — adds every flagship model: Claude Opus 4.7, Sonnet 4.6, GPT-4o, GPT-5.4/5.5, Gemini Pro, Grok 4.20, Llama 3.3 70B, Codex, Devstral and more. Up to 3 per comparison.
+        <strong>Pro</strong> — 17 advanced models. Every flagship: Claude Opus 4.7, Sonnet 4.6, GPT-4o, GPT-5.4/5.5, Gemini Pro, Grok 4.20, Llama 3.3 70B, Codex, Devstral and more. Up to 3 per comparison.
         <br />
-        <strong>Premium</strong> — for deep research. Adds 5 reasoning specialists: GPT-5.4/5.5 Pro, DeepSeek v4 Pro, Qwen3 Max Thinking, Grok 4.20 Multi-Agent. Up to 5 per comparison.
+        <strong>Premium</strong> — 5 research models. For deep research: GPT-5.4/5.5 Pro, DeepSeek v4 Pro, Qwen3 Max Thinking, Grok 4.20 Multi-Agent. Up to 5 per comparison.
         <br />
         See <Link href="/pricing">Pricing</Link> for details.
       </>
