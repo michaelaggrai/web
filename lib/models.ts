@@ -64,10 +64,11 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "openai/gpt-5.5",                           label: "GPT-5.5",              provider: "OpenAI",    class: "flagship", category: "creative" },
   { id: "mistralai/mistral-large-2512",             label: "Mistral Large",        provider: "Mistral",   class: "flagship", category: "creative" },
 
-  // Reasoning — Premium-only
+  // Reasoning — Opus 4.7 is general-purpose flagship (Pro). The 4
+  // explicit deep-think specialists stay Premium.
   { id: "openai/gpt-5.4-pro",                       label: "GPT-5.4 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" },
   { id: "openai/gpt-5.5-pro",                       label: "GPT-5.5 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" },
-  { id: "anthropic/claude-opus-4.7",                label: "Claude Opus 4.7",      provider: "Anthropic", class: "premium",  category: "reasoning" },
+  { id: "anthropic/claude-opus-4.7",                label: "Claude Opus 4.7",      provider: "Anthropic", class: "flagship", category: "reasoning" },
   { id: "deepseek/deepseek-v4-pro",                 label: "DeepSeek v4 Pro",      provider: "DeepSeek",  class: "premium",  category: "reasoning" },
   { id: "qwen/qwen3-max-thinking",                  label: "Qwen3 Max Thinking",   provider: "Qwen",      class: "premium",  category: "reasoning" },
 
@@ -83,11 +84,12 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "google/gemini-3.1-pro-preview",            label: "Gemini 3.1 Pro",       provider: "Google",    class: "flagship", category: "multimodal" },
   { id: "google/gemini-3-flash-preview",            label: "Gemini 3 Flash",       provider: "Google",    class: "flagship", category: "multimodal" },
 
-  // Frontier — Premium-only
-  { id: "anthropic/claude-opus-4.7-fast",           label: "Claude Opus 4.7 Fast", provider: "Anthropic", class: "premium",  category: "frontier" },
-  { id: "x-ai/grok-4.20",                           label: "Grok 4.20",            provider: "xAI",       class: "premium",  category: "frontier" },
+  // Frontier — only Grok Multi-Agent (experimental agentic mode) stays
+  // Premium. Opus 4.7 Fast, Grok 4.20 base, and Llama 3.3 70B are Pro.
+  { id: "anthropic/claude-opus-4.7-fast",           label: "Claude Opus 4.7 Fast", provider: "Anthropic", class: "flagship", category: "frontier" },
+  { id: "x-ai/grok-4.20",                           label: "Grok 4.20",            provider: "xAI",       class: "flagship", category: "frontier" },
   { id: "x-ai/grok-4.20-multi-agent",               label: "Grok 4.20 Multi-Agent",provider: "xAI",       class: "premium",  category: "frontier" },
-  { id: "meta-llama/llama-3.3-70b-instruct",        label: "Llama 3.3 70B",        provider: "Meta",      class: "premium",  category: "frontier" },
+  { id: "meta-llama/llama-3.3-70b-instruct",        label: "Llama 3.3 70B",        provider: "Meta",      class: "flagship", category: "frontier" },
 ]
 
 // Cumulative tiers — mirror of the backend. The backend is the source of

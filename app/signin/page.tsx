@@ -41,8 +41,8 @@ const PLANS: Plan[] = [
     period: "/mo",
     icon: Zap,
     iconColor: "text-teal-300",
-    tagline: "+ 15 flagship",
-    detail: "Everything in Free plus 15 flagship models — GPT-4o, Claude Sonnet 4.6, Gemini 2.5/3.x Pro, Codex variants, Devstral. Up to 3 models per comparison.",
+    tagline: "Every flagship",
+    detail: "Everything in Free plus every flagship model — Claude Opus 4.7, Sonnet 4.6, GPT-4o, GPT-5.4/5.5, Gemini Pro, Grok 4.20, Llama 3.3 70B, Codex, Devstral. Up to 3 models per comparison.",
   },
   {
     id: "premium",
@@ -51,8 +51,8 @@ const PLANS: Plan[] = [
     period: "/mo",
     icon: Crown,
     iconColor: "text-amber-300",
-    tagline: "+ reasoning & frontier",
-    detail: "Everything in Pro plus 9 reasoning + frontier models — Claude Opus 4.7, GPT-5.4/5.5 Pro, Grok 4.20 (incl. multi-agent), DeepSeek v4 Pro, Qwen3 Max Thinking. Up to 5 models per comparison.",
+    tagline: "Deep research",
+    detail: "Everything in Pro plus 5 reasoning specialists — GPT-5.4/5.5 Pro, DeepSeek v4 Pro, Qwen3 Max Thinking, Grok 4.20 Multi-Agent. Up to 5 models per comparison.",
   },
 ];
 function isPlanId(v: string | null): v is PlanId {
