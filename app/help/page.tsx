@@ -28,17 +28,17 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Do I need to sign up?",
-    a: "No. Anyone can use the Free tier (3 basic models, 3 per comparison) without an account. You only need an account if you want to upgrade to Pro or Premium for flagship models or more slots per comparison.",
+    a: "No. Anyone can use the Free tier (6 basic models, 3 per comparison) without an account. You only need an account to upgrade — Pro unlocks the 15 flagship models, Premium adds the 9 reasoning + frontier models and lets you compare up to 5 at once.",
   },
   {
     q: "What's the difference between the plans?",
     a: (
       <>
-        <strong>Free</strong> — 3 basic models, up to 3 per comparison.
+        <strong>Free</strong> — 6 basic models (Haiku 4.5, GPT-4o Mini, Gemini 2.5 Flash, Mistral Small, Llama 3.1 8B, DeepSeek v3.2). Up to 3 per comparison.
         <br />
-        <strong>Pro</strong> — full catalog (basic + flagship), up to 3 per comparison.
+        <strong>Pro</strong> — adds 15 flagship models (GPT-4o, Sonnet 4.6, Gemini Pro, Codex, Devstral and more). Up to 3 per comparison.
         <br />
-        <strong>Premium</strong> — full catalog, up to 5 per comparison.
+        <strong>Premium</strong> — adds 9 reasoning + frontier models (Claude Opus 4.7, GPT-5.5 Pro, Grok 4.20 multi-agent, Qwen3 Max Thinking…). Up to 5 per comparison.
         <br />
         See <Link href="/pricing">Pricing</Link> for details.
       </>

@@ -15,10 +15,7 @@ type Tier = "free" | "pro" | "premium";
 
 // AGG-33: features list mirrors /pricing PLANS exactly. Anything that
 // diverges here will read as a contradiction to a user comparing the
-// two pages. If /pricing changes, mirror it here. Eventually consider
-// hoisting both to a shared constant in lib/plans.ts, but the shapes
-// differ enough (Tier key, cta semantics, current-plan highlight) that
-// duplication is simpler than abstraction for now.
+// two pages. If /pricing changes, mirror it here.
 const PLANS = [
   {
     key: "free" as Tier,
@@ -29,10 +26,10 @@ const PLANS = [
     iconColor: "text-white/40",
     description: "Get started instantly, no account needed.",
     features: [
-      "3 basic AI models",
+      "6 basic AI models",
       "Up to 3 models per comparison",
       "Quality scores & metrics",
-      "Unified summary across models",
+      "Aggrai's combined answer",
     ],
     cta: "Current plan",
     highlight: false,
@@ -44,12 +41,12 @@ const PLANS = [
     period: "per month",
     icon: Zap,
     iconColor: "text-teal-300",
-    description: "Access flagship models for deeper comparisons.",
+    description: "Flagship models — GPT-4o, Sonnet 4.6, Gemini Pro and more.",
     features: [
-      "Full catalog (basic + flagship)",
-      "GPT-4o, Claude Sonnet 4.6, Gemini 2.5 Pro…",
+      "Everything in Free, plus…",
+      "15 flagship models: GPT-4o, Claude Sonnet 4.6, Gemini 2.5/3.x Pro, Codex, Devstral…",
+      "Creative, coding & multimodal categories unlocked",
       "Up to 3 models per comparison",
-      "Everything in Free",
     ],
     cta: "Upgrade to Pro",
     highlight: true,
@@ -61,12 +58,12 @@ const PLANS = [
     period: "per month",
     icon: Crown,
     iconColor: "text-amber-300",
-    description: "Maximum models for the most thorough comparisons.",
+    description: "Adds reasoning + frontier models, and 5-model comparisons.",
     features: [
-      "Full catalog (basic + flagship)",
+      "Everything in Pro, plus…",
+      "Claude Opus 4.7, GPT-5.4/5.5 Pro, Grok 4.20 (incl. multi-agent)",
+      "DeepSeek v4 Pro, Qwen3 Max Thinking, Llama 3.3 70B",
       "Up to 5 models per comparison",
-      "Priority for new model launches",
-      "Everything in Pro",
     ],
     cta: "Upgrade to Premium",
     highlight: false,

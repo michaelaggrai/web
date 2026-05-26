@@ -31,8 +31,8 @@ const PLANS: Plan[] = [
     period: "forever",
     icon: Sparkles,
     iconColor: "text-white/50",
-    tagline: "3 basic models",
-    detail: "Free forever — Claude Haiku, GPT-4o mini, Gemini 2.5 Flash. Up to 3 models per comparison. No card required.",
+    tagline: "6 basic models",
+    detail: "Free forever — Claude Haiku 4.5, GPT-4o Mini, Gemini 2.5 Flash, Mistral Small, Llama 3.1 8B, DeepSeek v3.2. Up to 3 models per comparison. No card required.",
   },
   {
     id: "pro",
@@ -41,8 +41,8 @@ const PLANS: Plan[] = [
     period: "/mo",
     icon: Zap,
     iconColor: "text-teal-300",
-    tagline: "Flagship models",
-    detail: "Full catalog including GPT-4o, Claude Sonnet 4.6, Gemini 2.5 Pro. Up to 3 models per comparison.",
+    tagline: "+ 15 flagship",
+    detail: "Everything in Free plus 15 flagship models — GPT-4o, Claude Sonnet 4.6, Gemini 2.5/3.x Pro, Codex variants, Devstral. Up to 3 models per comparison.",
   },
   {
     id: "premium",
@@ -51,8 +51,8 @@ const PLANS: Plan[] = [
     period: "/mo",
     icon: Crown,
     iconColor: "text-amber-300",
-    tagline: "5 models at once",
-    detail: "Full catalog plus higher comparison limit — pit up to 5 flagship models against each other in one query.",
+    tagline: "+ reasoning & frontier",
+    detail: "Everything in Pro plus 9 reasoning + frontier models — Claude Opus 4.7, GPT-5.4/5.5 Pro, Grok 4.20 (incl. multi-agent), DeepSeek v4 Pro, Qwen3 Max Thinking. Up to 5 models per comparison.",
   },
 ];
 function isPlanId(v: string | null): v is PlanId {

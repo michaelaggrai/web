@@ -23,10 +23,14 @@ const TIER_BADGES: Record<Tier, { label: string; classes: string }> = {
   premium: { label: "PREMIUM", classes: "border-amber-300/30 bg-amber-300/10 text-amber-200" },
 };
 
-// Map a model's `class` (basic | flagship) to the lowest tier that can use it.
-// 'basic' lives in Free; 'flagship' needs Pro+ (Premium also has it).
+// Map a model's `class` to the lowest tier that can use it.
+//   basic    → Free  (everyone)
+//   flagship → Pro   (Pro and Premium)
+//   premium  → Premium (Premium only — reasoning + frontier)
 function lowestTier(model: ModelEntry): Tier {
-  return model.class === "basic" ? "free" : "pro";
+  if (model.class === "basic") return "free";
+  if (model.class === "premium") return "premium";
+  return "pro";
 }
 
 export default function ModelsPage() {

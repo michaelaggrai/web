@@ -1,4 +1,8 @@
-export type ModelClass = "basic" | "flagship"
+// AGG-pricing-rework (2026-05-26): added "premium" class so the most
+// expensive reasoning + frontier models (Claude Opus 4.7, GPT-5.5 Pro,
+// Grok-4.20, Qwen3 Max Thinking, etc.) are reserved for Premium tier.
+// Pro tier still gets "basic" + "flagship" but NOT "premium".
+export type ModelClass = "basic" | "flagship" | "premium"
 export type ModelCategory = "fast" | "reasoning" | "coding" | "creative" | "multimodal" | "frontier"
 export type Tier = "free" | "pro" | "premium"
 
@@ -60,12 +64,12 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "openai/gpt-5.5",                           label: "GPT-5.5",              provider: "OpenAI",    class: "flagship", category: "creative" },
   { id: "mistralai/mistral-large-2512",             label: "Mistral Large",        provider: "Mistral",   class: "flagship", category: "creative" },
 
-  // Reasoning
-  { id: "openai/gpt-5.4-pro",                       label: "GPT-5.4 Pro",          provider: "OpenAI",    class: "flagship", category: "reasoning" },
-  { id: "openai/gpt-5.5-pro",                       label: "GPT-5.5 Pro",          provider: "OpenAI",    class: "flagship", category: "reasoning" },
-  { id: "anthropic/claude-opus-4.7",                label: "Claude Opus 4.7",      provider: "Anthropic", class: "flagship", category: "reasoning" },
-  { id: "deepseek/deepseek-v4-pro",                 label: "DeepSeek v4 Pro",      provider: "DeepSeek",  class: "flagship", category: "reasoning" },
-  { id: "qwen/qwen3-max-thinking",                  label: "Qwen3 Max Thinking",   provider: "Qwen",      class: "flagship", category: "reasoning" },
+  // Reasoning — Premium-only
+  { id: "openai/gpt-5.4-pro",                       label: "GPT-5.4 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" },
+  { id: "openai/gpt-5.5-pro",                       label: "GPT-5.5 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" },
+  { id: "anthropic/claude-opus-4.7",                label: "Claude Opus 4.7",      provider: "Anthropic", class: "premium",  category: "reasoning" },
+  { id: "deepseek/deepseek-v4-pro",                 label: "DeepSeek v4 Pro",      provider: "DeepSeek",  class: "premium",  category: "reasoning" },
+  { id: "qwen/qwen3-max-thinking",                  label: "Qwen3 Max Thinking",   provider: "Qwen",      class: "premium",  category: "reasoning" },
 
   // Coding
   { id: "openai/gpt-5.3-codex",                     label: "GPT-5.3 Codex",        provider: "OpenAI",    class: "flagship", category: "coding" },
@@ -79,19 +83,21 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "google/gemini-3.1-pro-preview",            label: "Gemini 3.1 Pro",       provider: "Google",    class: "flagship", category: "multimodal" },
   { id: "google/gemini-3-flash-preview",            label: "Gemini 3 Flash",       provider: "Google",    class: "flagship", category: "multimodal" },
 
-  // Frontier
-  { id: "anthropic/claude-opus-4.7-fast",           label: "Claude Opus 4.7 Fast", provider: "Anthropic", class: "flagship", category: "frontier" },
-  { id: "x-ai/grok-4.20",                           label: "Grok 4.20",            provider: "xAI",       class: "flagship", category: "frontier" },
-  { id: "x-ai/grok-4.20-multi-agent",               label: "Grok 4.20 Multi-Agent",provider: "xAI",       class: "flagship", category: "frontier" },
-  { id: "meta-llama/llama-3.3-70b-instruct",        label: "Llama 3.3 70B",        provider: "Meta",      class: "flagship", category: "frontier" },
+  // Frontier — Premium-only
+  { id: "anthropic/claude-opus-4.7-fast",           label: "Claude Opus 4.7 Fast", provider: "Anthropic", class: "premium",  category: "frontier" },
+  { id: "x-ai/grok-4.20",                           label: "Grok 4.20",            provider: "xAI",       class: "premium",  category: "frontier" },
+  { id: "x-ai/grok-4.20-multi-agent",               label: "Grok 4.20 Multi-Agent",provider: "xAI",       class: "premium",  category: "frontier" },
+  { id: "meta-llama/llama-3.3-70b-instruct",        label: "Llama 3.3 70B",        provider: "Meta",      class: "premium",  category: "frontier" },
 ]
 
 // Cumulative tiers — mirror of the backend. The backend is the source of
 // truth and enforces; this is only for shaping the UI.
-export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "full"; label: string }> = {
-  free:    { maxModels: 3, catalog: "basic", label: "Free" },
-  pro:     { maxModels: 3, catalog: "full",  label: "Pro" },
-  premium: { maxModels: 5, catalog: "full",  label: "Premium" },
+// catalog: "basic" (Free) | "standard" (Pro: basic + flagship, no premium)
+//        | "full" (Premium: everything)
+export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standard" | "full"; label: string }> = {
+  free:    { maxModels: 3, catalog: "basic",    label: "Free" },
+  pro:     { maxModels: 3, catalog: "standard", label: "Pro" },
+  premium: { maxModels: 5, catalog: "full",     label: "Premium" },
 }
 
 // Default model selection per tier.
@@ -106,10 +112,17 @@ export function maxModelsForTier(tier: Tier): number {
   return (TIERS[tier] ?? TIERS.free).maxModels
 }
 
-// Model ids the tier may NOT use (flagship models for a basic-catalog tier).
+// Model ids the tier may NOT use.
+//   Free (catalog="basic")    → flagship + premium are locked
+//   Pro  (catalog="standard") → premium-only are locked
+//   Premium (catalog="full")  → nothing locked
 export function lockedModelIds(tier: Tier, models: ModelEntry[]): Set<string> {
   const t = TIERS[tier] ?? TIERS.free
   if (t.catalog === "full") return new Set()
+  if (t.catalog === "standard") {
+    return new Set(models.filter(m => m.class === "premium").map(m => m.id))
+  }
+  // basic
   return new Set(models.filter(m => m.class !== "basic").map(m => m.id))
 }
 
