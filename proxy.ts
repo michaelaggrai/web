@@ -19,7 +19,12 @@ export async function proxy(req: NextRequest) {
 
   // --- Gate 1: beta password wall ---
   // /login is the password page — always reachable.
+  // /sitemap.xml + /robots.txt are crawler-only — bypass the gate so
+  // search engines can read them while V1 is still password-walled
+  // (AGG-40). They list only public pages; auth-only routes are
+  // disallowed in robots.txt itself.
   if (pathname === "/login") return NextResponse.next();
+  if (pathname === "/sitemap.xml" || pathname === "/robots.txt") return NextResponse.next();
   if (req.cookies.get("auth")?.value !== PASSWORD) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
