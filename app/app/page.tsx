@@ -1007,7 +1007,11 @@ function Home() {
           )}
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 py-10">
+        {/* AGG-38 #1 final fix: removed `overflow-y-auto` so the document
+            itself scrolls (not a nested container). iOS tap-status-bar
+            then scrolls /app to top like every other page. The outer
+            min-h-dvh + flex-col still gives us the layout we want. */}
+        <main className="flex-1 px-4 py-10">
           <div className="mx-auto max-w-4xl space-y-8">
 
           {showUpgradedBanner && (
