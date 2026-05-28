@@ -627,6 +627,12 @@ function Home() {
   const explicitModels: Set<string> | null = convFromStorage?.models
     ? new Set(convFromStorage.models)
     : parseModelsParam(searchParams.get("models"));
+  // If a previous submission saved its result to the conv payload, hydrate
+  // it as the initial result so a refresh on /app/c/{id} renders the
+  // answer instantly with zero API calls. We type-cast from `unknown`
+  // because the full Result shape lives in this file and would create a
+  // circular import if we typed it in lib/conv-id.ts.
+  const initialResult = (convFromStorage?.result as Result | undefined) ?? null;
 
   const { tier, resolved: tierResolved } = useTier();
   const [question, setQuestion] = useState(initialQuestion);
@@ -634,7 +640,7 @@ function Home() {
   const [selected, setSelected] = useState<Set<string>>(explicitModels ?? new Set(TIER_DEFAULTS.free));
   const [loading, setLoading] = useState(false);
   const [intentHint, setIntentHint] = useState<"compare" | "product" | "direct" | null>(null);
-  const [result, setResult] = useState<Result | null>(null);
+  const [result, setResult] = useState<Result | null>(initialResult);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // Session-scoped recents: kept in sessionStorage so they survive page
@@ -797,6 +803,13 @@ function Home() {
   }, []);
 
   useEffect(() => {
+    // If the URL's conv payload already carried a previously-rendered
+    // result (refresh on /app/c/{id} after a successful submit), we've
+    // hydrated `result` synchronously above — no API call needed.
+    if (initialResult) {
+      autoSubmitted.current = true;
+      return;
+    }
     if (!initialQuestion || autoSubmitted.current) return;
 
     // Fast path: if we have explicit models from either source
@@ -849,12 +862,16 @@ function Home() {
     // anyone's screen-share). When the auto-submit effect is restoring
     // an existing /app/c/{id} on page load, we pass the existing id
     // through (reuseConvId) so the URL doesn't rotate. User-typed
-    // submissions get a fresh id every time.
+    // submissions get a fresh id every time. We hoist the id out so the
+    // post-result block below can update the conv payload with the
+    // final result — that makes a refresh on /app/c/{id} restore the
+    // rendered answer instantly without re-firing /api/ask.
+    let convId: string | null = null;
     if (typeof window !== "undefined") {
-      const id = reuseConvId ?? generateConvId();
-      storeConv(id, { question: q, models: [...models] });
+      convId = reuseConvId ?? generateConvId();
+      storeConv(convId, { question: q, models: [...models] });
       if (!reuseConvId) {
-        window.history.replaceState(null, "", `/app/c/${id}`);
+        window.history.replaceState(null, "", `/app/c/${convId}`);
       }
     }
 
@@ -999,6 +1016,19 @@ function Home() {
         // Capture into session recents so the sidebar shows it and the
         // user can jump back to this comparison without re-querying.
         pushRecent(q.trim(), models, pendingResult);
+        // Re-store the conv payload with the full result so a refresh
+        // on /app/c/{id} hydrates the rendered answer synchronously
+        // (no /api/ask call, no loading skeleton, no streaming
+        // re-animation). Without this, the auto-submit useEffect would
+        // race with sessionRecents hydration and the user would see
+        // the question "re-load" as if it was new.
+        if (convId) {
+          storeConv(convId, {
+            question: q.trim(),
+            models: [...models],
+            result: pendingResult,
+          });
+        }
       } else {
         throw new Error("Empty response from server");
       }

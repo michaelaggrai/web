@@ -24,6 +24,12 @@ export function generateConvId(): string {
 export interface ConvPayload {
   question: string;
   models: string[];
+  // Optional final result blob. Stored after the model+summariser run
+  // completes so a page refresh on /app/c/{id} restores the rendered
+  // answer instantly without re-firing /api/ask. Kept opaque (unknown)
+  // here because the full `Result` shape lives in app/app/page.tsx and
+  // we don't want a circular dep — the caller casts.
+  result?: unknown;
 }
 
 export function storeConv(id: string, payload: ConvPayload): void {
@@ -47,7 +53,11 @@ export function loadConv(id: string): ConvPayload | null {
       Array.isArray(parsed?.models) &&
       parsed.models.every((m: unknown) => typeof m === "string")
     ) {
-      return { question: parsed.question, models: parsed.models };
+      return {
+        question: parsed.question,
+        models: parsed.models,
+        result: parsed.result,
+      };
     }
     return null;
   } catch {
