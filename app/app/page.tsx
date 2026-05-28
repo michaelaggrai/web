@@ -6,7 +6,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, MessageCircle } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, MessageCircle, Square } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
@@ -739,6 +739,13 @@ function Home() {
   // Reference to the mobile menu button so the AppSidebar can restore
   // focus here when the drawer closes (a11y — Escape, X click, backdrop).
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  // AbortController for the in-flight /api/ask fetch. Lets the user
+  // click Stop to cancel mid-stream — the fetch reader throws
+  // AbortError, the catch below detects it and skips the Sentry
+  // report (it's not an actual failure). Cleared after every request
+  // (whether it completed or was aborted) so we don't accidentally
+  // abort the next one.
+  const abortRef = useRef<AbortController | null>(null);
 
   // "Continue with X" — narrow the model picker to just that model, clear
   // the visible result, and scroll the question input into view focused.
@@ -903,11 +910,17 @@ function Home() {
     setError("");
     setIntentHint(null);
     setQuestion("");
+    // Fresh AbortController for this request so stopGeneration() can
+    // cancel it. We don't reuse across requests (an aborted controller
+    // stays aborted).
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q.trim(), models: [...models] }),
+        signal: controller.signal,
       });
       if (!res.ok || !res.body) {
         let errorMsg = `Request failed (HTTP ${res.status})`;
@@ -1033,13 +1046,32 @@ function Home() {
         throw new Error("Empty response from server");
       }
     } catch (err: unknown) {
-      // Report handled failures — this is the path the user actually sees
-      Sentry.captureException(err, { tags: { feature: "ask" } });
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      // User-initiated abort (clicked Stop) — not a real error. Skip
+      // Sentry, leave the partial answers visible, just exit the
+      // loading state cleanly.
+      const isAbort =
+        (err instanceof DOMException && err.name === "AbortError") ||
+        (err instanceof Error && err.name === "AbortError");
+      if (!isAbort) {
+        // Report handled failures — this is the path the user actually sees
+        Sentry.captureException(err, { tags: { feature: "ask" } });
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
     } finally {
       setLoading(false);
       setIntentHint(null);
+      abortRef.current = null;
     }
+  }
+
+  // Cancel the in-flight /api/ask request. Whatever has streamed in so
+  // far (partial answers, completed model answers without summariser)
+  // stays on screen — we don't want to discard work the user just sat
+  // through. Matches ChatGPT's "stop generating" semantics.
+  function stopGeneration() {
+    abortRef.current?.abort();
+    // abortRef.current is cleared in the finally block of submitQuestion
+    // once the rejection unwinds.
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -1203,14 +1235,31 @@ function Home() {
                 rows={2}
                 className="flex-1 resize-none bg-transparent text-white placeholder:text-white/30 px-6 py-4 text-base focus:outline-none rounded-2xl"
               />
-              <button
-                type="submit"
-                disabled={loading || !question.trim()}
-                className="m-2 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
-                aria-label="Submit"
-              >
-                <ArrowRight className="w-5 h-5" />
-              </button>
+              {loading ? (
+                // While a request is in flight, the submit arrow becomes
+                // a stop button that aborts the in-flight fetch. The
+                // partial answers that already streamed in stay on screen
+                // (matches ChatGPT's "stop generating" semantics) — we
+                // just don't wait for the rest + summariser.
+                <button
+                  type="button"
+                  onClick={stopGeneration}
+                  className="m-2 bg-gradient-to-r from-rose-500/90 to-rose-400/90 hover:from-rose-400 hover:to-rose-400 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-rose-500/25"
+                  aria-label="Stop generating"
+                  title="Stop generating"
+                >
+                  <Square className="w-5 h-5 fill-current" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!question.trim()}
+                  className="m-2 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Submit"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              )}
             </div>
 
             {/* Small kbd hint so users know Enter submits and Shift+Enter is
