@@ -6,6 +6,7 @@ import { ArrowRight, Sparkles, Shuffle } from "lucide-react"
 import { ModelPicker } from "@/components/model-picker"
 import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, type ModelEntry } from "@/lib/models"
 import { useTier } from "@/lib/use-tier"
+import { generateConvId, storeConv } from "@/lib/conv-id"
 
 // Static fallback — used until /api/prompts responds with the live pool,
 // and as the displayed prompts if the API is unreachable.
@@ -80,12 +81,32 @@ export function Hero() {
     setExamples(next)
   }
 
-  // Navigate to /app carrying both the question and the model selection
+  // Navigate to /app carrying both the question and the model selection.
+  //
+  // We generate an opaque short id, stash the {question, models} in
+  // sessionStorage, and use a clean /app/c/{id} URL so the user's
+  // question + model selection don't end up in the address bar (or
+  // anyone's screen-share). The /app/c/[id] route reads sessionStorage
+  // and auto-submits.
+  //
+  // Falls back to the legacy ?q= / ?models= query-string URL when:
+  //   - no prompt was typed (the user just wants to go to the empty
+  //     /app to pick models manually), or
+  //   - sessionStorage isn't available (rare — disabled cookies, some
+  //     privacy modes). The empty-prompt case in particular never
+  //     produced a useful conversation id anyway.
   function goToApp(prompt: string) {
-    const parts: string[] = []
-    if (prompt.trim()) parts.push(`q=${encodeURIComponent(prompt.trim())}`)
-    parts.push(`models=${encodeURIComponent([...selected].join(","))}`)
-    router.push(`/app?${parts.join("&")}`)
+    const trimmed = prompt.trim()
+    const modelsArr = [...selected]
+    if (trimmed) {
+      const id = generateConvId()
+      storeConv(id, { question: trimmed, models: modelsArr })
+      router.push(`/app/c/${id}`)
+      return
+    }
+    // Empty prompt → no conversation id; jump straight to /app with
+    // models so the picker is pre-populated.
+    router.push(`/app?models=${encodeURIComponent(modelsArr.join(","))}`)
   }
 
   return (

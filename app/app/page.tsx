@@ -2,7 +2,8 @@
 import React, { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
 import * as Sentry from "@sentry/nextjs";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
+import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, MessageCircle } from "lucide-react";
@@ -607,11 +608,30 @@ export default function Page() {
 
 function Home() {
   const searchParams = useSearchParams();
-  const modelsParam = parseModelsParam(searchParams.get("models"));
+  const pathname = usePathname();
+
+  // Resolve the initial conversation context. Three possible sources, in
+  // priority order:
+  //   1. /app/c/{id}  — V1 short id, looked up in sessionStorage
+  //   2. ?q= & ?models=  — legacy query-string URL (kept for backwards
+  //      compat with any existing /app links + recents)
+  //   3. plain /app  — empty state, user types from scratch
+  // This means a refresh on /app/c/{id} restores the original question +
+  // model selection, and old /app?q=... links never break.
+  const urlConvId = pathname?.match(/^\/app\/c\/([^/]+)$/)?.[1] ?? null;
+  const convFromStorage = urlConvId ? loadConv(urlConvId) : null;
+  const initialQuestion = convFromStorage?.question ?? searchParams.get("q") ?? "";
+  // Explicit models from either source, or null if the user came in
+  // without specifying any (in which case the tier defaults below kick in
+  // once useTier resolves).
+  const explicitModels: Set<string> | null = convFromStorage?.models
+    ? new Set(convFromStorage.models)
+    : parseModelsParam(searchParams.get("models"));
+
   const { tier, resolved: tierResolved } = useTier();
-  const [question, setQuestion] = useState(searchParams.get("q") ?? "");
+  const [question, setQuestion] = useState(initialQuestion);
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
-  const [selected, setSelected] = useState<Set<string>>(modelsParam ?? new Set(TIER_DEFAULTS.free));
+  const [selected, setSelected] = useState<Set<string>>(explicitModels ?? new Set(TIER_DEFAULTS.free));
   const [loading, setLoading] = useState(false);
   const [intentHint, setIntentHint] = useState<"compare" | "product" | "direct" | null>(null);
   const [result, setResult] = useState<Result | null>(null);
@@ -724,7 +744,7 @@ function Home() {
   const autoSubmitted = useRef(false);
   // User "owns" their selection if they brought a ?models= URL preset or
   // manually edited the picker. Otherwise we keep it in sync with their tier.
-  const userOwnsSelection = useRef(modelsParam !== null);
+  const userOwnsSelection = useRef(explicitModels !== null);
 
   // Whenever the tier resolves, snap the default selection to that tier's
   // defaults — unless the user has explicitly chosen models.
@@ -759,35 +779,37 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    const q = searchParams.get("q");
-    if (!q || autoSubmitted.current) return;
+    if (!initialQuestion || autoSubmitted.current) return;
 
-    // Fast path: if the URL specifies which models to use (the standard
-    // case for users clicking a sample question on the landing page —
-    // hero.tsx always passes `?models=` alongside `?q=`), we can fire
-    // immediately without waiting for Supabase to resolve the user's
-    // tier. This shaves ~200-500ms off the auto-submit latency for the
-    // most common /app entry point.
-    if (modelsParam && modelsParam.size > 0) {
+    // Fast path: if we have explicit models from either source
+    // (sessionStorage via /app/c/{id} OR ?models= query string), we can
+    // fire immediately without waiting for Supabase to resolve the
+    // user's tier. This shaves ~200-500ms off the auto-submit latency
+    // for the most common /app entry point (landing-page sample-
+    // question click).
+    if (explicitModels && explicitModels.size > 0) {
       autoSubmitted.current = true;
-      setQuestion(q);
-      submitQuestion(q, modelsParam);
+      setQuestion(initialQuestion);
+      // Reuse the existing url id when on /app/c/{id} so we don't
+      // generate a fresh one for a refresh (which would rotate the
+      // URL on every reload).
+      submitQuestion(initialQuestion, explicitModels, urlConvId ?? undefined);
       return;
     }
 
-    // Slow path: no `?models=` in URL → we'll auto-submit with the
-    // user's tier defaults. Must wait for useTier to actually settle,
-    // otherwise a signed-in Pro/Premium user opening /app?q=... would
-    // briefly hit Free defaults before their real tier resolves a moment
-    // later (AGG-37 #H10). Anonymous users + Supabase-not-configured
-    // both flip `tierResolved` true immediately, so they're unaffected.
+    // Slow path: no explicit models → auto-submit with tier defaults.
+    // Must wait for useTier to actually settle, otherwise a signed-in
+    // Pro/Premium user opening /app?q=... would briefly hit Free
+    // defaults before their real tier resolves a moment later (AGG-37
+    // #H10). Anonymous users + Supabase-not-configured both flip
+    // `tierResolved` true immediately, so they're unaffected.
     if (!tierResolved) return;
     autoSubmitted.current = true;
-    setQuestion(q);
-    submitQuestion(q, new Set(TIER_DEFAULTS[tier]));
+    setQuestion(initialQuestion);
+    submitQuestion(initialQuestion, new Set(TIER_DEFAULTS[tier]), urlConvId ?? undefined);
     // submitQuestion + setQuestion are stable closures over this render;
     // we want this effect to fire exactly once on the relevant trigger
-    // (mount when modelsParam is set, or tierResolved flip otherwise).
+    // (mount when explicitModels is set, or tierResolved flip otherwise).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tierResolved]);
 
@@ -803,7 +825,21 @@ function Home() {
     });
   }, [tier, allModels]);
 
-  async function submitQuestion(q: string, models: Set<string>) {
+  async function submitQuestion(q: string, models: Set<string>, reuseConvId?: string) {
+    // URL bookkeeping: every submit lives at a clean /app/c/{id} URL so
+    // the question + model selection don't show in the address bar (or
+    // anyone's screen-share). When the auto-submit effect is restoring
+    // an existing /app/c/{id} on page load, we pass the existing id
+    // through (reuseConvId) so the URL doesn't rotate. User-typed
+    // submissions get a fresh id every time.
+    if (typeof window !== "undefined") {
+      const id = reuseConvId ?? generateConvId();
+      storeConv(id, { question: q, models: [...models] });
+      if (!reuseConvId) {
+        window.history.replaceState(null, "", `/app/c/${id}`);
+      }
+    }
+
     // Local cache check: if this exact (question, models) combo is in our
     // session-recents, restore that result instead of hitting the API.
     // Saves a round-trip + a real LLM cost when the user re-submits an
@@ -924,6 +960,10 @@ function Home() {
     setActiveRecentId(null);
     setSidebarOpen(false);
     if (typeof window !== "undefined") {
+      // Drop any /app/c/{id} suffix back to plain /app so the URL
+      // reflects the empty state. Use replaceState (not pushState) so
+      // the user's back button still works as expected.
+      window.history.replaceState(null, "", "/app");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
