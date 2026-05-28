@@ -1300,7 +1300,7 @@ function Home() {
                   <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full min-h-[280px]" />
                   <LoadingBlock title="Quality scores" gradientId="ld-sm" />
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 items-start">
                   {[...selected].map(id => {
                     const streamed = streamingAnswers.find(a => a.model === id);
                     const partial = partialAnswers[id];
@@ -1487,7 +1487,7 @@ function Home() {
                       );
                     })()}
                   </div>
-                  <div className={`grid grid-cols-1 gap-4 ${result.answers.length > 1 ? "sm:grid-cols-2" : ""}`}>
+                  <div className={`grid grid-cols-1 gap-4 items-start ${result.answers.length > 1 ? "sm:grid-cols-2" : ""}`}>
                     {result.answers.map(a => {
                       const isOpen = expandedAnswers.has(a.model);
                       return (
