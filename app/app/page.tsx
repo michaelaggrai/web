@@ -710,6 +710,17 @@ function Home() {
   // to expand. Reset whenever a fresh result lands so a new question starts
   // with everything collapsed again.
   const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
+  // Streaming partial answers. Backend sends a `stage: "answer"` event
+  // as each model returns, ahead of the slowest model + summariser.
+  // We render each one expanded so the user can read it immediately
+  // instead of staring at skeleton boxes for the full ~15s.
+  // Cleared when the final `stage: "result"` event lands; the result
+  // render path then takes over with the canonical answers (which also
+  // include the summariser's per-model scores).
+  const [streamingAnswers, setStreamingAnswers] = useState<Answer[]>([]);
+  // When the final result lands we collapse all per-model blocks so the
+  // user's eye goes straight to the summary. The streaming-answer
+  // handler below re-expands individual blocks as their answers arrive.
   useEffect(() => { setExpandedAnswers(new Set()); }, [result]);
   const questionInputRef = useRef<HTMLTextAreaElement | null>(null);
   // Reference to the mobile menu button so the AppSidebar can restore
@@ -863,6 +874,7 @@ function Home() {
     const startedAt = Date.now();
     setLoading(true);
     setResult(null);
+    setStreamingAnswers([]);
     setError("");
     setIntentHint(null);
     setQuestion("");
@@ -907,10 +919,34 @@ function Home() {
 
           if (evt.stage === "intent" && (evt.intent === "compare" || evt.intent === "product" || evt.intent === "direct")) {
             setIntentHint(evt.intent);
+          } else if (evt.stage === "answer") {
+            // Backend has streamed a single model's answer ahead of the
+            // summariser. Add it to streamingAnswers + auto-expand so
+            // the user can start reading immediately. The result event
+            // below replaces this with the scored/canonical version.
+            const partial: Answer = {
+              model: String(evt.model ?? ""),
+              answer: String(evt.answer ?? ""),
+              runtime_ms: Number(evt.runtime_ms ?? 0),
+              tokens: Number(evt.tokens ?? 0),
+              cost_usd: typeof evt.cost_usd === "number" ? evt.cost_usd : null,
+              truncated: evt.truncated === true,
+              scores: null,
+            };
+            setStreamingAnswers(prev => [...prev, partial]);
+            setExpandedAnswers(prev => {
+              const next = new Set(prev);
+              next.add(partial.model);
+              return next;
+            });
           } else if (evt.stage === "result") {
             const { stage: _s, ...rest } = evt;
             void _s;
             pendingResult = rest as unknown as StreamedResult;
+            // Streaming partials are now superseded by result.answers
+            // (which carry the summariser's scores too). Clearing here
+            // avoids a momentary double-render of the same model's card.
+            setStreamingAnswers([]);
           } else if (evt.stage === "error") {
             throw new Error(evt.error ?? "Request failed");
           }
@@ -1138,7 +1174,9 @@ function Home() {
             </div>
           )}
 
-          {/* Loading state — skeleton blocks mirroring the real layout */}
+          {/* Loading state — skeleton blocks mirroring the real layout,
+              with per-model blocks getting replaced by actual answer
+              cards as the backend streams each model's response. */}
           {loading && (
             intentHint === "compare" && selected.size > 1 ? (
               <div className="space-y-4">
@@ -1148,9 +1186,44 @@ function Home() {
                   <LoadingBlock title="Quality scores" gradientId="ld-sm" />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {[...selected].map(id => (
-                    <ModelLoadingBlock key={id} modelId={id} />
-                  ))}
+                  {[...selected].map(id => {
+                    const streamed = streamingAnswers.find(a => a.model === id);
+                    if (!streamed) return <ModelLoadingBlock key={id} modelId={id} />;
+                    // Streamed answer — render as an expanded card with
+                    // the same shell as the post-summariser per-model
+                    // blocks. We deliberately don't allow collapse while
+                    // streaming (no chevron interaction) — the user
+                    // explicitly asked to keep these expanded until the
+                    // summary lands, then collapse to focus attention.
+                    return (
+                      <div key={id} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
+                        <div className="w-full flex items-center justify-between gap-2 p-5">
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
+                            <ProviderLogo provider={providerOf(streamed.model)} className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{modelLabel(streamed.model)}</span>
+                            {streamed.truncated && (
+                              <span
+                                title="The provider hit our token cap and the answer was cut off mid-response."
+                                className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
+                              >
+                                Truncated
+                              </span>
+                            )}
+                          </span>
+                          <div className="flex items-center gap-3 text-xs text-white/40 shrink-0">
+                            <span>{(streamed.runtime_ms / 1000).toFixed(1)}s</span>
+                            <span>{streamed.tokens} tok</span>
+                          </div>
+                        </div>
+                        <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                          [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
+                          [&_pre]:overflow-x-auto [&_pre]:max-w-full
+                          [&_img]:max-w-full [&_code]:break-words">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamed.answer}</ReactMarkdown>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : (
