@@ -1267,12 +1267,21 @@ function Home() {
                       // the header isn't static. Real count lands with
                       // the final stage:answer event.
                       : `~${Math.ceil(answerText.length / 4)} tok`;
-                    // Streaming answers stay expanded — no chevron, no
-                    // toggle. They collapse together when stage:result
-                    // arrives (existing useEffect on [result]).
+                    // Streaming answers default to expanded (we auto-add
+                    // each model to expandedAnswers as its first chunk
+                    // arrives), but the chevron lets the user collapse
+                    // mid-stream if they don't want to read all three.
+                    // Chunks keep accumulating in partialAnswers state
+                    // either way — re-expanding shows the latest.
+                    const isOpen = expandedAnswers.has(id);
                     return (
                       <div key={id} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
-                        <div className="w-full flex items-center justify-between gap-2 p-5">
+                        <button
+                          type="button"
+                          onClick={() => toggleAnswer(id)}
+                          aria-expanded={isOpen}
+                          className="w-full flex items-center justify-between gap-2 p-5 text-left hover:bg-white/[0.02] transition-colors"
+                        >
                           <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
                             <ProviderLogo provider={providerOf(id)} className="w-3.5 h-3.5 shrink-0" />
                             <span className="truncate">{modelLabel(id)}</span>
@@ -1288,19 +1297,25 @@ function Home() {
                           <div className="flex items-center gap-3 text-xs text-white/40 shrink-0">
                             <span>{runtimeLabel}</span>
                             <span>{tokenLabel}</span>
+                            <ChevronDown
+                              className={`w-4 h-4 text-white/50 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                              aria-hidden="true"
+                            />
                           </div>
-                        </div>
-                        <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
-                          [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
-                          [&_pre]:overflow-x-auto [&_pre]:max-w-full
-                          [&_img]:max-w-full [&_code]:break-words">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{answerText}</ReactMarkdown>
-                          {isStillTyping && (
-                            // Blinking caret at the end of the streaming
-                            // text — visual cue that more is coming.
-                            <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-teal-300/70 align-middle animate-pulse" aria-hidden="true" />
-                          )}
-                        </div>
+                        </button>
+                        {isOpen && (
+                          <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                            [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
+                            [&_pre]:overflow-x-auto [&_pre]:max-w-full
+                            [&_img]:max-w-full [&_code]:break-words">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{answerText}</ReactMarkdown>
+                            {isStillTyping && (
+                              // Blinking caret at the end of the streaming
+                              // text — visual cue that more is coming.
+                              <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-teal-300/70 align-middle animate-pulse" aria-hidden="true" />
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
