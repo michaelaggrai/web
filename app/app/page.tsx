@@ -718,6 +718,13 @@ function Home() {
   // render path then takes over with the canonical answers (which also
   // include the summariser's per-model scores).
   const [streamingAnswers, setStreamingAnswers] = useState<Answer[]>([]);
+  // Per-model partial text being typed in token-by-token. The backend
+  // emits `stage: "answer-chunk"` events with each `delta` straight from
+  // OpenRouter's SSE stream, so this updates ~10-100 times per model
+  // during a real generation. Promoted into streamingAnswers (and
+  // cleared from here) when the model's full `stage: "answer"` event
+  // lands with metadata (token count, runtime, truncated flag).
+  const [partialAnswers, setPartialAnswers] = useState<Record<string, string>>({});
   // When the final result lands we collapse all per-model blocks so the
   // user's eye goes straight to the summary. The streaming-answer
   // handler below re-expands individual blocks as their answers arrive.
@@ -875,6 +882,7 @@ function Home() {
     setLoading(true);
     setResult(null);
     setStreamingAnswers([]);
+    setPartialAnswers({});
     setError("");
     setIntentHint(null);
     setQuestion("");
@@ -919,6 +927,25 @@ function Home() {
 
           if (evt.stage === "intent" && (evt.intent === "compare" || evt.intent === "product" || evt.intent === "direct")) {
             setIntentHint(evt.intent);
+          } else if (evt.stage === "answer-chunk") {
+            // Real-time token delta from the LLM (via backend SSE).
+            // Append to that model's partial text — the loading-state
+            // render below shows the partial as it grows, so the
+            // user sees the answer typing in word-by-word.
+            const model = String(evt.model ?? "");
+            const delta = String(evt.delta ?? "");
+            if (model && delta) {
+              setPartialAnswers(prev => ({
+                ...prev,
+                [model]: (prev[model] ?? "") + delta,
+              }));
+              setExpandedAnswers(prev => {
+                if (prev.has(model)) return prev;
+                const next = new Set(prev);
+                next.add(model);
+                return next;
+              });
+            }
           } else if (evt.stage === "answer") {
             // Backend has streamed a single model's answer ahead of the
             // summariser. Add it to streamingAnswers + auto-expand so
@@ -937,6 +964,15 @@ function Home() {
             setExpandedAnswers(prev => {
               const next = new Set(prev);
               next.add(partial.model);
+              return next;
+            });
+            // The streamed partial is now superseded by the final
+            // answer event's metadata-carrying version. Drop it so the
+            // render doesn't double-account.
+            setPartialAnswers(prev => {
+              if (!(partial.model in prev)) return prev;
+              const next = { ...prev };
+              delete next[partial.model];
               return next;
             });
           } else if (evt.stage === "result") {
@@ -1188,20 +1224,29 @@ function Home() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {[...selected].map(id => {
                     const streamed = streamingAnswers.find(a => a.model === id);
-                    if (!streamed) return <ModelLoadingBlock key={id} modelId={id} />;
-                    // Streamed answer — render as an expanded card with
-                    // the same shell as the post-summariser per-model
-                    // blocks. We deliberately don't allow collapse while
-                    // streaming (no chevron interaction) — the user
-                    // explicitly asked to keep these expanded until the
-                    // summary lands, then collapse to focus attention.
+                    const partial = partialAnswers[id];
+                    // Render priority: streamed (full answer + metadata)
+                    // > partial (still typing in) > skeleton.
+                    if (!streamed && !partial) return <ModelLoadingBlock key={id} modelId={id} />;
+                    const answerText = streamed?.answer ?? partial ?? "";
+                    const isStillTyping = !streamed;
+                    const runtimeLabel = streamed ? `${(streamed.runtime_ms / 1000).toFixed(1)}s` : "typing…";
+                    const tokenLabel = streamed
+                      ? `${streamed.tokens} tok`
+                      // While streaming, approximate tokens as chars/4 so
+                      // the header isn't static. Real count lands with
+                      // the final stage:answer event.
+                      : `~${Math.ceil(answerText.length / 4)} tok`;
+                    // Streaming answers stay expanded — no chevron, no
+                    // toggle. They collapse together when stage:result
+                    // arrives (existing useEffect on [result]).
                     return (
                       <div key={id} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
                         <div className="w-full flex items-center justify-between gap-2 p-5">
                           <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
-                            <ProviderLogo provider={providerOf(streamed.model)} className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">{modelLabel(streamed.model)}</span>
-                            {streamed.truncated && (
+                            <ProviderLogo provider={providerOf(id)} className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{modelLabel(id)}</span>
+                            {streamed?.truncated && (
                               <span
                                 title="The provider hit our token cap and the answer was cut off mid-response."
                                 className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
@@ -1211,15 +1256,20 @@ function Home() {
                             )}
                           </span>
                           <div className="flex items-center gap-3 text-xs text-white/40 shrink-0">
-                            <span>{(streamed.runtime_ms / 1000).toFixed(1)}s</span>
-                            <span>{streamed.tokens} tok</span>
+                            <span>{runtimeLabel}</span>
+                            <span>{tokenLabel}</span>
                           </div>
                         </div>
                         <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
                           [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
                           [&_pre]:overflow-x-auto [&_pre]:max-w-full
                           [&_img]:max-w-full [&_code]:break-words">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamed.answer}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{answerText}</ReactMarkdown>
+                          {isStillTyping && (
+                            // Blinking caret at the end of the streaming
+                            // text — visual cue that more is coming.
+                            <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-teal-300/70 align-middle animate-pulse" aria-hidden="true" />
+                          )}
                         </div>
                       </div>
                     );
