@@ -759,20 +759,35 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    // Wait for useTier to actually settle before auto-submitting — otherwise
-    // a signed-in Pro/Premium user opening /app?q=... with no ?models= would
-    // hit Free defaults (the initial useTier value) before their real tier
-    // resolves a moment later. Anonymous users + Supabase-not-configured
-    // both flip `tierResolved` true immediately, so they're unaffected.
-    if (!tierResolved) return;
     const q = searchParams.get("q");
-    if (q && !autoSubmitted.current) {
+    if (!q || autoSubmitted.current) return;
+
+    // Fast path: if the URL specifies which models to use (the standard
+    // case for users clicking a sample question on the landing page —
+    // hero.tsx always passes `?models=` alongside `?q=`), we can fire
+    // immediately without waiting for Supabase to resolve the user's
+    // tier. This shaves ~200-500ms off the auto-submit latency for the
+    // most common /app entry point.
+    if (modelsParam && modelsParam.size > 0) {
       autoSubmitted.current = true;
       setQuestion(q);
-      submitQuestion(q, modelsParam ?? new Set(TIER_DEFAULTS[tier]));
+      submitQuestion(q, modelsParam);
+      return;
     }
+
+    // Slow path: no `?models=` in URL → we'll auto-submit with the
+    // user's tier defaults. Must wait for useTier to actually settle,
+    // otherwise a signed-in Pro/Premium user opening /app?q=... would
+    // briefly hit Free defaults before their real tier resolves a moment
+    // later (AGG-37 #H10). Anonymous users + Supabase-not-configured
+    // both flip `tierResolved` true immediately, so they're unaffected.
+    if (!tierResolved) return;
+    autoSubmitted.current = true;
+    setQuestion(q);
+    submitQuestion(q, new Set(TIER_DEFAULTS[tier]));
     // submitQuestion + setQuestion are stable closures over this render;
-    // we want this effect to fire exactly once when tier first resolves.
+    // we want this effect to fire exactly once on the relevant trigger
+    // (mount when modelsParam is set, or tierResolved flip otherwise).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tierResolved]);
 
