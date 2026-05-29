@@ -7,6 +7,7 @@ import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, MessageCircle, Square } from "lucide-react";
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ModelLoader } from "@/components/model-loader";
@@ -488,38 +489,43 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
   );
 }
 
-// Per-model overall quality score + the 5 quality sub-metrics that compose
-// it (Accuracy, Completeness, Calibration, Clarity, Insight — Haiku-judged).
-// Only the sub-metrics that ROLL UP into the headline 0-100 belong here;
-// runtime/readability/length are descriptive but not part of the quality
-// score, so they're shown on the per-answer card headers instead.
+// Single radar chart overlaying every scored model so the reader sees the
+// shape-difference at a glance (where is each model strongest / weakest
+// across Accuracy / Completeness / Calibration / Clarity / Insight). The
+// winner's overall 0-100 sits in the middle of the radar — that's the
+// punchline number the reader is looking for. The legend below shows every
+// model's overall ranked, colour-keyed to the polygons.
 function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
   const scored = answers.filter((a): a is Answer & { scores: Scores } => !!a.scores);
   if (scored.length === 0) return null;
 
   const enriched = scored.map(a => ({ ...a, overall: overallScore(a.scores) }));
-  // Tie-break on overall score so the overall winner claims tied sub-metrics
-  // (was first-in-array, which is just user-selection order). See WinnerBlock
-  // for the same logic + reasoning.
-  const topByDim = SCORE_KEYS.map(({ key }) => ({
-    key,
-    model: enriched.reduce((p, c) => {
-      if (c.scores[key] > p.scores[key]) return c;
-      if (c.scores[key] === p.scores[key] && c.overall > p.overall) return c;
-      return p;
-    }).model,
-  }));
   const maxOverall = Math.max(...enriched.map(a => a.overall));
   const ranked = [...enriched].sort((a, b) => b.overall - a.overall);
+  const winner = ranked[0];
 
-  const Bar = ({ pct, accent }: { pct: number; accent?: boolean }) => (
-    <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
-      <div
-        className={`h-full rounded-full ${accent ? "bg-gradient-to-r from-teal-400 to-teal-300" : "bg-white/30"}`}
-        style={{ width: `${Math.max(2, Math.min(100, pct * 100))}%` }}
-      />
-    </div>
-  );
+  // Palette in rank order — winner takes brand teal, the rest cycle through
+  // visually distinct hues that read on the dark-navy background. Capped at
+  // 5 because Premium tier maxes out at 5 models in one comparison.
+  const PALETTE = [
+    "#5eead4", // teal-300 — winner
+    "#60a5fa", // blue-400
+    "#c084fc", // purple-400
+    "#fbbf24", // amber-400
+    "#f472b6", // pink-400
+  ];
+  const colorByModel = new Map(ranked.map((a, i) => [a.model, PALETTE[i % PALETTE.length]]));
+
+  // Recharts wants one row per axis with a column per series. Model ids
+  // (e.g. "anthropic/claude-haiku-4-5") work fine as dataKeys — the dot is
+  // only a problem if a library tries to treat keys as object paths.
+  const radarData = SCORE_KEYS.map(({ key, label }) => {
+    const row: Record<string, number | string> = { dim: label };
+    for (const a of enriched) {
+      row[a.model] = typeof a.scores[key] === "number" ? a.scores[key] : 0;
+    }
+    return row;
+  });
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
@@ -531,68 +537,78 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
         <span className="text-[10px] text-white/30">judged by Haiku · 0–100 overall</span>
       </div>
 
-      <div className="space-y-5">
-        {ranked.map(a => (
-          <div key={a.model} className="space-y-2">
-            {/* Per-model header: name + big overall score. When the
-                Accuracy fatal-flaw cap has reduced the composite (raw
-                > 40 but accuracy ≤ 1), surface a small "score limited"
-                hint so the user understands why an answer with
-                middling sub-scores is showing a 40. Without it, the
-                cap looks like a bug. */}
-            <div className="flex items-baseline justify-between gap-2 border-b border-white/5 pb-1.5">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
-                <span className="text-xs font-medium text-white/90 truncate">{modelLabel(a.model)}</span>
-                {isAccuracyCapped(a.scores) && (
-                  <span
-                    title="Score limited — contains factual errors. Accuracy ≤ 1.0 caps the overall quality at 40."
-                    className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
-                  >
-                    Limited
-                  </span>
-                )}
-              </div>
-              <div className="flex items-baseline gap-1 shrink-0">
-                <span className={`text-base font-semibold tabular-nums ${a.overall === maxOverall ? "text-teal-300" : "text-white/80"}`}>
-                  {a.overall}
-                </span>
-                <span className="text-[10px] text-white/40">/100</span>
-              </div>
+      {/* Radar — wrapped in position:relative so the winner's overall score
+          can be absolutely centred on top. pointer-events-none on the
+          overlay so future Tooltip-on-hover work still sees mouse events. */}
+      <div className="relative">
+        <ResponsiveContainer width="100%" height={280}>
+          <RadarChart data={radarData} outerRadius="72%">
+            <PolarGrid stroke="rgba(255,255,255,0.08)" />
+            <PolarAngleAxis
+              dataKey="dim"
+              tick={{ fontSize: 10, fill: "rgba(255,255,255,0.55)" }}
+            />
+            <PolarRadiusAxis domain={[0, 5]} tick={false} axisLine={false} />
+            {/* Render in rank order so the winner's polygon paints last
+                (on top) and stays readable when shapes overlap. */}
+            {ranked.map(a => {
+              const c = colorByModel.get(a.model)!;
+              return (
+                <Radar
+                  key={a.model}
+                  name={modelLabel(a.model)}
+                  dataKey={a.model}
+                  stroke={c}
+                  fill={c}
+                  fillOpacity={0.15}
+                  strokeWidth={2}
+                />
+              );
+            })}
+          </RadarChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-center">
+            <div className="text-3xl font-semibold tabular-nums text-teal-300 leading-none">
+              {winner.overall}
             </div>
-
-            {/* The 5 sub-metrics that roll up into the overall score.
-                Two-column grid keeps the card narrow on desktop (was 4-wide
-                which forced the column too wide and squeezed the Summary
-                card next to it). With 5 dims that's 2+2+1 — the last row
-                has the lowest-weight dim (Insight) on its own. */}
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-              {SCORE_KEYS.map(({ key, label }) => {
-                const isTop = topByDim.find(t => t.key === key)?.model === a.model;
-                // AGGRAI-WEB-9 hotfix: defensive read. Backend now validates
-                // that summariser returns all 5 numeric sub-scores; the score
-                // entry is dropped server-side if any are missing. This is a
-                // belt-and-braces guard in case any sneak through (very old
-                // cached responses, future shape changes, etc) — render "—"
-                // instead of crashing on undefined.toFixed.
-                const v = typeof a.scores[key] === 'number' ? a.scores[key] : null;
-                return (
-                  <div key={key} className="min-w-0 flex items-center gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[10px] text-white/40 truncate">{label}</span>
-                        <span className={`text-xs tabular-nums shrink-0 ${isTop ? "text-teal-200" : "text-white/70"}`}>
-                          {v === null ? "—" : v.toFixed(1)}
-                        </span>
-                      </div>
-                      <Bar pct={v === null ? 0 : v / 5} accent={isTop} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <div className="text-[10px] text-white/40 mt-0.5">/100</div>
           </div>
-        ))}
+        </div>
+      </div>
+
+      {/* Legend / rank — colour swatch matches the polygon, score on the
+          right matches the centre number for the winner. The Limited badge
+          carries forward so users still see when an accuracy cap has been
+          applied. */}
+      <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
+        {ranked.map(a => {
+          const c = colorByModel.get(a.model)!;
+          const isWinner = a.overall === maxOverall;
+          return (
+            <div key={a.model} className="flex items-center gap-2 text-xs min-w-0">
+              <span
+                className="w-2.5 h-2.5 rounded-sm shrink-0"
+                style={{ backgroundColor: c }}
+                aria-hidden="true"
+              />
+              <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-white/85 flex-1 truncate">{modelLabel(a.model)}</span>
+              {isAccuracyCapped(a.scores) && (
+                <span
+                  title="Score limited — contains factual errors. Accuracy ≤ 1.0 caps the overall quality at 40."
+                  className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
+                >
+                  Limited
+                </span>
+              )}
+              <span className={`tabular-nums font-semibold shrink-0 ${isWinner ? "text-teal-300" : "text-white/75"}`}>
+                {a.overall}
+              </span>
+              <span className="text-[10px] text-white/35 shrink-0">/100</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
