@@ -40,8 +40,13 @@
 .aggrai-icon {
   --aggrai-navy: #ffffff;
   --aggrai-teal: #14B8A6;
-  width: 1.16em;
-  height: 1.16em;
+  /* Icon sized relative to the wordmark font. Bumped 1.16em → 1.5em so the
+     pentagon reads a bit larger next to the wordmark — the viewBox padding
+     (-12 -12 124 124, for the idle mesh scale) shrinks the *visible* art to
+     ~0.8 of the box, so it looked small at 1.16em. Only affects the full
+     logo; symbol-only renders (loading spinners) set width/height inline. */
+  width: 1.5em;
+  height: 1.5em;
   flex: none;
   display: block;
   overflow: visible;
