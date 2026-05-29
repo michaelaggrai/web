@@ -1437,7 +1437,12 @@ function Home() {
                             // onContinue={handleContinueWith}
                           />
                         )}
-                        <div className="grid grid-cols-1 lg:grid-cols-[5fr_3fr] gap-4 items-start">
+                        {/* 70/30 split — Aggr-Score block only needs room for
+                            5 axis labels + a centred 0-100; everything else
+                            (long-form Best Answer rewrite, contributions
+                            bars, structured sub-headings) wants the wider
+                            column. Was 5fr_3fr (62/38), nudging slimmer. */}
+                        <div className="grid grid-cols-1 lg:grid-cols-[7fr_3fr] gap-4 items-start">
                           <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
                             <div className="flex items-center gap-2 mb-4">
                               <Layers className="w-3.5 h-3.5 text-teal-300" />
