@@ -1312,7 +1312,7 @@ function Home() {
                 <LoadingBlock title="Strongest single answer" gradientId="ld-winner" />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full min-h-[280px]" />
-                  <LoadingBlock title="Quality scores" gradientId="ld-sm" />
+                  <LoadingBlock title="Aggr-Score" gradientId="ld-sm" />
                 </div>
                 {/* Masonry-style two-column flow. CSS Grid would force every
                     row's height to the tallest card in that row — exactly
@@ -1530,7 +1530,7 @@ function Home() {
                               <span className="truncate">{modelLabel(a.model)}</span>
                               {a.truncated && (
                                 <span
-                                  title="The provider hit our token cap and the answer was cut off mid-response. Quality scores below reflect what was returned, not what the model intended."
+                                  title="The provider hit our token cap and the answer was cut off mid-response. Aggr-Score below reflects what was returned, not what the model intended."
                                   className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
                                 >
                                   Truncated
