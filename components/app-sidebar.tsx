@@ -205,7 +205,11 @@ export function AppSidebar({
               {canUpgrade && (
                 <Link
                   href="/upgrade"
-                  className="flex w-full items-center justify-center rounded-lg border border-teal-400/20 bg-teal-400/10 px-3 py-2 text-xs font-medium text-teal-300 transition hover:bg-teal-400/15 hover:text-teal-200"
+                  className={`flex w-full items-center justify-center rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                    tier === "pro"
+                      ? "border-amber-300/30 bg-amber-300/10 text-amber-200 hover:bg-amber-300/15 hover:text-amber-100"
+                      : "border-teal-400/20 bg-teal-400/10 text-teal-300 hover:bg-teal-400/15 hover:text-teal-200"
+                  }`}
                 >
                   Upgrade plan
                 </Link>

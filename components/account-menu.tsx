@@ -166,8 +166,11 @@ export function AccountMenu({ variant = "sidebar" }: { variant?: Variant }) {
         {/* Plan actions — only show Upgrade for non-premium */}
         {tier !== "premium" && (
           <DropdownMenuItem asChild className="cursor-pointer focus:bg-white/10">
-            <Link href="/settings" className="flex items-center gap-2 px-2 py-1.5 text-sm text-white/90">
-              <ArrowUpCircle className="w-4 h-4 text-teal-300" />
+            <Link
+              href="/settings"
+              className={`flex items-center gap-2 px-2 py-1.5 text-sm ${tier === "pro" ? "text-amber-200" : "text-white/90"}`}
+            >
+              <ArrowUpCircle className={`w-4 h-4 ${tier === "pro" ? "text-amber-300" : "text-teal-300"}`} />
               Upgrade plan
             </Link>
           </DropdownMenuItem>

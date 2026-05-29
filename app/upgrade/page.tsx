@@ -205,9 +205,11 @@ export default function UpgradePage() {
                     onClick={() => upgrade(plan.key)}
                     disabled={loading !== null}
                     className={`w-full rounded-xl py-2.5 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                      plan.highlight
-                        ? "bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white shadow-lg shadow-teal-500/20"
-                        : "border border-white/20 bg-white/5 hover:bg-white/10 text-white"
+                      plan.key === "premium"
+                        ? "bg-gradient-to-r from-amber-400 to-amber-300 text-navy hover:from-amber-300 hover:to-amber-200 shadow-lg shadow-amber-500/20"
+                        : plan.highlight
+                          ? "bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white shadow-lg shadow-teal-500/20"
+                          : "border border-white/20 bg-white/5 hover:bg-white/10 text-white"
                     }`}
                   >
                     {loading === plan.key ? "Upgrading…" : signedIn === false ? "Sign up to upgrade" : plan.cta}

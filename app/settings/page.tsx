@@ -266,7 +266,9 @@ function Settings() {
                       disabled={anyChanging}
                       className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed ${
                         isUpgrade
-                          ? "bg-gradient-to-r from-teal-500 to-teal-400 text-white hover:from-teal-400 hover:to-teal-400 shadow-sm shadow-teal-500/20"
+                          ? plan.key === "premium"
+                            ? "bg-gradient-to-r from-amber-400 to-amber-300 text-navy hover:from-amber-300 hover:to-amber-200 shadow-sm shadow-amber-500/20"
+                            : "bg-gradient-to-r from-teal-500 to-teal-400 text-white hover:from-teal-400 hover:to-teal-400 shadow-sm shadow-teal-500/20"
                           : "border border-white/15 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
                       }`}
                     >

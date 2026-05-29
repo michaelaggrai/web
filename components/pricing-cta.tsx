@@ -15,6 +15,11 @@ function upgradeClasses(highlight: boolean) {
     : "border border-white/20 bg-white/5 hover:bg-white/10 text-white";
 }
 
+// Premium is the gold tier. An upgrade *to* Premium — the only upgrade a Pro
+// user has left — gets gold instead of the generic teal/grey CTA.
+const GOLD =
+  "bg-gradient-to-r from-amber-400 to-amber-300 text-navy shadow-lg shadow-amber-500/20 hover:from-amber-300 hover:to-amber-200";
+
 /**
  * Tier-aware CTA for a pricing plan card.
  *
@@ -82,9 +87,9 @@ export function PlanCta({
   }
 
   // Above their current plan → real upgrade. Logged-in users manage their
-  // plan on /settings.
+  // plan on /settings. Premium upgrades go gold.
   return (
-    <Link href="/settings" className={`${BASE} ${upgradeClasses(highlight)}`}>
+    <Link href="/settings" className={`${BASE} ${planTier === "premium" ? GOLD : upgradeClasses(highlight)}`}>
       Upgrade to {name}
     </Link>
   );
