@@ -1314,15 +1314,15 @@ function Home() {
                   <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full min-h-[280px]" />
                   <LoadingBlock title="Aggr-Score" gradientId="ld-sm" />
                 </div>
-                {/* Masonry-style two-column flow. CSS Grid would force every
-                    row's height to the tallest card in that row — exactly
-                    the gap problem we want to avoid. `columns-2` lets each
-                    card size to its own content and the browser balances
-                    column heights, so a fast model that finishes a short
-                    answer doesn't leave dead space below it. `break-inside-
-                    avoid` on each card keeps a single card from being split
-                    across the column boundary mid-paragraph. */}
-                <div className="space-y-4 sm:columns-2 sm:gap-4 sm:space-y-0">
+                {/* Two-column grid with items-start. We tried CSS `columns`
+                    masonry here, but it reorders cards column-major (model 3
+                    jumps above model 2) and re-balances column heights every
+                    time a model starts streaming — producing a jarring
+                    stagger mid-stream. A grid keeps a stable left→right
+                    reading order and aligned row tops; `items-start` stops a
+                    collapsed/short card from stretching to its row-mate's
+                    height (the original empty-gap complaint). */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                   {[...selected].map(id => {
                     const streamed = streamingAnswers.find(a => a.model === id);
                     const partial = partialAnswers[id];
@@ -1346,7 +1346,7 @@ function Home() {
                     // either way — re-expanding shows the latest.
                     const isOpen = expandedAnswers.has(id);
                     return (
-                      <div key={id} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden break-inside-avoid sm:mb-4">
+                      <div key={id} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
                         <button
                           type="button"
                           onClick={() => toggleAnswer(id)}
@@ -1514,16 +1514,17 @@ function Home() {
                       );
                     })()}
                   </div>
-                  {/* Same masonry column-flow as the streaming layout. Single
-                      card stays one column; 2+ cards split into two and the
-                      browser balances heights so a 200-line Gemini answer
-                      next to a 30-line GPT-4o answer doesn't leave a half-
-                      screen of empty space below the short one. */}
-                  <div className={`space-y-4 ${result.answers.length > 1 ? "sm:columns-2 sm:gap-4 sm:space-y-0" : ""}`}>
+                  {/* Two-column grid with items-start (matches the streaming
+                      layout). Single answer stays full-width; 2+ answers
+                      split into aligned rows. items-start lets a collapsed
+                      card shrink to its header instead of stretching to a
+                      taller row-mate — which is the common case once the
+                      summary lands and the reader collapses the raw answers. */}
+                  <div className={`grid grid-cols-1 gap-4 items-start ${result.answers.length > 1 ? "sm:grid-cols-2" : ""}`}>
                     {result.answers.map(a => {
                       const isOpen = expandedAnswers.has(a.model);
                       return (
-                        <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden break-inside-avoid sm:mb-4">
+                        <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
                           <button
                             type="button"
                             onClick={() => toggleAnswer(a.model)}
