@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Lock } from "lucide-react";
+import { ArrowRight, Lock, Check } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
+import { useTier } from "@/lib/use-tier";
 import {
   FALLBACK_MODELS,
   CATEGORIES,
@@ -34,12 +35,27 @@ function lowestTier(model: ModelEntry): Tier {
   return "pro";
 }
 
+// Tier ordering so we can compare "does this user's plan cover this model?".
+const TIER_RANK: Record<Tier, number> = { free: 0, pro: 1, premium: 2 };
+// A model is locked for the viewer only when it sits above their plan. So a
+// signed-in Pro user sees no lock on Pro models (they own them) — only
+// Premium stays locked. Anonymous visitors are "free", so paid models lock
+// as before.
+function isLockedFor(model: ModelEntry, userTier: Tier): boolean {
+  return TIER_RANK[lowestTier(model)] > TIER_RANK[userTier];
+}
+
 type GroupBy = "category" | "provider";
 const ALL_TIERS: Tier[] = ["free", "pro", "premium"];
 const GROUP_BY_KEY  = "aggrai_catalog_group_by_v1";
 const TIER_FILTER_KEY = "aggrai_catalog_tier_filter_v1";
 
 export default function ModelsPage() {
+  // The viewer's plan — drives which models read as "locked" vs "included".
+  // Anonymous visitors resolve to "free" (everything paid is locked), which
+  // is the correct pre-login browse view.
+  const { tier: userTier } = useTier();
+
   // Try live catalog first; fall back to the static one so the page never
   // shows an empty state if the backend is down. Hide retired models — this
   // page is the "what models are currently supported" browse view, not a
@@ -206,7 +222,7 @@ export default function ModelsPage() {
                         : "border-white/10 bg-transparent text-white/30 hover:text-white/50 hover:border-white/20"
                     }`}
                   >
-                    {tier !== "free" && <Lock className="w-2.5 h-2.5" />}
+                    {TIER_RANK[tier] > TIER_RANK[userTier] && <Lock className="w-2.5 h-2.5" />}
                     {badge.label}
                   </button>
                 );
@@ -279,7 +295,7 @@ export default function ModelsPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {g.models.map(m => (
-                    <ModelCard key={m.id} model={m} />
+                    <ModelCard key={m.id} model={m} userTier={userTier} />
                   ))}
                 </div>
               </section>
@@ -350,9 +366,14 @@ export default function ModelsPage() {
   );
 }
 
-function ModelCard({ model }: { model: ModelEntry }) {
+function ModelCard({ model, userTier }: { model: ModelEntry; userTier: Tier }) {
   const tier = lowestTier(model);
   const badge = TIER_BADGES[tier];
+  const locked = isLockedFor(model, userTier);
+  // A paid model the viewer's plan already covers — show a check so signed-in
+  // Pro/Premium users get positive confirmation of what they're getting,
+  // instead of a lock that wrongly reads as "you can't use this".
+  const included = !locked && tier !== "free";
   return (
     <div className="group rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.06] hover:border-white/20 transition-all p-4 flex items-center gap-3">
       <div className="shrink-0 w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
@@ -364,9 +385,16 @@ function ModelCard({ model }: { model: ModelEntry }) {
       </div>
       <span
         className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${badge.classes}`}
-        title={`Available on ${TIERS[tier].label} and up`}
+        title={
+          locked
+            ? `Available on ${TIERS[tier].label} and up`
+            : included
+              ? `Included in your ${TIERS[userTier].label} plan`
+              : `Available on ${TIERS[tier].label} and up`
+        }
       >
-        {tier !== "free" && <Lock className="inline w-2.5 h-2.5 mr-0.5 mb-px" />}
+        {locked && <Lock className="inline w-2.5 h-2.5 mr-0.5 mb-px" />}
+        {included && <Check className="inline w-2.5 h-2.5 mr-0.5 mb-px" />}
         {badge.label}
       </span>
     </div>

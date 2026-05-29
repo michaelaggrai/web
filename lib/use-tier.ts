@@ -7,21 +7,27 @@ import type { Tier } from "@/lib/models"
 // Resolves the current user's tier. Anonymous users (and anyone whose
 // profile says 'free') are 'free'.
 //
-// Returns `{ tier, resolved }` so callers that need to wait for the
-// real tier before acting (e.g. auto-submit on /app?q=...) can gate
+// Returns `{ tier, resolved, authenticated }` so callers that need to wait
+// for the real tier before acting (e.g. auto-submit on /app?q=...) can gate
 // on `resolved`. Without this flag, code reading `tier` immediately
 // on mount sees the initial "free" — which is wrong for signed-in
 // Pro/Premium users until the Supabase lookup completes. See AGG-37
 // finding H10 for the auto-submit failure mode this fixes.
+//
+// `authenticated` distinguishes an anonymous visitor (tier "free", not
+// signed in) from a signed-in Free user (tier "free", but logged in).
+// The marketing chrome needs this to decide between "Get started" /
+// "Current plan" — tier alone can't tell them apart.
 //
 // `resolved` flips true once we know the answer is final:
 //   - Supabase not configured → true (we'll never resolve, so callers
 //     shouldn't block)
 //   - User is anonymous → true (tier is "free", settled)
 //   - User is signed in → true after the `profiles` row returns
-export function useTier(): { tier: Tier; resolved: boolean } {
+export function useTier(): { tier: Tier; resolved: boolean; authenticated: boolean } {
   const [tier, setTier] = useState<Tier>("free")
   const [resolved, setResolved] = useState(false)
+  const [authenticated, setAuthenticated] = useState(false)
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -34,6 +40,7 @@ export function useTier(): { tier: Tier; resolved: boolean } {
         setResolved(true)
         return
       }
+      setAuthenticated(true)
       const { data: profile } = await supabase
         .from("profiles")
         .select("tier")
@@ -50,5 +57,5 @@ export function useTier(): { tier: Tier; resolved: boolean } {
     })
   }, [])
 
-  return { tier, resolved }
+  return { tier, resolved, authenticated }
 }

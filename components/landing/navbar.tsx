@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
 import { AccountMenu } from "@/components/account-menu"
+import { useTier } from "@/lib/use-tier"
 
 // Primary site navigation. Renders on the landing page AND the static content
 // pages (via LegalShell) so there's one consistent menu across the marketing
@@ -23,6 +24,12 @@ export function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  // Logged-in users shouldn't see "Get started" (it reads as a sign-up CTA
+  // next to their own account avatar). Swap it for "Open app" once we know
+  // they're authenticated. Pre-resolve we default to "Get started" — the
+  // anonymous case, and what SSR renders, so there's no hydration mismatch.
+  const { authenticated, resolved } = useTier()
+  const loggedIn = resolved && authenticated
 
   // On the landing itself, clicking the logo is a no-op Link navigation — turn
   // it into a "refresh" feel instead. On any other page the Link navigates
@@ -63,7 +70,7 @@ export function Navbar() {
               className="bg-white/10 hover:bg-white/15 text-white font-medium text-sm rounded-full px-5 border border-white/10"
               asChild
             >
-              <Link href="/app">Get started</Link>
+              <Link href="/app">{loggedIn ? "Open app" : "Get started"}</Link>
             </Button>
             <AccountMenu />
             {/* Mobile menu toggle */}

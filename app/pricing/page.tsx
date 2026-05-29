@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Check, Sparkles, Zap, Crown } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
+import { PlanCta } from "@/components/pricing-cta";
+import type { Tier } from "@/lib/models";
 
 export const metadata = {
   title: "Pricing — aggrai",
@@ -11,6 +13,7 @@ export const metadata = {
 const PLANS = [
   {
     name: "Free",
+    tier: "free" as Tier,
     price: "£0",
     period: "forever",
     icon: Sparkles,
@@ -27,6 +30,7 @@ const PLANS = [
   },
   {
     name: "Pro",
+    tier: "pro" as Tier,
     price: "£11",
     period: "per month",
     icon: Zap,
@@ -43,6 +47,7 @@ const PLANS = [
   },
   {
     name: "Premium",
+    tier: "premium" as Tier,
     price: "£19",
     period: "per month",
     icon: Crown,
@@ -118,16 +123,13 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Link
-                  href={plan.cta.href}
-                  className={`w-full text-center rounded-xl py-2.5 text-sm font-medium transition-all ${
-                    plan.highlight
-                      ? "bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white shadow-lg shadow-teal-500/20"
-                      : "border border-white/20 bg-white/5 hover:bg-white/10 text-white"
-                  }`}
-                >
-                  {plan.cta.label}
-                </Link>
+                <PlanCta
+                  planTier={plan.tier}
+                  name={plan.name}
+                  anonHref={plan.cta.href}
+                  anonLabel={plan.cta.label}
+                  highlight={plan.highlight}
+                />
               </div>
             );
           })}

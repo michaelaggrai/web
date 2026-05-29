@@ -1,11 +1,14 @@
 import Link from "next/link"
 import { Check, Sparkles, Zap, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PlanCta } from "@/components/pricing-cta"
+import type { Tier } from "@/lib/models"
 
 // Content mirrors /pricing/page.tsx (the source of truth). When that page
 // changes, update here too.
 interface PricingTier {
   name: string
+  tier: Tier
   price: string
   period: string
   description: string
@@ -20,6 +23,7 @@ interface PricingTier {
 const tiers: PricingTier[] = [
   {
     name: "Free",
+    tier: "free",
     price: "£0",
     period: "forever",
     description: "Get started instantly, no account needed.",
@@ -36,6 +40,7 @@ const tiers: PricingTier[] = [
   },
   {
     name: "Pro",
+    tier: "pro",
     price: "£11",
     period: "per month",
     description: "Every flagship model from every major lab.",
@@ -53,6 +58,7 @@ const tiers: PricingTier[] = [
   },
   {
     name: "Premium",
+    tier: "premium",
     price: "£19",
     period: "per month",
     description: "For deep research. Reasoning specialists and 5-model comparisons.",
@@ -130,17 +136,13 @@ export function Pricing() {
                   ))}
                 </ul>
 
-                <Link
-                  href={tier.buttonHref}
-                  className={cn(
-                    "w-full text-center rounded-xl py-2.5 text-sm font-medium transition-all",
-                    tier.highlighted
-                      ? "bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white shadow-lg shadow-teal-500/20"
-                      : "border border-white/20 bg-white/5 hover:bg-white/10 text-white"
-                  )}
-                >
-                  {tier.buttonText}
-                </Link>
+                <PlanCta
+                  planTier={tier.tier}
+                  name={tier.name}
+                  anonHref={tier.buttonHref}
+                  anonLabel={tier.buttonText}
+                  highlight={!!tier.highlighted}
+                />
               </div>
             )
           })}
