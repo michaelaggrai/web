@@ -149,40 +149,19 @@ function normHeading(s: string): string {
   return s.trim().toLowerCase().replace(/[\s:.,!?]+$/g, "");
 }
 
-// Small chip rendered after each attributed heading — "via Claude · Gemini"
-// in muted text. Validates the model IDs exist in answers before showing
-// (silently drops invalid ones from the chip).
-function AttributionChip({
-  attribution,
-  knownModelIds,
-}: {
+// Per-section "via <model>" attribution chip — REMOVED from display at the
+// user's request (2026-05-29). The model-level attribution is now shown by
+// the single stacked "Where the summary came from" bar at the top of the
+// Summary card, which made the per-heading chips redundant + noisy.
+//
+// Kept as a no-op (rather than ripping out the section_attribution wiring +
+// injection points in makeAggraiAnswerComponents) so it can be reinstated
+// by restoring this body if we want section-level attribution back.
+function AttributionChip(_props: {
   attribution: SectionAttribution;
   knownModelIds: Set<string>;
 }) {
-  const primaryOk = knownModelIds.has(attribution.primary);
-  if (!primaryOk) return null;
-  const supporting = (attribution.supporting ?? []).filter(m => knownModelIds.has(m) && m !== attribution.primary);
-  return (
-    <span
-      className="inline-flex items-center gap-1 ml-2 align-middle text-[10px] text-white/40 font-normal not-prose"
-      title={`Summariser estimate — content for this section drew mostly from ${modelLabel(attribution.primary)}${supporting.length > 0 ? `, with input from ${supporting.map(modelLabel).join(", ")}` : ""}`}
-    >
-      <span>via</span>
-      <ProviderLogo provider={providerOf(attribution.primary)} className="w-3 h-3 self-center" />
-      <span className="text-white/55">{modelLabel(attribution.primary)}</span>
-      {supporting.length > 0 && (
-        <>
-          <span className="text-white/30">·</span>
-          {supporting.map(m => (
-            <span key={m} className="inline-flex items-center gap-0.5 text-white/40">
-              <ProviderLogo provider={providerOf(m)} className="w-3 h-3 self-center" />
-              {modelLabel(m)}
-            </span>
-          ))}
-        </>
-      )}
-    </span>
-  );
+  return null;
 }
 
 // Factory: returns ReactMarkdown components that inject attribution chips
@@ -464,32 +443,48 @@ function WinnerBlock({
   );
 }
 
-// Stacked bars at the top of the Summary card showing how much each
-// model's content influenced the rewritten Best answer below. Source is
-// the summariser's self-reported attribution; values sum to ~100.
+// A single 100% stacked bar at the top of the Summary card showing how much
+// each model's content influenced the rewritten Best answer below. Source is
+// the summariser's self-reported attribution; values sum to ~100. One bar
+// (rather than separate per-model bars) makes the "these add up to a whole"
+// relationship obvious at a glance.
 //
 // Rendered above the Best answer so the reader knows *who's behind this*
 // before they read the synthesis — sets context, not a footnote.
 function ContributionsTop({ contributions }: { contributions: Contribution[] }) {
   if (contributions.length === 0) return null;
   const sorted = [...contributions].sort((a, b) => b.pct - a.pct);
+  // Distinct segment colours so adjacent slices read apart; legend below
+  // keys each colour to its model.
+  const PALETTE = ["#5eead4", "#60a5fa", "#c084fc", "#fbbf24", "#f472b6"];
   return (
     <div className="mb-5 pb-4 border-b border-white/10">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-3">
         Where the summary came from
       </p>
-      <div className="space-y-2">
-        {sorted.map(({ model, pct }) => (
-          <div key={model} className="flex items-center gap-2 text-xs">
+      {/* Single stacked bar — segments sit flush so it reads as one whole
+          that sums to 100%. */}
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-white/5">
+        {sorted.map(({ model, pct }, i) => (
+          <div
+            key={model}
+            style={{ width: `${pct}%`, backgroundColor: PALETTE[i % PALETTE.length] }}
+            title={`${modelLabel(model)} · ${pct}%`}
+          />
+        ))}
+      </div>
+      {/* Legend keyed to the segment colours. */}
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+        {sorted.map(({ model, pct }, i) => (
+          <div key={model} className="flex items-center gap-1.5 text-xs min-w-0">
+            <span
+              className="w-2.5 h-2.5 rounded-sm shrink-0"
+              style={{ backgroundColor: PALETTE[i % PALETTE.length] }}
+              aria-hidden="true"
+            />
             <ProviderLogo provider={providerOf(model)} className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-white/70 w-32 truncate shrink-0">{modelLabel(model)}</span>
-            <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-teal-400/80 to-teal-300/80"
-                style={{ width: `${Math.max(2, pct)}%` }}
-              />
-            </div>
-            <span className="text-white/60 tabular-nums w-10 text-right shrink-0">{pct}%</span>
+            <span className="text-white/70 truncate">{modelLabel(model)}</span>
+            <span className="text-white/45 tabular-nums shrink-0">{pct}%</span>
           </div>
         ))}
       </div>
