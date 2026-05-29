@@ -170,20 +170,21 @@
   stroke-dasharray: 18 82;
   animation: aggrai-edge-flow-anim 1.8s linear infinite;
 }
-/* Clockwise dot sequence. transform-box: fill-box pins each dot's scale
-   origin to its own centre so it grows in place (not from the SVG origin),
-   composing cleanly with the parent mesh rotation. Delays are cycle/5 apart
-   in clockwise DOM order: anthropic(top) → openai → google → meta → mistral. */
+/* Clockwise dot sequence. Each dot scales about its OWN centre, given as an
+   explicit user-space transform-origin (its cx/cy) — the same robust pattern
+   the core uses (transform-origin: 50px 50px). We deliberately avoid
+   `transform-box: fill-box` here: iOS Safari/WebKit has long-standing bugs
+   animating SVG <circle> transforms with fill-box, which silently broke the
+   dot pulse on mobile. Delays are cycle/5 apart in clockwise DOM order:
+   anthropic(top) → openai → google → meta → mistral. */
 .aggrai-icon.is-loading .aggrai-node {
-  transform-box: fill-box;
-  transform-origin: center;
   animation: aggrai-node-seq 1.8s ease-in-out infinite;
 }
-.aggrai-icon.is-loading .aggrai-node-anthropic { animation-delay: 0s; }
-.aggrai-icon.is-loading .aggrai-node-openai    { animation-delay: 0.36s; }
-.aggrai-icon.is-loading .aggrai-node-google    { animation-delay: 0.72s; }
-.aggrai-icon.is-loading .aggrai-node-meta      { animation-delay: 1.08s; }
-.aggrai-icon.is-loading .aggrai-node-mistral   { animation-delay: 1.44s; }
+.aggrai-icon.is-loading .aggrai-node-anthropic { animation-delay: 0s;    transform-origin: 50px 20px; }
+.aggrai-icon.is-loading .aggrai-node-openai    { animation-delay: 0.36s; transform-origin: 78px 41px; }
+.aggrai-icon.is-loading .aggrai-node-google    { animation-delay: 0.72s; transform-origin: 68px 74px; }
+.aggrai-icon.is-loading .aggrai-node-meta      { animation-delay: 1.08s; transform-origin: 32px 74px; }
+.aggrai-icon.is-loading .aggrai-node-mistral   { animation-delay: 1.44s; transform-origin: 22px 41px; }
 
 /* Positive offset = dashes shift opposite to stroke direction.
    Spokes are drawn center→node, so positive offset = dashes flow
