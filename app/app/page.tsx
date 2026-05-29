@@ -598,6 +598,9 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
               </g>
             );
           };
+          const detailOpen = openDetail.has(a.model);
+          const hasDetail =
+            (a.scores.strengths?.length ?? 0) + (a.scores.weaknesses?.length ?? 0) > 0;
           return (
             <div key={a.model} className="space-y-2">
               {/* Header: colour swatch ties this header to the polygon
@@ -627,25 +630,38 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                 )}
                 {/* Little +/− to reveal this model's strengths/weaknesses.
                     Only shown when the summariser actually produced critique
-                    bullets (older cached |s4 responses have none). */}
-                {((a.scores.strengths?.length ?? 0) + (a.scores.weaknesses?.length ?? 0)) > 0 && (
+                    bullets (older cached |s4 responses have none). The radar
+                    below is also clickable as a larger target. */}
+                {hasDetail && (
                   <button
                     type="button"
                     onClick={() => toggleDetail(a.model)}
-                    aria-expanded={openDetail.has(a.model)}
-                    aria-label={openDetail.has(a.model) ? `Hide ${modelLabel(a.model)} detail` : `Show ${modelLabel(a.model)} detail`}
+                    aria-expanded={detailOpen}
+                    aria-label={detailOpen ? `Hide ${modelLabel(a.model)} detail` : `Show ${modelLabel(a.model)} detail`}
                     className="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-md border border-white/15 bg-white/5 text-white/60 hover:text-white hover:border-white/30 transition-colors"
                   >
-                    {openDetail.has(a.model) ? <Minus className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                    {detailOpen ? <Minus className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
                   </button>
                 )}
               </div>
 
               {/* Radar — position:relative so the overall 0-100 can be
-                  absolutely centred on top. pointer-events-none on the
-                  overlay leaves any future Tooltip hook free to receive
-                  mouse events on the polygon. */}
-              <div className="relative">
+                  absolutely centred on top. When this model has critique
+                  detail, the whole radar is a clickable target that toggles
+                  the strengths/weaknesses panel (keyboard-accessible too),
+                  mirroring the +/− button. pointer-events-none on the centre
+                  overlay lets clicks fall through to this wrapper. */}
+              <div
+                className={`relative ${hasDetail ? "cursor-pointer rounded-xl hover:bg-white/[0.02] transition-colors" : ""}`}
+                role={hasDetail ? "button" : undefined}
+                tabIndex={hasDetail ? 0 : undefined}
+                aria-expanded={hasDetail ? detailOpen : undefined}
+                aria-label={hasDetail ? `${detailOpen ? "Hide" : "Show"} ${modelLabel(a.model)} detail` : undefined}
+                onClick={hasDetail ? () => toggleDetail(a.model) : undefined}
+                onKeyDown={hasDetail ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleDetail(a.model); }
+                } : undefined}
+              >
                 <ResponsiveContainer width="100%" height={184}>
                   <RadarChart data={data} outerRadius="58%">
                     <PolarGrid stroke="rgba(255,255,255,0.08)" />
