@@ -530,6 +530,22 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
     "#f472b6", // pink-400
   ];
 
+  // Per-dimension winner: which model scored highest on each sub-metric,
+  // tie-broken by overall score (so a model can't claim a tied metric just by
+  // appearing first). Drives the per-radar axis highlight — the multi-radar
+  // equivalent of the old "best at X" highlight. Only meaningful with 2+ models.
+  const dimWinner: Record<string, string> = {};
+  if (scored.length > 1) {
+    for (const { key } of SCORE_KEYS) {
+      const top = ranked.reduce((p, c) =>
+        c.scores[key] > p.scores[key] ||
+        (c.scores[key] === p.scores[key] && c.overall > p.overall)
+          ? c : p
+      );
+      dimWinner[key] = top.model;
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
       <div className="mb-5 flex items-center gap-x-2 gap-y-1 flex-wrap">
@@ -554,21 +570,29 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
           const valueByDim: Record<string, number> = Object.fromEntries(
             data.map(d => [d.dim, d.value]),
           );
+          // Sub-metric labels this model wins outright — highlighted in its
+          // radar colour + bold on the axis, so you can see at a glance which
+          // model was best at what.
+          const winLabels = new Set(
+            SCORE_KEYS.filter(k => dimWinner[k.key] === a.model).map(k => k.label),
+          );
           // Custom axis tick: the dimension name plus its 0-10 sub-score in
           // grey just below it, so each radar shows the exact numbers, not
-          // just the polygon shape. payload.value is the dim string.
+          // just the polygon shape. A winning dimension is drawn in the
+          // model's colour + bold. payload.value is the dim string.
           const renderAxisTick = (props: {
             payload: { value: string }; x: number; y: number;
             textAnchor: "start" | "middle" | "end" | "inherit";
           }) => {
             const { payload, x, y, textAnchor } = props;
             const v = valueByDim[payload.value];
+            const isWin = winLabels.has(payload.value);
             return (
               <g>
-                <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fontSize={10} fill="rgba(255,255,255,0.55)">
+                <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fontSize={10} fontWeight={isWin ? 700 : 400} fill={isWin ? color : "rgba(255,255,255,0.55)"}>
                   {payload.value}
                 </text>
-                <text x={x} y={y + 11} textAnchor={textAnchor} dominantBaseline="central" fontSize={9} fill="rgba(255,255,255,0.38)">
+                <text x={x} y={y + 11} textAnchor={textAnchor} dominantBaseline="central" fontSize={9} fontWeight={isWin ? 700 : 400} fill={isWin ? color : "rgba(255,255,255,0.38)"}>
                   {typeof v === "number" ? v.toFixed(1) : "—"}
                 </text>
               </g>
