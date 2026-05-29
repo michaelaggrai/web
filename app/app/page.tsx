@@ -53,6 +53,10 @@ type SectionAttribution = { heading: string; primary: string; supporting: string
 
 type Result =
   | { type: "product"; answer: string; question: string; cached?: boolean }
+  // "direct" = a single-right-answer factual question (2+2, capital of France)
+  // where a multi-model comparison adds no value. Rendered like product but
+  // with a witty "we didn't burn the energy comparing" note.
+  | { type: "direct"; answer: string; question: string; cached?: boolean }
   | {
       type: "compare";
       summary: string;
@@ -61,6 +65,10 @@ type Result =
       contributions?: Contribution[] | null;
       section_attributions?: SectionAttribution[] | null;
       failed?: { model: string; error: string }[];
+      // True when the question likely depends on information newer than the
+      // models' training cutoff — the UI shows a "may not reflect the latest"
+      // banner so users don't trust time-sensitive answers blindly.
+      recencyWarning?: boolean;
       cached?: boolean;
     };
 
@@ -1522,7 +1530,7 @@ function Home() {
                 <span className="text-white/80">{result.question}</span>
               </div>
 
-              {result.type === "product" ? (
+              {result.type === "product" || result.type === "direct" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
                   <div className="mb-3">
                     <Logo height={28} symbolOnly gradientId="product-g" />
@@ -1530,9 +1538,31 @@ function Home() {
                   <div className="prose prose-sm prose-invert max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
                   </div>
+                  {/* Factual questions have one right answer, so we skip the
+                      full multi-model comparison. A light witty note explains
+                      why — turns a "why only one answer?" into a feature. */}
+                  {result.type === "direct" && (
+                    <p className="mt-4 flex items-start gap-1.5 border-t border-white/10 pt-3 text-xs text-white/40">
+                      <span aria-hidden="true">⚡</span>
+                      <span>One clear right answer here — no sense waking all the models and burning the energy on a comparison. We saved the electrons for the questions that actually need a debate.</span>
+                    </p>
+                  )}
                 </div>
               ) : (
                 <>
+                  {/* Recency caveat — shown when the question likely needs
+                      information newer than the models' training cutoff. The
+                      models answer from training data with no live access, so
+                      we flag time-sensitive answers rather than let users
+                      trust them blindly. */}
+                  {result.recencyWarning && (
+                    <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-200/90 flex items-start gap-2">
+                      <span aria-hidden="true" className="mt-px">⏳</span>
+                      <span>
+                        This looks time-sensitive. These models answer from their training data and don&apos;t have live access to current events — the latest facts, prices, or news may have changed since. Double-check anything that moves fast.
+                      </span>
+                    </div>
+                  )}
                   {/* Multi-model results — top-down:
                       1. Strongest single answer + Continue CTA (next action).
                       2. Two-col main content:
