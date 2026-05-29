@@ -1532,14 +1532,17 @@ function Home() {
                       );
                     })()}
                   </div>
-                  {/* Two-column grid with items-start (matches the streaming
-                      layout). Single answer stays full-width; 2+ answers
-                      split into aligned rows. items-start lets a collapsed
-                      card shrink to its header instead of stretching to a
-                      taller row-mate — which is the common case once the
-                      summary lands and the reader collapses the raw answers. */}
-                  <div className={`grid grid-cols-1 gap-4 items-start ${result.answers.length > 1 ? "sm:grid-cols-2" : ""}`}>
-                    {result.answers.map(a => {
+                  {/* Greedy two-column masonry. A plain grid wraps the 3rd
+                      card onto a new row UNDER the first (tall) card, leaving
+                      dead space beneath a short neighbour. Instead we add each
+                      answer, in order, to the currently-shorter column so a
+                      long answer flows in under a short one. Column weight is
+                      estimated from answer length (tracks rendered height
+                      closely enough for balancing) and stays stable across
+                      expand/collapse, so toggling a card never reshuffles
+                      which column it lives in. */}
+                  {(() => {
+                    const renderCard = (a: Answer) => {
                       const isOpen = expandedAnswers.has(a.model);
                       return (
                         <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
@@ -1580,8 +1583,32 @@ function Home() {
                           )}
                         </div>
                       );
-                    })}
-                  </div>
+                    };
+
+                    // Single answer → full width, no columns.
+                    if (result.answers.length <= 1) {
+                      return <div className="grid grid-cols-1 gap-4">{result.answers.map(renderCard)}</div>;
+                    }
+
+                    // Distribute into 2 columns, each new card to the shorter one.
+                    const cols: Answer[][] = [[], []];
+                    const colHeight = [0, 0];
+                    for (const a of result.answers) {
+                      const weight = Math.max(160, a.answer.length);
+                      const target = colHeight[0] <= colHeight[1] ? 0 : 1;
+                      cols[target].push(a);
+                      colHeight[target] += weight;
+                    }
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                        {cols.map((col, i) => (
+                          <div key={i} className="space-y-4 min-w-0">
+                            {col.map(renderCard)}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   {/* Failed models */}
                   {result.failed && result.failed.length > 0 && (
