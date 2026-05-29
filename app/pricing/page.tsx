@@ -33,7 +33,7 @@ const PLANS = [
     iconColor: "text-teal-300",
     description: "Every flagship model from every major lab.",
     features: [
-      "17 advanced models",
+      "16 advanced models",
       "Up to 3 models per comparison",
       "Opus 4.8, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.20…",
       "Everything in Free",
@@ -49,9 +49,9 @@ const PLANS = [
     iconColor: "text-amber-300",
     description: "For deep research. Reasoning specialists and 5-model comparisons.",
     features: [
-      "5 research models",
+      "4 research models",
       "Up to 5 models per comparison",
-      "GPT-5.4/5.5 Pro, Qwen3 Max Thinking, Grok Multi-Agent…",
+      "GPT-5.5 Pro, Qwen3 Max Thinking, Grok Multi-Agent…",
       "Everything in Pro",
     ],
     cta: { href: "/signin?mode=signup&reason=upgrade&plan=premium&next=/app", label: "Get Premium" },

@@ -65,8 +65,8 @@ export default function DocsPage() {
         <h2>Tiers and limits</h2>
         <ul>
           <li><strong>Free</strong> — 8 basic models (Claude Haiku 4.5, GPT-4o Mini, GPT-5.4 Mini, Gemini 2.5 Flash, Gemini 3.1 Flash Lite, Mistral Small, Llama 3.1 8B, DeepSeek v3.2). Up to 3 per comparison. No account needed.</li>
-          <li><strong>Pro</strong> — 17 advanced models. Every flagship: Claude Opus 4.8 + Opus 4.8 Fast, Sonnet 4.6, GPT-4o, GPT-5.4/5.5, Gemini 2.5/3.x Pro, Grok 4.20, Llama 3.3 70B, Codex variants, Devstral, Qwen3 Coder. Up to 3 per comparison.</li>
-          <li><strong>Premium</strong> — 5 research models. For deep research: GPT-5.4 Pro, GPT-5.5 Pro, DeepSeek v4 Pro, Qwen3 Max Thinking, and Grok 4.20 Multi-Agent. Up to 5 per comparison.</li>
+          <li><strong>Pro</strong> — 16 advanced models. Every flagship: Claude Opus 4.8 + Opus 4.8 Fast, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini 2.5/3.x Pro, Grok 4.20, Llama 3.3 70B, Codex variants, Devstral, Qwen3 Coder. Up to 3 per comparison.</li>
+          <li><strong>Premium</strong> — 4 research models. For deep research: GPT-5.5 Pro, DeepSeek v4 Pro, Qwen3 Max Thinking, and Grok 4.20 Multi-Agent. Up to 5 per comparison.</li>
         </ul>
         <p>
           See <Link href="/pricing">Pricing</Link> for current pricing.

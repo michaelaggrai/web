@@ -70,7 +70,9 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   // Creative
   { id: "anthropic/claude-sonnet-4-6",              label: "Claude Sonnet 4.6",    provider: "Anthropic", class: "flagship", category: "creative" },
   { id: "openai/gpt-4o",                            label: "GPT-4o",               provider: "OpenAI",    class: "flagship", category: "creative" },
-  { id: "openai/gpt-5.4",                           label: "GPT-5.4",              provider: "OpenAI",    class: "flagship", category: "creative" },
+  // GPT-5.4 deprecated 2026-05-29 — 5.5 supersedes it; having both as full
+  // models in the Creative tab confused users. 5.4 Mini stays in Free.
+  { id: "openai/gpt-5.4",                           label: "GPT-5.4",              provider: "OpenAI",    class: "flagship", category: "creative", status: "deprecated" },
   { id: "openai/gpt-5.5",                           label: "GPT-5.5",              provider: "OpenAI",    class: "flagship", category: "creative" },
   { id: "mistralai/mistral-large-2512",             label: "Mistral Large",        provider: "Mistral",   class: "flagship", category: "creative" },
 

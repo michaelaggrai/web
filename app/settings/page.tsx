@@ -35,8 +35,8 @@ type PlanOption = {
 
 const PLAN_OPTIONS: PlanOption[] = [
   { key: "free",    name: "Free",    price: "£0",  period: "forever", tagline: "8 basic models, up to 3 per comparison",       icon: Sparkles, iconColor: "text-white/50" },
-  { key: "pro",     name: "Pro",     price: "£11", period: "/mo",     tagline: "17 advanced models, up to 3 per comparison",   icon: Zap,      iconColor: "text-teal-300" },
-  { key: "premium", name: "Premium", price: "£19", period: "/mo",     tagline: "5 research models, up to 5 per comparison",    icon: Crown,    iconColor: "text-amber-300" },
+  { key: "pro",     name: "Pro",     price: "£11", period: "/mo",     tagline: "16 advanced models, up to 3 per comparison",   icon: Zap,      iconColor: "text-teal-300" },
+  { key: "premium", name: "Premium", price: "£19", period: "/mo",     tagline: "4 research models, up to 5 per comparison",    icon: Crown,    iconColor: "text-amber-300" },
 ];
 
 export default function SettingsPage() {
