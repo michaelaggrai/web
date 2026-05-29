@@ -136,7 +136,11 @@
    - Spokes' dashes flow inward toward the core — signals "gathering /
      synthesising" rather than "broadcasting outward". (Reversed sign on
      stroke-dashoffset vs. the original outward flow.)
-   - Core beats. */
+   - Core beats.
+   - Outer dots expand then settle back to their original size, fired one
+     after another in clockwise order so a pulse travels around the
+     pentagon. Layered ON TOP of the four animations above — none of them
+     change. */
 .aggrai-icon.is-loading {
   animation: aggrai-breathe 2.4s ease-in-out infinite;
   transform-origin: center;
@@ -144,6 +148,20 @@
 .aggrai-icon.is-loading .aggrai-mesh { transform: scale(1); animation: aggrai-rot 5.5s linear infinite; }
 .aggrai-icon.is-loading .aggrai-spoke { animation: aggrai-flow 0.85s linear infinite; }
 .aggrai-icon.is-loading .aggrai-core { animation: aggrai-beat 2.2s ease-in-out infinite; }
+/* Clockwise dot sequence. transform-box: fill-box pins each dot's scale
+   origin to its own centre so it grows in place (not from the SVG origin),
+   composing cleanly with the parent mesh rotation. Delays are cycle/5 apart
+   in clockwise DOM order: anthropic(top) → openai → google → meta → mistral. */
+.aggrai-icon.is-loading .aggrai-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aggrai-node-seq 1.8s ease-in-out infinite;
+}
+.aggrai-icon.is-loading .aggrai-node-anthropic { animation-delay: 0s; }
+.aggrai-icon.is-loading .aggrai-node-openai    { animation-delay: 0.36s; }
+.aggrai-icon.is-loading .aggrai-node-google    { animation-delay: 0.72s; }
+.aggrai-icon.is-loading .aggrai-node-meta      { animation-delay: 1.08s; }
+.aggrai-icon.is-loading .aggrai-node-mistral   { animation-delay: 1.44s; }
 
 /* Positive offset = dashes shift opposite to stroke direction.
    Spokes are drawn center→node, so positive offset = dashes flow
@@ -151,6 +169,14 @@
 @keyframes aggrai-flow { to { stroke-dashoffset: 13; } }
 @keyframes aggrai-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(.62); } }
 @keyframes aggrai-rot { to { transform: rotate(360deg); } }
+/* Dot loading sequence: spike out early, settle back to original by 40%,
+   then rest until the next cycle so the staggered delays read as a wave. */
+@keyframes aggrai-node-seq {
+  0%   { transform: scale(1); }
+  18%  { transform: scale(1.9); }
+  40%  { transform: scale(1); }
+  100% { transform: scale(1); }
+}
 @keyframes aggrai-breathe {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(0.88); }
@@ -168,6 +194,7 @@
   .aggrai-spoke,
   .aggrai-core,
   .aggrai-icon.is-loading,
+  .aggrai-icon.is-loading .aggrai-node,
   .aggrai-icon.is-loading .aggrai-mesh { animation: none; }
 }
 

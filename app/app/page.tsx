@@ -607,14 +607,11 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                   </RadarChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-center">
-                    <div
-                      className="text-2xl font-semibold tabular-nums leading-none"
-                      style={{ color }}
-                    >
-                      {a.overall}
-                    </div>
-                    <div className="text-[10px] text-white/40 mt-0.5">/100</div>
+                  <div
+                    className="text-2xl font-semibold tabular-nums leading-none"
+                    style={{ color }}
+                  >
+                    {a.overall}
                   </div>
                 </div>
               </div>
