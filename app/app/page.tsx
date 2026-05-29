@@ -534,6 +534,29 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
             dim: label,
             value: (typeof a.scores[key] === "number" ? a.scores[key] : 0) * 2,
           }));
+          const valueByDim: Record<string, number> = Object.fromEntries(
+            data.map(d => [d.dim, d.value]),
+          );
+          // Custom axis tick: the dimension name plus its 0-10 sub-score in
+          // grey just below it, so each radar shows the exact numbers, not
+          // just the polygon shape. payload.value is the dim string.
+          const renderAxisTick = (props: {
+            payload: { value: string }; x: number; y: number;
+            textAnchor: "start" | "middle" | "end" | "inherit";
+          }) => {
+            const { payload, x, y, textAnchor } = props;
+            const v = valueByDim[payload.value];
+            return (
+              <g>
+                <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fontSize={10} fill="rgba(255,255,255,0.55)">
+                  {payload.value}
+                </text>
+                <text x={x} y={y + 11} textAnchor={textAnchor} dominantBaseline="central" fontSize={9} fill="rgba(255,255,255,0.38)">
+                  {typeof v === "number" ? v.toFixed(1) : "—"}
+                </text>
+              </g>
+            );
+          };
           return (
             <div key={a.model} className="space-y-2">
               {/* Header: colour swatch ties this header to the polygon
@@ -568,13 +591,10 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                   overlay leaves any future Tooltip hook free to receive
                   mouse events on the polygon. */}
               <div className="relative">
-                <ResponsiveContainer width="100%" height={200}>
-                  <RadarChart data={data} outerRadius="68%">
+                <ResponsiveContainer width="100%" height={184}>
+                  <RadarChart data={data} outerRadius="58%">
                     <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                    <PolarAngleAxis
-                      dataKey="dim"
-                      tick={{ fontSize: 10, fill: "rgba(255,255,255,0.55)" }}
-                    />
+                    <PolarAngleAxis dataKey="dim" tick={renderAxisTick} />
                     <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
                     <Radar
                       name={modelLabel(a.model)}
@@ -1437,12 +1457,13 @@ function Home() {
                             // onContinue={handleContinueWith}
                           />
                         )}
-                        {/* 70/30 split — Aggr-Score block only needs room for
-                            5 axis labels + a centred 0-100; everything else
-                            (long-form Best Answer rewrite, contributions
-                            bars, structured sub-headings) wants the wider
-                            column. Was 5fr_3fr (62/38), nudging slimmer. */}
-                        <div className="grid grid-cols-1 lg:grid-cols-[7fr_3fr] gap-4 items-start">
+                        {/* 75/25 split — Aggr-Score only needs room for a
+                            compact radar + 5 axis labels + a centred 0-100.
+                            Everything else (long-form Best Answer rewrite,
+                            contributions bars, structured sub-headings) wants
+                            the wider column. Progression: 5fr_3fr → 7fr_3fr →
+                            3fr_1fr as we kept slimming the score rail. */}
+                        <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4 items-start">
                           <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
                             <div className="flex items-center gap-2 mb-4">
                               <Layers className="w-3.5 h-3.5 text-teal-300" />
