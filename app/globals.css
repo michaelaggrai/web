@@ -74,17 +74,18 @@
 /* Default node — `currentColor` is the fallback if a node ever ships
    without a brand class. Brand-coloured nodes override below. */
 .aggrai-node { fill: currentColor; }
-/* Five distinct outer-dot colours spread around the hue wheel so each node
-   reads as its own. The provider class names are kept for continuity but the
-   palette now prioritises visual distinctness over exact brand match — the
-   old set doubled up (two oranges, two blues) and muddied the mark. Going
-   clockwise from the top: orange, green, blue, amber, violet — none of which
-   collides with the teal core. */
-.aggrai-node-anthropic { fill: #F97316; } /* orange  (top)         */
-.aggrai-node-openai    { fill: #22C55E; } /* green   (upper-right) */
-.aggrai-node-google    { fill: #3B82F6; } /* blue    (lower-right) */
-.aggrai-node-meta      { fill: #FACC15; } /* amber   (lower-left)  */
-.aggrai-node-mistral   { fill: #A855F7; } /* violet  (upper-left)  */
+/* Outer-dot palette: a cool jewel-tone sweep anchored to the brand teal.
+   The trick for "uniform yet distinct" is to hold saturation + lightness
+   roughly constant (all Tailwind ~400 level) and vary ONLY the hue, within
+   one temperature family. The earlier set mixed warm (orange/amber) with
+   cool (blue/violet) at clashing brightnesses, which read as chaotic.
+   Clockwise from the top: green → cyan → blue → indigo → violet — one
+   continuous cool ramp that sits naturally around the teal core. */
+.aggrai-node-anthropic { fill: #4ADE80; } /* green   (top)         */
+.aggrai-node-openai    { fill: #22D3EE; } /* cyan    (upper-right) */
+.aggrai-node-google    { fill: #60A5FA; } /* blue    (lower-right) */
+.aggrai-node-meta      { fill: #818CF8; } /* indigo  (lower-left)  */
+.aggrai-node-mistral   { fill: #A78BFA; } /* violet  (upper-left)  */
 .aggrai-core { fill: var(--aggrai-teal); transform-origin: 50px 50px; }
 .aggrai-mesh {
   transform-origin: 50px 50px;

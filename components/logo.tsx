@@ -12,11 +12,11 @@ type LogoProps = {
 }
 
 // Each outer node carries its own class so the pentagon reads as "five
-// models around the synthesised core". Colours are a distinct spread around
-// the hue wheel (orange / green / blue / amber / violet — see globals.css
-// .aggrai-node-*) chosen so every dot is clearly its own; the old brand-
-// matched set doubled up on orange + blue and muddied the mark. Spokes stay
-// neutral so the coloured dots are the visual focus.
+// models around the synthesised core". Colours are a cool jewel-tone ramp
+// anchored to the brand teal (green → cyan → blue → indigo → violet — see
+// globals.css .aggrai-node-*): constant saturation/lightness, hue varies
+// within one cool family, so the dots stay distinct yet harmonise instead
+// of looking like a chaotic rainbow. Spokes stay neutral so the dots lead.
 const MESH = (
   <g className="aggrai-mesh">
     <path className="aggrai-edge" d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" />
