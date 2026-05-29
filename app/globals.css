@@ -81,11 +81,11 @@
    cool (blue/violet) at clashing brightnesses, which read as chaotic.
    Clockwise from the top: green → cyan → blue → indigo → violet — one
    continuous cool ramp that sits naturally around the teal core. */
-.aggrai-node-anthropic { fill: #4ADE80; } /* green   (top)         */
-.aggrai-node-openai    { fill: #22D3EE; } /* cyan    (upper-right) */
-.aggrai-node-google    { fill: #60A5FA; } /* blue    (lower-right) */
-.aggrai-node-meta      { fill: #818CF8; } /* indigo  (lower-left)  */
-.aggrai-node-mistral   { fill: #A78BFA; } /* violet  (upper-left)  */
+.aggrai-node-anthropic { fill: #4FE88A; } /* green   (top)         */
+.aggrai-node-openai    { fill: #2EE6FF; } /* cyan    (upper-right) */
+.aggrai-node-google    { fill: #4DA6FF; } /* blue    (lower-right) */
+.aggrai-node-meta      { fill: #8A86FF; } /* indigo  (lower-left)  */
+.aggrai-node-mistral   { fill: #C77DFF; } /* violet  (upper-left)  */
 .aggrai-core { fill: var(--aggrai-teal); transform-origin: 50px 50px; }
 .aggrai-mesh {
   transform-origin: 50px 50px;
