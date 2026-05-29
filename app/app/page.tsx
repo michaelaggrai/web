@@ -1627,11 +1627,12 @@ function Home() {
                       it varies across questions but is stable on re-render. */}
                   {result.type === "direct" && (() => {
                     const quips = [
-                      "We let the other models keep napping and saved the planet a few volts.",
-                      "Convening three AIs to confirm this would be like forming a committee to agree the sky is up.",
-                      "The other models would've just nodded along and still sent you the bill — so we skipped the theatrics.",
-                      "Some answers don't need a second opinion, let alone a third. We saved the compute for questions that actually start arguments.",
-                      "No need to summon the whole AI panel for this one — they'd unanimously agree and charge you for the privilege.",
+                      "We could've asked five models, but they'd just agree, high-five, and still bill you for the group hug.",
+                      "Three AIs would've said the exact same thing, split the tab, and left. We skipped to the part where you get the answer.",
+                      "Putting this to a vote would waste good electricity and three very confident robots' entire afternoon.",
+                      "Summoning the full AI council here is how you end up with a 40-slide deck answering a yes/no question.",
+                      "The other models are sitting this one out — even they'd be a little embarrassed to charge you for it.",
+                      "We saved the heavy machinery for the questions that actually keep the robots up at night. This wasn't one of them.",
                     ];
                     const quip = quips[[...result.question].reduce((s, c) => s + c.charCodeAt(0), 0) % quips.length];
                     return (
