@@ -519,10 +519,16 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
   // Recharts wants one row per axis with a column per series. Model ids
   // (e.g. "anthropic/claude-haiku-4-5") work fine as dataKeys — the dot is
   // only a problem if a library tries to treat keys as object paths.
+  //
+  // Backend rubric scores each sub-metric 0-5 and the frontend doubles it
+  // for the displayed 0-10 scale (Aggr-Score branding). The headline 0-100
+  // shown in the centre of the radar isn't doubled — it's already on its
+  // own composite scale via overallScore().
   const radarData = SCORE_KEYS.map(({ key, label }) => {
     const row: Record<string, number | string> = { dim: label };
     for (const a of enriched) {
-      row[a.model] = typeof a.scores[key] === "number" ? a.scores[key] : 0;
+      const raw = typeof a.scores[key] === "number" ? a.scores[key] : 0;
+      row[a.model] = raw * 2;
     }
     return row;
   });
@@ -532,9 +538,9 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
       <div className="mb-5 flex items-center gap-2">
         <BarChart3 className="w-3.5 h-3.5 text-teal-300" />
         <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">
-          Quality scores
+          Aggr-Score
         </p>
-        <span className="text-[10px] text-white/30">judged by Haiku · 0–100 overall</span>
+        <span className="text-[10px] text-white/30">judged by Haiku · sub-scores 0–10 · headline 0–100</span>
       </div>
 
       {/* Radar — wrapped in position:relative so the winner's overall score
@@ -548,7 +554,7 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
               dataKey="dim"
               tick={{ fontSize: 10, fill: "rgba(255,255,255,0.55)" }}
             />
-            <PolarRadiusAxis domain={[0, 5]} tick={false} axisLine={false} />
+            <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
             {/* Render in rank order so the winner's polygon paints last
                 (on top) and stays readable when shapes overlap. */}
             {ranked.map(a => {
@@ -1217,7 +1223,13 @@ function Home() {
             then scrolls /app to top like every other page. The outer
             min-h-dvh + flex-col still gives us the layout we want. */}
         <main className="flex-1 px-4 py-10">
-          <div className="mx-auto max-w-4xl space-y-8">
+          {/* Width: was max-w-4xl (~896px) which left ~500px of dead space
+              on each side at 1080p+. Bumping to max-w-7xl (1280px) gives
+              each model card ~600px on desktop instead of ~430, so long
+              answers stop feeling squashed. Reading comfort ceiling for
+              the summary text is still respected — each half-column is
+              ~85ch, within the standard 60-95ch window. */}
+          <div className="mx-auto max-w-7xl space-y-8">
 
           {showUpgradedBanner && (
             <div
