@@ -25,7 +25,7 @@ export default function DocsPage() {
           <li>Open <Link href="/app">the app</Link>.</li>
           <li>Type a question.</li>
           <li>Pick the models you want to compare (we&apos;ve picked sensible defaults).</li>
-          <li>Hit submit. Each model streams its answer in parallel; once they&apos;re in, you get a single rewritten &ldquo;Aggrai&apos;s answer,&rdquo; per-model quality scores, and contribution attribution.</li>
+          <li>Hit submit. Each model streams its answer in parallel; once they&apos;re in, you get a single rewritten &ldquo;Aggrai&apos;s answer,&rdquo; a per-model Aggr-Score radar, and a bar showing which models shaped the summary.</li>
         </ol>
         <p>That&apos;s it. The rest of this page is just background.</p>
 
@@ -43,23 +43,38 @@ export default function DocsPage() {
           When you select more than one model, we run a summariser pass
           (Claude Haiku) that synthesises a single rewritten answer drawn from
           the strongest content across all the models, weighted by each
-          model&apos;s quality scores. Under it, contribution bars show what
-          percentage of the rewrite came from each model, and per-section
-          attribution chips name the model whose content drove each part.
-          Read just this section and you have a complete answer; the
-          per-model cards are there if you want to see who said what.
+          model&apos;s Aggr-Score. Above it, a single bar splits the rewrite by
+          model so you can see what share each one contributed — the segments
+          add up to 100%. Read just this section and you have a complete
+          answer; the per-model cards are there if you want to see who said
+          what. The summary comes back in the same language as your question.
         </p>
 
-        <h3>Quality scores</h3>
+        <h3>Aggr-Score</h3>
         <p>
-          A second pass scores each answer 0–5 on five dimensions —
-          accuracy, completeness, calibration (epistemic honesty),
-          clarity, and insight — then combines them into a single 0–100
-          quality score. Accuracy carries the most weight (30%); a
-          confidently-wrong answer is capped at 40 regardless of how
-          well-written it is. The scoring is done by Claude Haiku, so
-          treat it as one model&apos;s opinion — useful as a tiebreaker,
+          A second pass scores each answer on five dimensions — accuracy,
+          completeness, calibration (epistemic honesty), clarity, and insight
+          — shown as a radar chart (each axis out of 10) with that model&apos;s
+          overall Aggr-Score (0–100) in the centre. Accuracy carries the most
+          weight (30%); a confidently-wrong answer is capped at 40 regardless
+          of how well-written it is. Each model&apos;s strongest dimensions are
+          highlighted on its own radar, and you can click any radar (or the
+          &ldquo;+&rdquo; button) to expand a plain-English breakdown of that
+          answer&apos;s strengths and weaknesses. Scoring is done by Claude
+          Haiku, so treat it as one model&apos;s opinion — a useful tiebreaker,
           not gospel.
+        </p>
+
+        <h3>Factual &amp; time-sensitive questions</h3>
+        <p>
+          Not every question needs a five-model debate. Simple factual
+          questions (&ldquo;2+2&rdquo;, &ldquo;capital of France&rdquo;) get a
+          single direct answer — no point burning the compute on a comparison
+          everyone would agree on. And when a question depends on recent
+          information the models may not have, we flag it: the models answer
+          from training data with no live web access, so anything
+          time-sensitive carries a &ldquo;may not reflect the latest&rdquo;
+          note.
         </p>
 
         <h2>Tiers and limits</h2>

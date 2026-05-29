@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Check, Sparkles, Zap, Crown } from "lucide-react";
-import { HomeLink } from "@/components/home-link";
-import { AccountMenu } from "@/components/account-menu";
+import { Navbar } from "@/components/landing/navbar";
 
 export const metadata = {
   title: "Pricing — aggrai",
@@ -61,17 +60,12 @@ const PLANS = [
 
 export default function PricingPage() {
   return (
-    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-16 overflow-hidden">
+    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 pt-24 pb-16 overflow-hidden">
+      <Navbar />
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 
       <div className="relative z-10 mx-auto max-w-4xl">
-        {/* Top bar — logo + account menu, then the centered hero below */}
-        <div className="mb-12 flex items-center justify-between gap-3">
-          <HomeLink height={28} gradientId="pricing-logo" className="opacity-80 hover:opacity-100 transition-opacity" />
-          <AccountMenu variant="topbar" />
-        </div>
-
         {/* Centered hero */}
         <div className="flex flex-col items-center text-center mb-12">
           <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">

@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Lock } from "lucide-react";
-import { HomeLink } from "@/components/home-link";
-import { AccountMenu } from "@/components/account-menu";
+import { ArrowRight, Lock } from "lucide-react";
+import { Navbar } from "@/components/landing/navbar";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import {
   FALLBACK_MODELS,
@@ -162,26 +161,12 @@ export default function ModelsPage() {
   const filterActive = visibleTiers.size < ALL_TIERS.length;
 
   return (
-    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
+    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 pt-24 pb-12 overflow-hidden">
+      <Navbar />
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/12 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 
       <div className="relative z-10 mx-auto max-w-5xl">
-        {/* Header bar */}
-        <div className="mb-10 flex items-center justify-between gap-3">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Home
-          </Link>
-          <div className="flex items-center gap-3">
-            <HomeLink height={26} gradientId="models-logo" className="opacity-70 hover:opacity-100 transition-opacity" />
-            <AccountMenu variant="topbar" />
-          </div>
-        </div>
-
         {/* Hero */}
         <div className="mb-10 max-w-2xl">
           <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">

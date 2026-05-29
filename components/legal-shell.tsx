@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { HomeLink } from "@/components/home-link";
-import { AccountMenu } from "@/components/account-menu";
+import { Navbar } from "@/components/landing/navbar";
 
 type Props = {
   title: string;
@@ -11,22 +10,19 @@ type Props = {
 /**
  * Shared layout for static informational pages (about, help, docs, etc.).
  * Same dark navy treatment as /terms and /privacy so the site reads as
- * one product, not a stack of unrelated pages. Top row shows the Logo
- * on the left and the AccountMenu avatar (or "Sign in" link for
- * anonymous users) on the right so account access is one click away
- * from every static page.
+ * one product, not a stack of unrelated pages. Renders the shared Navbar
+ * (logo + Models/Pricing/Docs/Help menu + account + Get started) at the
+ * top so every static page has the same global navigation as the landing
+ * page — previously these pages had only a bare logo + account avatar and
+ * no way to reach the rest of the site. pt-24 clears the fixed navbar.
  */
 export function LegalShell({ title, subtitle, children }: Props) {
   return (
-    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
+    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 pt-24 pb-12 overflow-hidden">
+      <Navbar />
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
 
       <div className="relative z-10 mx-auto max-w-3xl">
-        <div className="mb-10 flex items-center justify-between gap-3">
-          <HomeLink height={28} gradientId="page-logo" className="inline-block" />
-          <AccountMenu variant="topbar" />
-        </div>
-
         <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">
           {title}
         </h1>
