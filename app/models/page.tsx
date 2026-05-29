@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Lock } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
+import { Footer } from "@/components/landing/footer";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import {
   FALLBACK_MODELS,
@@ -161,7 +162,7 @@ export default function ModelsPage() {
   const filterActive = visibleTiers.size < ALL_TIERS.length;
 
   return (
-    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 pt-24 pb-12 overflow-hidden">
+    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 pt-24 overflow-hidden">
       <Navbar />
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/12 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
@@ -344,6 +345,7 @@ export default function ModelsPage() {
           .
         </p>
       </div>
+      <div className="relative z-10 -mx-4 mt-16"><Footer /></div>
     </div>
   );
 }
