@@ -12,7 +12,6 @@
 // rather than an unfinished detour.
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -21,7 +20,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,8 +32,15 @@ export default function LoginPage() {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
-        router.push("/");
-        router.refresh();
+        // Hard navigation (NOT router.push) on purpose. The App Router caches
+        // a prefetched RSC payload for "/" generated while we were still
+        // unauthenticated — which resolved to the /login redirect from the
+        // proxy gate. A client-side push can serve that stale entry and
+        // bounce the user straight back to /login, which is the "had to try
+        // the password / refresh a few times" flakiness. A full document load
+        // re-requests "/" with the freshly-set `auth` cookie, so the gate
+        // sees it on the first try. Keep `loading` true — the page unloads.
+        window.location.assign("/");
         return;
       }
       // 500 = SITE_PASSWORD env var unset on the server. Surface a
@@ -67,7 +72,10 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex justify-center">
-          <Link href="/" aria-label="aggrai">
+          {/* prefetch={false}: on /login the user is (by definition) not yet
+              authed, so prefetching "/" caches the proxy's /login redirect —
+              poisoning the router cache. Disable it so nothing stale is held. */}
+          <Link href="/" aria-label="aggrai" prefetch={false}>
             <Logo height={36} />
           </Link>
         </div>
