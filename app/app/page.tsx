@@ -730,6 +730,88 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
   );
 }
 
+// Two-column masonry for the raw answer cards, packed by MEASURED rendered
+// height — not an estimate. Earlier we guessed height from answer character
+// count, but a heading/list-heavy answer renders far taller than its length
+// implies, so two long answers piled into one column. Here we measure each
+// card's actual offsetHeight and pack longest-first into the genuinely-shorter
+// column (the "longest processing time" bin-packing heuristic), which keeps
+// the two columns close in height regardless of content shape.
+//
+// Heights are column-independent (both columns are equal width), so measuring
+// once is stable — no measure↔reflow loop. Re-measures when the answer set or
+// the expand/collapse state changes (layoutKey). Single column on mobile.
+function AnswerMasonry({
+  answers,
+  renderCard,
+  layoutKey,
+}: {
+  answers: Answer[];
+  renderCard: (a: Answer) => React.ReactNode;
+  layoutKey: string;
+}) {
+  const [twoCol, setTwoCol] = useState(false);
+  const [assign, setAssign] = useState<Record<string, 0 | 1>>({});
+  const refs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const sync = () => setTwoCol(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!twoCol || answers.length < 2) return;
+    // Longest-first: assign each card (tallest down) to the shorter column.
+    const order = [...answers].sort(
+      (a, b) => (refs.current[b.model]?.offsetHeight ?? 0) - (refs.current[a.model]?.offsetHeight ?? 0),
+    );
+    const h = [0, 0];
+    const next: Record<string, 0 | 1> = {};
+    for (const a of order) {
+      const t = h[0] <= h[1] ? 0 : 1;
+      next[a.model] = t;
+      h[t] += refs.current[a.model]?.offsetHeight ?? 0;
+    }
+    setAssign(prev => (answers.every(a => prev[a.model] === next[a.model]) ? prev : next));
+  }, [answers, layoutKey, twoCol]);
+
+  const setRef = (model: string) => (el: HTMLDivElement | null) => { refs.current[model] = el; };
+
+  // Single answer, or mobile → one column in source order.
+  if (answers.length <= 1 || !twoCol) {
+    return (
+      <div className="space-y-4">
+        {answers.map(a => (
+          <div key={a.model} ref={setRef(a.model)}>{renderCard(a)}</div>
+        ))}
+      </div>
+    );
+  }
+
+  // Desktop: two columns. Until the first measure runs, fall back to index
+  // parity so the first paint is already roughly balanced (no all-in-one-column
+  // flash). Each column keeps source order among its assigned cards.
+  const placed = answers.map((a, idx) => ({ a, col: assign[a.model] ?? ((idx % 2) as 0 | 1) }));
+  const columns: Answer[][] = [
+    placed.filter(p => p.col === 0).map(p => p.a),
+    placed.filter(p => p.col === 1).map(p => p.a),
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-4 items-start">
+      {columns.map((col, i) => (
+        <div key={i} className="space-y-4 min-w-0">
+          {col.map(a => (
+            <div key={a.model} ref={setRef(a.model)}>{renderCard(a)}</div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Page() {
   return (
     <Suspense>
@@ -1661,15 +1743,9 @@ function Home() {
                       );
                     })()}
                   </div>
-                  {/* Greedy two-column masonry. A plain grid wraps the 3rd
-                      card onto a new row UNDER the first (tall) card, leaving
-                      dead space beneath a short neighbour. Instead we add each
-                      answer, in order, to the currently-shorter column so a
-                      long answer flows in under a short one. Column weight is
-                      estimated from answer length (tracks rendered height
-                      closely enough for balancing) and stays stable across
-                      expand/collapse, so toggling a card never reshuffles
-                      which column it lives in. */}
+                  {/* Two-column masonry packed by MEASURED card height (see
+                      AnswerMasonry) so a long answer fills the genuinely-
+                      shorter column instead of piling onto another tall one. */}
                   {(() => {
                     const renderCard = (a: Answer) => {
                       const isOpen = expandedAnswers.has(a.model);
@@ -1714,28 +1790,12 @@ function Home() {
                       );
                     };
 
-                    // Single answer → full width, no columns.
-                    if (result.answers.length <= 1) {
-                      return <div className="grid grid-cols-1 gap-4">{result.answers.map(renderCard)}</div>;
-                    }
-
-                    // Distribute into 2 columns, each new card to the shorter one.
-                    const cols: Answer[][] = [[], []];
-                    const colHeight = [0, 0];
-                    for (const a of result.answers) {
-                      const weight = Math.max(160, a.answer.length);
-                      const target = colHeight[0] <= colHeight[1] ? 0 : 1;
-                      cols[target].push(a);
-                      colHeight[target] += weight;
-                    }
                     return (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-                        {cols.map((col, i) => (
-                          <div key={i} className="space-y-4 min-w-0">
-                            {col.map(renderCard)}
-                          </div>
-                        ))}
-                      </div>
+                      <AnswerMasonry
+                        answers={result.answers}
+                        renderCard={renderCard}
+                        layoutKey={[...expandedAnswers].sort().join("|")}
+                      />
                     );
                   })()}
 
