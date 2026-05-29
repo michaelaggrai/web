@@ -116,8 +116,8 @@ export default function DocsPage() {
 
         <h2>API</h2>
         <p>
-          We don&apos;t expose a public API yet. If you need one, email{" "}
-          <a href="mailto:hello@aggrai.com">hello@aggrai.com</a> and tell us your use case.
+          We don&apos;t expose a public API yet. If you need one,{" "}
+          <Link href="/contact">get in touch</Link> and tell us your use case.
         </p>
 
         <h2>Roadmap</h2>
@@ -130,8 +130,8 @@ export default function DocsPage() {
 
         <h2>Still stuck?</h2>
         <p>
-          Check <Link href="/help">Help</Link> for FAQs, or email{" "}
-          <a href="mailto:hello@aggrai.com">hello@aggrai.com</a>.
+          Check <Link href="/help">Help</Link> for FAQs, or{" "}
+          <Link href="/contact">contact us</Link>.
         </p>
       </article>
     </LegalShell>

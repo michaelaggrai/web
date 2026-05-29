@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LegalShell } from "@/components/legal-shell";
 
 export const metadata = {
@@ -65,10 +66,10 @@ export default function StatusPage() {
       </ul>
 
       <p className="mt-8 text-xs text-white/40">
-        Something looks broken from where you are? Email{" "}
-        <a href="mailto:hello@aggrai.com" className="text-teal-300 hover:underline underline-offset-2">
-          hello@aggrai.com
-        </a>{" "}
+        Something looks broken from where you are?{" "}
+        <Link href="/contact" className="text-teal-300 hover:underline underline-offset-2">
+          Let us know
+        </Link>{" "}
         — we&apos;d rather hear it twice than not at all.
       </p>
     </LegalShell>

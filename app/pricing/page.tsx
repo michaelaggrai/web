@@ -179,7 +179,7 @@ export default function PricingPage() {
         </div>
 
         <p className="mt-10 text-center text-xs text-white/30">
-          Questions? <a href="mailto:hello@aggrai.com" className="text-white/50 hover:text-white underline underline-offset-2">hello@aggrai.com</a> · <Link href="/terms" className="text-white/40 hover:text-white">Terms</Link> · <Link href="/privacy" className="text-white/40 hover:text-white">Privacy</Link>
+          Questions? <Link href="/contact" className="text-white/50 hover:text-white underline underline-offset-2">Contact</Link> · <Link href="/terms" className="text-white/40 hover:text-white">Terms</Link> · <Link href="/privacy" className="text-white/40 hover:text-white">Privacy</Link>
         </p>
       </div>
       <div className="relative z-10 -mx-4 mt-16"><Footer /></div>

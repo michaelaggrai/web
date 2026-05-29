@@ -365,7 +365,7 @@ function Settings() {
         </Section>
 
         <p className="mt-10 text-center text-xs text-white/30">
-          Need help? <a href="mailto:hello@aggrai.com" className="text-white/50 hover:text-white underline underline-offset-2">hello@aggrai.com</a>
+          Need help? <Link href="/contact" className="text-white/50 hover:text-white underline underline-offset-2">Contact us</Link>
         </p>
       </div>
     </div>

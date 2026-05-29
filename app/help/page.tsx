@@ -84,10 +84,10 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
         Head to <Link href="/settings">Settings → Plan</Link> and pick the
         plan you want — downgrades take effect immediately. (Full self-serve
         cancellation and refund handling ship alongside our proper billing
-        rollout; until then, email{" "}
-        <a href="mailto:hello@aggrai.com" className="text-teal-300 hover:underline">
-          hello@aggrai.com
-        </a>{" "}
+        rollout; until then,{" "}
+        <Link href="/contact" className="text-teal-300 hover:underline">
+          contact us
+        </Link>{" "}
         if you need anything special.)
       </>
     ),
@@ -96,7 +96,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     q: "I found a bug / I have feedback.",
     a: (
       <>
-        Email <a href="mailto:hello@aggrai.com" className="text-teal-300 hover:underline">hello@aggrai.com</a> — we read everything.
+        Tell us on the <Link href="/contact" className="text-teal-300 hover:underline">contact page</Link> — we read everything.
       </>
     ),
   },
@@ -126,13 +126,13 @@ export default function HelpPage() {
       </div>
 
       <p className="mt-10 text-sm text-white/40">
-        Didn&apos;t find your answer? Email{" "}
-        <a
-          href="mailto:hello@aggrai.com"
+        Didn&apos;t find your answer?{" "}
+        <Link
+          href="/contact"
           className="text-teal-300 hover:underline underline-offset-2"
         >
-          hello@aggrai.com
-        </a>
+          Get in touch
+        </Link>
         .
       </p>
     </LegalShell>

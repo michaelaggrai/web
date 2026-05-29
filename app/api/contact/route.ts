@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   if (dbError) {
     // Log + return generic error. Don't leak DB internals to the client.
     console.error("[contact] insert failed", dbError);
-    return NextResponse.json({ error: "Could not save your message. Please try again or email hello@aggrai.com." }, { status: 500 });
+    return NextResponse.json({ error: "Could not save your message. Please try again in a moment." }, { status: 500 });
   }
 
   // 4. Best-effort Slack notify. Never block the user response on this.

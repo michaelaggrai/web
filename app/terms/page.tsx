@@ -187,7 +187,7 @@ export default function TermsPage() {
 
           <h2>17. Contact</h2>
           <p>
-            Questions about these Terms? Email <a href="mailto:hello@aggrai.com">hello@aggrai.com</a>.
+            Questions about these Terms? <Link href="/contact">Contact us</Link>.
           </p>
 
           <hr className="my-10 border-white/10" />

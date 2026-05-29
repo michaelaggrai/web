@@ -76,15 +76,15 @@ export function Footer() {
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
               </svg>
             </a>
-            <a
-              href="mailto:hello@aggrai.com"
+            <Link
+              href="/contact"
               className="text-white/30 hover:text-white/60 transition-colors"
-              aria-label="Email"
+              aria-label="Contact"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M2 6.5A2.5 2.5 0 014.5 4h15A2.5 2.5 0 0122 6.5v11a2.5 2.5 0 01-2.5 2.5h-15A2.5 2.5 0 012 17.5v-11zm2.5-.5a.5.5 0 00-.5.5v.7l8 5 8-5v-.7a.5.5 0 00-.5-.5h-15zM20 9.4l-7.47 4.67a1 1 0 01-1.06 0L4 9.4v8.1a.5.5 0 00.5.5h15a.5.5 0 00.5-.5V9.4z"/>
               </svg>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

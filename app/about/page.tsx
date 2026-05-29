@@ -71,7 +71,7 @@ export default function AboutPage() {
         <p>
           aggrai is a small project built in the open, currently in beta. We
           obsess over speed, neutrality, and not getting in the way. If you have
-          feedback, ideas, or want to say hi: <a href="mailto:hello@aggrai.com">hello@aggrai.com</a>.
+          feedback, ideas, or want to say hi, head to our <Link href="/contact">contact page</Link>.
         </p>
 
         <h2>Status</h2>
