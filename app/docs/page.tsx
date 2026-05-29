@@ -79,12 +79,14 @@ export default function DocsPage() {
 
         <h2>Tiers and limits</h2>
         <ul>
-          <li><strong>Free</strong> — 8 basic models (Claude Haiku 4.5, GPT-4o Mini, GPT-5.4 Mini, Gemini 2.5 Flash, Gemini 3.1 Flash Lite, Mistral Small, Llama 3.1 8B, DeepSeek v3.2). Up to 3 per comparison. No account needed.</li>
-          <li><strong>Pro</strong> — 16 advanced models. Every flagship: Claude Opus 4.8 + Opus 4.8 Fast, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini 2.5/3.x Pro, Grok 4.20, Llama 3.3 70B, Codex variants, Devstral, Qwen3 Coder. Up to 3 per comparison.</li>
-          <li><strong>Premium</strong> — 4 research models. For deep research: GPT-5.5 Pro, DeepSeek v4 Pro, Qwen3 Max Thinking, and Grok 4.20 Multi-Agent. Up to 5 per comparison.</li>
+          <li><strong>Free</strong> — our fast, lightweight models (Claude Haiku 4.5, GPT-4o Mini, Gemini 2.5 Flash, Mistral Small, and more). Up to 3 per comparison. No account needed.</li>
+          <li><strong>Pro</strong> — every flagship model (Claude Opus 4.8 + Opus 4.8 Fast, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.20, the Codex + Devstral coding models, and more). Up to 3 per comparison.</li>
+          <li><strong>Premium</strong> — adds the deep-research models (GPT-5.5 Pro, DeepSeek v4 Pro, Qwen3 Max Thinking, Grok 4.20 Multi-Agent). Up to 5 per comparison.</li>
         </ul>
         <p>
-          See <Link href="/pricing">Pricing</Link> for current pricing.
+          The line-up changes as new models ship — see the full{" "}
+          <Link href="/models">model catalog</Link> for what&apos;s live right
+          now, and <Link href="/pricing">Pricing</Link> for plan details.
         </p>
 
         <h2>How questions are routed</h2>
@@ -104,11 +106,12 @@ export default function DocsPage() {
 
         <h2>Sharing comparisons</h2>
         <p>
-          You can share a question + model selection by copying the URL — e.g.
-          <code>/app?q=Should+I+learn+Rust&amp;models=anthropic/claude-haiku-4-5,openai/gpt-4o-mini</code>.
-          Loading that URL auto-submits the question. Shareable result pages
-          (so the recipient sees your exact answers without re-running them) are
-          on the roadmap.
+          Each comparison gets its own short link (e.g.{" "}
+          <code>/app/c/8kQ2xz</code>), but for now those are tied to the
+          browser session that created them — opening one on another device,
+          or sending it to someone else, won&apos;t reproduce the comparison
+          yet. Shareable result links — a saved snapshot the recipient can
+          open without re-running the models — are coming in V2.
         </p>
 
         <h2>API</h2>
