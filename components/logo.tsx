@@ -11,12 +11,12 @@ type LogoProps = {
   symbolOnly?: boolean
 }
 
-// Each outer node carries a brand-coloured class so the pentagon visually
-// reads as "five model providers around the synthesised core". Colours
-// chosen from each provider's primary brand palette:
-//   anthropic = Claude orange, openai = green/teal, google = Gemini blue,
-//   meta = Meta blue, mistral = Mistral orange. Spokes stay neutral so the
-//   coloured dots are the visual focus.
+// Each outer node carries its own class so the pentagon reads as "five
+// models around the synthesised core". Colours are a distinct spread around
+// the hue wheel (orange / green / blue / amber / violet — see globals.css
+// .aggrai-node-*) chosen so every dot is clearly its own; the old brand-
+// matched set doubled up on orange + blue and muddied the mark. Spokes stay
+// neutral so the coloured dots are the visual focus.
 const MESH = (
   <g className="aggrai-mesh">
     <path className="aggrai-edge" d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" />

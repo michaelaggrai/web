@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus, X, Check, Lock } from "lucide-react"
+import { Plus, X, Check } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ProviderLogo } from "@/components/brand-icons"
 import { useEffect, useMemo, useState } from "react"
@@ -284,17 +284,19 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                       <span className="truncate flex-1">{m.label}</span>
                       <span className="text-[10px] text-white/30 shrink-0">{m.provider}</span>
                       {isLocked ? (
-                        // Premium-class models always show a Premium badge.
-                        // Flagship models locked-for-Free show Pro. Lets a
-                        // Pro user see at a glance which models are still
-                        // locked to them vs which they already get.
+                        // Tier badge with no lock icon. The badge alone tells
+                        // the user which tier a model belongs to — cleaner
+                        // than badge+lock, and it naturally disappears once
+                        // the user upgrades and the model is no longer locked.
+                        // Premium-class → Premium badge; flagship-locked-for-
+                        // Free → Pro badge.
                         m.class === "premium" ? (
-                          <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-amber-300/15 text-amber-200/90 border border-amber-300/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
-                            <Lock className="w-2.5 h-2.5" /> Premium
+                          <span className="inline-flex items-center shrink-0 rounded-full bg-amber-300/15 text-amber-200/90 border border-amber-300/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                            Premium
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-teal-400/15 text-teal-200/90 border border-teal-400/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
-                            <Lock className="w-2.5 h-2.5" /> Pro
+                          <span className="inline-flex items-center shrink-0 rounded-full bg-teal-400/15 text-teal-200/90 border border-teal-400/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                            Pro
                           </span>
                         )
                       ) : isSelected ? (

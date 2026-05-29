@@ -64,13 +64,17 @@
 /* Default node — `currentColor` is the fallback if a node ever ships
    without a brand class. Brand-coloured nodes override below. */
 .aggrai-node { fill: currentColor; }
-/* Each outer dot picks up its provider's brand colour. Going clockwise
-   from the top: Anthropic, OpenAI, Google (Gemini), Meta, Mistral. */
-.aggrai-node-anthropic { fill: #D97757; }
-.aggrai-node-openai    { fill: #10A37F; }
-.aggrai-node-google    { fill: #4285F4; }
-.aggrai-node-meta      { fill: #0467DF; }
-.aggrai-node-mistral   { fill: #FF7000; }
+/* Five distinct outer-dot colours spread around the hue wheel so each node
+   reads as its own. The provider class names are kept for continuity but the
+   palette now prioritises visual distinctness over exact brand match — the
+   old set doubled up (two oranges, two blues) and muddied the mark. Going
+   clockwise from the top: orange, green, blue, amber, violet — none of which
+   collides with the teal core. */
+.aggrai-node-anthropic { fill: #F97316; } /* orange  (top)         */
+.aggrai-node-openai    { fill: #22C55E; } /* green   (upper-right) */
+.aggrai-node-google    { fill: #3B82F6; } /* blue    (lower-right) */
+.aggrai-node-meta      { fill: #FACC15; } /* amber   (lower-left)  */
+.aggrai-node-mistral   { fill: #A855F7; } /* violet  (upper-left)  */
 .aggrai-core { fill: var(--aggrai-teal); transform-origin: 50px 50px; }
 .aggrai-mesh {
   transform-origin: 50px 50px;

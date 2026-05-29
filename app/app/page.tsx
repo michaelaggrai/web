@@ -515,9 +515,9 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
-      <div className="mb-5 flex items-center gap-2">
-        <BarChart3 className="w-3.5 h-3.5 text-teal-300" />
-        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">
+      <div className="mb-5 flex items-center gap-x-2 gap-y-1 flex-wrap">
+        <BarChart3 className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80 whitespace-nowrap">
           Aggr-Score
         </p>
         <span className="text-[10px] text-white/30">judged by Haiku · sub-scores 0–10 · headline 0–100</span>
