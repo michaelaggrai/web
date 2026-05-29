@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus, X, Check } from "lucide-react"
+import { Plus, X, Check, Lock } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ProviderLogo } from "@/components/brand-icons"
 import { useEffect, useMemo, useState } from "react"
@@ -283,25 +283,25 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                       <ProviderLogo provider={m.provider} className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate flex-1">{m.label}</span>
                       <span className="text-[10px] text-white/30 shrink-0">{m.provider}</span>
-                      {isLocked ? (
-                        // Tier badge with no lock icon. The badge alone tells
-                        // the user which tier a model belongs to — cleaner
-                        // than badge+lock, and it naturally disappears once
-                        // the user upgrades and the model is no longer locked.
-                        // Premium-class → Premium badge; flagship-locked-for-
-                        // Free → Pro badge.
-                        m.class === "premium" ? (
-                          <span className="inline-flex items-center shrink-0 rounded-full bg-amber-300/15 text-amber-200/90 border border-amber-300/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
-                            Premium
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center shrink-0 rounded-full bg-teal-400/15 text-teal-200/90 border border-teal-400/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
-                            Pro
-                          </span>
-                        )
-                      ) : isSelected ? (
-                        <Check className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                      {/* Tier tag — shown for EVERY non-basic model regardless
+                          of the current user's tier, so Pro/Premium users
+                          still see at a glance which tier each model belongs
+                          to. A lock icon is added only when the model is
+                          locked for the current tier (e.g. a Free user
+                          viewing a flagship/premium model). Premium-class →
+                          Premium badge; flagship → Pro badge. */}
+                      {m.class === "premium" ? (
+                        <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-amber-300/15 text-amber-200/90 border border-amber-300/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                          {isLocked && <Lock className="w-2.5 h-2.5" />}Premium
+                        </span>
+                      ) : m.class === "flagship" ? (
+                        <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-teal-400/15 text-teal-200/90 border border-teal-400/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                          {isLocked && <Lock className="w-2.5 h-2.5" />}Pro
+                        </span>
                       ) : null}
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                      )}
                     </button>
                   </li>
                 )
