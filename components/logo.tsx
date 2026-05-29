@@ -20,6 +20,11 @@ type LogoProps = {
 const MESH = (
   <g className="aggrai-mesh">
     <path className="aggrai-edge" d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" />
+    {/* Overlay of the same pentagon outline, invisible except while loading,
+        where it animates a bright "comet" of light sweeping clockwise around
+        the perimeter — water flowing from one dot to the next. pathLength=100
+        normalises the dash maths to percentages of the perimeter. */}
+    <path className="aggrai-edge-flow" pathLength={100} d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" />
     <line className="aggrai-spoke" x1="50" y1="50" x2="50" y2="20" />
     <line className="aggrai-spoke" x1="50" y1="50" x2="78" y2="41" />
     <line className="aggrai-spoke" x1="50" y1="50" x2="68" y2="74" />

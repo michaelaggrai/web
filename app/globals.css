@@ -61,6 +61,16 @@
   stroke-linecap: round;
   stroke-dasharray: 4 9;
 }
+/* Perimeter flow overlay. Invisible by default (only the loading spinner
+   lights it up — see .aggrai-icon.is-loading .aggrai-edge-flow). */
+.aggrai-edge-flow {
+  fill: none;
+  stroke: #5eead4;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
 /* Default node — `currentColor` is the fallback if a node ever ships
    without a brand class. Brand-coloured nodes override below. */
 .aggrai-node { fill: currentColor; }
@@ -137,10 +147,11 @@
      synthesising" rather than "broadcasting outward". (Reversed sign on
      stroke-dashoffset vs. the original outward flow.)
    - Core beats.
-   - Outer dots expand then settle back to their original size, fired one
-     after another in clockwise order so a pulse travels around the
-     pentagon. Layered ON TOP of the four animations above — none of them
-     change. */
+   - Water flow: a bright comet sweeps clockwise around the pentagon
+     perimeter (the edges between dots), and each dot swells gently as the
+     flow reaches it — synced so the dot pulse and the comet arrival line
+     up. Reads as water/energy flowing from one dot to the next. Layered ON
+     TOP of the four animations above — none of them change. */
 .aggrai-icon.is-loading {
   animation: aggrai-breathe 2.4s ease-in-out infinite;
   transform-origin: center;
@@ -148,6 +159,16 @@
 .aggrai-icon.is-loading .aggrai-mesh { transform: scale(1); animation: aggrai-rot 5.5s linear infinite; }
 .aggrai-icon.is-loading .aggrai-spoke { animation: aggrai-flow 0.85s linear infinite; }
 .aggrai-icon.is-loading .aggrai-core { animation: aggrai-beat 2.2s ease-in-out infinite; }
+/* Comet of light sweeping clockwise around the perimeter. 18%-of-perimeter
+   bright dash (pathLength=100) travelling one full loop per 1.8s cycle —
+   same cycle as the dot sequence so the flow arrives at each dot as it
+   pulses. The path is drawn clockwise from the top dot, so a negative
+   dashoffset moves the dash in the draw direction (clockwise). */
+.aggrai-icon.is-loading .aggrai-edge-flow {
+  opacity: 1;
+  stroke-dasharray: 18 82;
+  animation: aggrai-edge-flow-anim 1.8s linear infinite;
+}
 /* Clockwise dot sequence. transform-box: fill-box pins each dot's scale
    origin to its own centre so it grows in place (not from the SVG origin),
    composing cleanly with the parent mesh rotation. Delays are cycle/5 apart
@@ -169,13 +190,18 @@
 @keyframes aggrai-flow { to { stroke-dashoffset: 13; } }
 @keyframes aggrai-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(.62); } }
 @keyframes aggrai-rot { to { transform: rotate(360deg); } }
-/* Dot loading sequence: spike out early, settle back to original by 40%,
-   then rest until the next cycle so the staggered delays read as a wave. */
+/* Dot swell: gentle grow then settle back to original by 40%, then rest
+   until the next cycle. Softer than a hard pop so it reads as the flow
+   reaching the dot rather than a blink. */
 @keyframes aggrai-node-seq {
   0%   { transform: scale(1); }
-  18%  { transform: scale(1.9); }
-  40%  { transform: scale(1); }
+  20%  { transform: scale(1.5); }
+  45%  { transform: scale(1); }
   100% { transform: scale(1); }
+}
+/* Comet travels one full perimeter (pathLength=100) per cycle, clockwise. */
+@keyframes aggrai-edge-flow-anim {
+  to { stroke-dashoffset: -100; }
 }
 @keyframes aggrai-breathe {
   0%, 100% { transform: scale(1); }
@@ -195,6 +221,7 @@
   .aggrai-core,
   .aggrai-icon.is-loading,
   .aggrai-icon.is-loading .aggrai-node,
+  .aggrai-icon.is-loading .aggrai-edge-flow,
   .aggrai-icon.is-loading .aggrai-mesh { animation: none; }
 }
 
