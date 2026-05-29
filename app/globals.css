@@ -219,13 +219,22 @@
 
 @media (prefers-reduced-motion: reduce) {
   .aggrai-word, .aggrai-word b, .aggrai-mesh { transition-duration: 0.001ms; }
+  /* Honour Reduce Motion, but DON'T leave the loading state frozen-dead with
+     no feedback. Kill the motion-based animations (rotate, scale-pulse, dash
+     flow, comet sweep) and substitute a gentle opacity pulse on the whole
+     icon — opacity fades are non-vestibular and the accepted reduce-motion
+     loading cue. The comet is hidden so no stray static segment is left. */
   .aggrai-spoke,
   .aggrai-core,
-  .aggrai-icon.is-loading,
   .aggrai-icon.is-loading .aggrai-node,
-  .aggrai-icon.is-loading .aggrai-edge-flow,
   .aggrai-icon.is-loading .aggrai-mesh { animation: none; }
+  .aggrai-icon.is-loading .aggrai-edge-flow { animation: none; opacity: 0; }
+  .aggrai-icon.is-loading { animation: aggrai-fade 1.6s ease-in-out infinite; }
+  /* Per-model loader: drop the scale, keep an opacity-only pulse. */
+  .brand-pulse { animation: brand-pulse-fade 1.4s ease-in-out infinite; }
 }
+@keyframes aggrai-fade { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes brand-pulse-fade { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
 
 /* ============================================================
    Provider brand-pulse for ModelLoader (unchanged).
