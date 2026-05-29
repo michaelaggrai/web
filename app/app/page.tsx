@@ -1621,14 +1621,26 @@ function Home() {
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
                   </div>
                   {/* Factual questions have one right answer, so we skip the
-                      full multi-model comparison. A light witty note explains
-                      why — turns a "why only one answer?" into a feature. */}
-                  {result.type === "direct" && (
-                    <p className="mt-4 flex items-start gap-1.5 border-t border-white/10 pt-3 text-xs text-white/40">
-                      <span aria-hidden="true">⚡</span>
-                      <span>One clear right answer here — no sense waking all the models and burning the energy on a comparison. We saved the electrons for the questions that actually need a debate.</span>
-                    </p>
-                  )}
+                      full multi-model comparison. A prominent, witty callout
+                      explains why — turns "why only one answer?" into a
+                      feature. Rotates a quip deterministically by question so
+                      it varies across questions but is stable on re-render. */}
+                  {result.type === "direct" && (() => {
+                    const quips = [
+                      "We let the other models keep napping and saved the planet a few volts.",
+                      "Convening three AIs to confirm this would be like forming a committee to agree the sky is up.",
+                      "The other models would've just nodded along and still sent you the bill — so we skipped the theatrics.",
+                      "Some answers don't need a second opinion, let alone a third. We saved the compute for questions that actually start arguments.",
+                      "No need to summon the whole AI panel for this one — they'd unanimously agree and charge you for the privilege.",
+                    ];
+                    const quip = quips[[...result.question].reduce((s, c) => s + c.charCodeAt(0), 0) % quips.length];
+                    return (
+                      <div className="mt-5 flex items-start gap-3 rounded-xl border border-teal-300/25 bg-teal-300/[0.08] px-4 py-3.5 text-sm text-teal-50/90">
+                        <span aria-hidden="true" className="text-lg leading-none">⚡</span>
+                        <span><span className="font-semibold text-teal-200">No comparison needed.</span> {quip}</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <>
