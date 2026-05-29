@@ -42,7 +42,7 @@ const PLANS: Plan[] = [
     icon: Zap,
     iconColor: "text-teal-300",
     tagline: "17 advanced models",
-    detail: "Everything in Free plus every flagship model — Claude Opus 4.7, Sonnet 4.6, GPT-4o, GPT-5.4/5.5, Gemini Pro, Grok 4.20, Llama 3.3 70B, Codex, Devstral. Up to 3 models per comparison.",
+    detail: "Everything in Free plus every flagship model — Claude Opus 4.8, Sonnet 4.6, GPT-4o, GPT-5.4/5.5, Gemini Pro, Grok 4.20, Llama 3.3 70B, Codex, Devstral. Up to 3 models per comparison.",
   },
   {
     id: "premium",

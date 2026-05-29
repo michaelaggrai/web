@@ -44,7 +44,7 @@ const tiers: PricingTier[] = [
     features: [
       "17 advanced models",
       "Up to 3 models per comparison",
-      "Opus 4.7, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok…",
+      "Opus 4.8, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok…",
       "Everything in Free",
     ],
     highlighted: true,

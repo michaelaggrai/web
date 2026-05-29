@@ -45,7 +45,7 @@ const PLANS = [
     features: [
       "17 advanced models",
       "Up to 3 models per comparison",
-      "Opus 4.7, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.20…",
+      "Opus 4.8, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.20…",
       "Everything in Free",
     ],
     cta: "Upgrade to Pro",

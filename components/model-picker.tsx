@@ -56,26 +56,32 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
     try { localStorage.setItem(GROUP_BY_PERSIST_KEY, groupBy) } catch { /* ignore */ }
   }, [groupBy])
 
+  // `all` includes deprecated entries so the selected-pill row can still
+  // render labels for legacy URLs (e.g. ?models=anthropic/claude-opus-4.7).
+  // The popover itself (tabs + lists) only offers pickable models — users
+  // can't NEWLY select a retired model.
+  const pickable = useMemo(() => all.filter(m => m.status !== "deprecated"), [all])
+
   // Group models by category once per render. Only categories that have
   // at least one model are shown as tabs — keeps the UI honest if the
   // backend ever returns a slimmed-down catalog.
   const byCategory = useMemo(() => {
     const map = new Map<ModelCategory, ModelEntry[]>()
-    for (const m of all) {
+    for (const m of pickable) {
       const cat = (m.category ?? "fast") as ModelCategory
       ;(map.get(cat) ?? map.set(cat, []).get(cat)!).push(m)
     }
     return map
-  }, [all])
+  }, [pickable])
 
   // Same shape but keyed by provider for the provider grouping.
   const byProvider = useMemo(() => {
     const map = new Map<string, ModelEntry[]>()
-    for (const m of all) {
+    for (const m of pickable) {
       ;(map.get(m.provider) ?? map.set(m.provider, []).get(m.provider)!).push(m)
     }
     return map
-  }, [all])
+  }, [pickable])
 
   const visibleCategories = CATEGORIES.filter(c => byCategory.has(c.id))
   const visibleProviders = PROVIDERS.filter(p => byProvider.has(p.id))

@@ -13,6 +13,14 @@ export type ModelEntry = {
   class: ModelClass
   /** Optional for backwards compat with payloads from older backend builds. */
   category?: ModelCategory
+  /**
+   * Lifecycle: undefined / "active" = visible in pickers + ranked lists.
+   * "deprecated" = hidden from picker UI but the id stays valid so old
+   * URLs, cached comparisons, and result-card labels keep resolving.
+   * Use this to retire a model without a code change rippling through
+   * tier-gating, label lookups, and cache keys.
+   */
+  status?: "active" | "deprecated"
 }
 
 // Display metadata per category — used by ModelPicker tabs.
@@ -70,7 +78,9 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   // explicit deep-think specialists stay Premium.
   { id: "openai/gpt-5.4-pro",                       label: "GPT-5.4 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" },
   { id: "openai/gpt-5.5-pro",                       label: "GPT-5.5 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" },
-  { id: "anthropic/claude-opus-4.7",                label: "Claude Opus 4.7",      provider: "Anthropic", class: "flagship", category: "reasoning" },
+  // Opus 4.8 launched 2026-05-27. Same price as 4.7, pure upgrade.
+  { id: "anthropic/claude-opus-4.8",                label: "Claude Opus 4.8",      provider: "Anthropic", class: "flagship", category: "reasoning" },
+  { id: "anthropic/claude-opus-4.7",                label: "Claude Opus 4.7",      provider: "Anthropic", class: "flagship", category: "reasoning", status: "deprecated" },
   { id: "deepseek/deepseek-v4-pro",                 label: "DeepSeek v4 Pro",      provider: "DeepSeek",  class: "premium",  category: "reasoning" },
   { id: "qwen/qwen3-max-thinking",                  label: "Qwen3 Max Thinking",   provider: "Qwen",      class: "premium",  category: "reasoning" },
 
@@ -87,8 +97,9 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "google/gemini-3-flash-preview",            label: "Gemini 3 Flash",       provider: "Google",    class: "flagship", category: "multimodal" },
 
   // Frontier — only Grok Multi-Agent (experimental agentic mode) stays
-  // Premium. Opus 4.7 Fast, Grok 4.20 base, and Llama 3.3 70B are Pro.
-  { id: "anthropic/claude-opus-4.7-fast",           label: "Claude Opus 4.7 Fast", provider: "Anthropic", class: "flagship", category: "frontier" },
+  // Premium. Opus 4.x Fast, Grok 4.20 base, and Llama 3.3 70B are Pro.
+  { id: "anthropic/claude-opus-4.8-fast",           label: "Claude Opus 4.8 Fast", provider: "Anthropic", class: "flagship", category: "frontier" },
+  { id: "anthropic/claude-opus-4.7-fast",           label: "Claude Opus 4.7 Fast", provider: "Anthropic", class: "flagship", category: "frontier", status: "deprecated" },
   { id: "x-ai/grok-4.20",                           label: "Grok 4.20",            provider: "xAI",       class: "flagship", category: "frontier" },
   { id: "x-ai/grok-4.20-multi-agent",               label: "Grok 4.20 Multi-Agent",provider: "xAI",       class: "premium",  category: "frontier" },
   { id: "meta-llama/llama-3.3-70b-instruct",        label: "Llama 3.3 70B",        provider: "Meta",      class: "flagship", category: "frontier" },
@@ -109,7 +120,7 @@ export const TIER_DEFAULTS: Record<Tier, string[]> = {
   free:    ["anthropic/claude-haiku-4-5", "openai/gpt-4o-mini", "google/gemini-2.5-flash"],
   pro:     ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-2.5-pro"],
   premium: ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-2.5-pro",
-            "anthropic/claude-opus-4.7", "x-ai/grok-4.20"],
+            "anthropic/claude-opus-4.8", "x-ai/grok-4.20"],
 }
 
 export function maxModelsForTier(tier: Tier): number {
@@ -135,4 +146,11 @@ export function parseModelsParam(raw: string | null): Set<string> | null {
   if (!raw) return null
   const ids = raw.split(",").map(s => s.trim()).filter(Boolean)
   return ids.length > 0 ? new Set(ids) : null
+}
+
+// Strip retired models from anything user-facing (picker, /models page).
+// Keep them in the underlying catalog for label lookups + cache-hit results,
+// but never offer them as a NEW selection.
+export function pickableModels(models: ModelEntry[]): ModelEntry[] {
+  return models.filter(m => m.status !== "deprecated")
 }

@@ -41,13 +41,19 @@ const TIER_FILTER_KEY = "aggrai_catalog_tier_filter_v1";
 
 export default function ModelsPage() {
   // Try live catalog first; fall back to the static one so the page never
-  // shows an empty state if the backend is down.
-  const [models, setModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
+  // shows an empty state if the backend is down. Hide retired models — this
+  // page is the "what models are currently supported" browse view, not a
+  // historical archive.
+  const [models, setModels] = useState<ModelEntry[]>(
+    FALLBACK_MODELS.filter(m => m.status !== "deprecated"),
+  );
   useEffect(() => {
     fetch("/api/models")
       .then(r => r.json())
       .then((d: { models?: ModelEntry[] }) => {
-        if (Array.isArray(d.models) && d.models.length > 0) setModels(d.models);
+        if (Array.isArray(d.models) && d.models.length > 0) {
+          setModels(d.models.filter(m => m.status !== "deprecated"));
+        }
       })
       .catch(() => {});
   }, []);
