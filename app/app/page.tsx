@@ -489,12 +489,11 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
   );
 }
 
-// Single radar chart overlaying every scored model so the reader sees the
-// shape-difference at a glance (where is each model strongest / weakest
-// across Accuracy / Completeness / Calibration / Clarity / Insight). The
-// winner's overall 0-100 sits in the middle of the radar — that's the
-// punchline number the reader is looking for. The legend below shows every
-// model's overall ranked, colour-keyed to the polygons.
+// One radar per scored model, stacked top-down in ranked order. Each radar
+// plots the 5 sub-metrics (Accuracy / Completeness / Calibration / Clarity /
+// Insight) on 0-10 axes, with that model's overall 0-100 anchored in the
+// middle as the punchline number. Per-model lets readers compare shapes
+// side-by-side without polygons fighting for the same space.
 function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
   const scored = answers.filter((a): a is Answer & { scores: Scores } => !!a.scores);
   if (scored.length === 0) return null;
@@ -502,11 +501,10 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
   const enriched = scored.map(a => ({ ...a, overall: overallScore(a.scores) }));
   const maxOverall = Math.max(...enriched.map(a => a.overall));
   const ranked = [...enriched].sort((a, b) => b.overall - a.overall);
-  const winner = ranked[0];
 
-  // Palette in rank order — winner takes brand teal, the rest cycle through
-  // visually distinct hues that read on the dark-navy background. Capped at
-  // 5 because Premium tier maxes out at 5 models in one comparison.
+  // Rank-based palette so colour tracks position. Winner = brand teal,
+  // ranks 2-5 cycle through blue / purple / amber / pink. Capped at 5
+  // because Premium tops out at 5 models per comparison.
   const PALETTE = [
     "#5eead4", // teal-300 — winner
     "#60a5fa", // blue-400
@@ -514,24 +512,6 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
     "#fbbf24", // amber-400
     "#f472b6", // pink-400
   ];
-  const colorByModel = new Map(ranked.map((a, i) => [a.model, PALETTE[i % PALETTE.length]]));
-
-  // Recharts wants one row per axis with a column per series. Model ids
-  // (e.g. "anthropic/claude-haiku-4-5") work fine as dataKeys — the dot is
-  // only a problem if a library tries to treat keys as object paths.
-  //
-  // Backend rubric scores each sub-metric 0-5 and the frontend doubles it
-  // for the displayed 0-10 scale (Aggr-Score branding). The headline 0-100
-  // shown in the centre of the radar isn't doubled — it's already on its
-  // own composite scale via overallScore().
-  const radarData = SCORE_KEYS.map(({ key, label }) => {
-    const row: Record<string, number | string> = { dim: label };
-    for (const a of enriched) {
-      const raw = typeof a.scores[key] === "number" ? a.scores[key] : 0;
-      row[a.model] = raw * 2;
-    }
-    return row;
-  });
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
@@ -543,75 +523,81 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
         <span className="text-[10px] text-white/30">judged by Haiku · sub-scores 0–10 · headline 0–100</span>
       </div>
 
-      {/* Radar — wrapped in position:relative so the winner's overall score
-          can be absolutely centred on top. pointer-events-none on the
-          overlay so future Tooltip-on-hover work still sees mouse events. */}
-      <div className="relative">
-        <ResponsiveContainer width="100%" height={280}>
-          <RadarChart data={radarData} outerRadius="72%">
-            <PolarGrid stroke="rgba(255,255,255,0.08)" />
-            <PolarAngleAxis
-              dataKey="dim"
-              tick={{ fontSize: 10, fill: "rgba(255,255,255,0.55)" }}
-            />
-            <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-            {/* Render in rank order so the winner's polygon paints last
-                (on top) and stays readable when shapes overlap. */}
-            {ranked.map(a => {
-              const c = colorByModel.get(a.model)!;
-              return (
-                <Radar
-                  key={a.model}
-                  name={modelLabel(a.model)}
-                  dataKey={a.model}
-                  stroke={c}
-                  fill={c}
-                  fillOpacity={0.15}
-                  strokeWidth={2}
-                />
-              );
-            })}
-          </RadarChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center">
-            <div className="text-3xl font-semibold tabular-nums text-teal-300 leading-none">
-              {winner.overall}
-            </div>
-            <div className="text-[10px] text-white/40 mt-0.5">/100</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Legend / rank — colour swatch matches the polygon, score on the
-          right matches the centre number for the winner. The Limited badge
-          carries forward so users still see when an accuracy cap has been
-          applied. */}
-      <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
-        {ranked.map(a => {
-          const c = colorByModel.get(a.model)!;
+      <div className="space-y-6">
+        {ranked.map((a, i) => {
+          const color = PALETTE[i % PALETTE.length];
           const isWinner = a.overall === maxOverall;
+          // Backend stores 0-5; UI surfaces 0-10. Doubling at the data
+          // boundary keeps overallScore() unchanged + means no cache
+          // invalidation for previously-judged comparisons.
+          const data = SCORE_KEYS.map(({ key, label }) => ({
+            dim: label,
+            value: (typeof a.scores[key] === "number" ? a.scores[key] : 0) * 2,
+          }));
           return (
-            <div key={a.model} className="flex items-center gap-2 text-xs min-w-0">
-              <span
-                className="w-2.5 h-2.5 rounded-sm shrink-0"
-                style={{ backgroundColor: c }}
-                aria-hidden="true"
-              />
-              <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
-              <span className="text-white/85 flex-1 truncate">{modelLabel(a.model)}</span>
-              {isAccuracyCapped(a.scores) && (
+            <div key={a.model} className="space-y-2">
+              {/* Header: colour swatch ties this header to the polygon
+                  below; Limited badge surfaces the accuracy fatal-flaw
+                  cap when it has been applied; Winner tag marks the
+                  top score. */}
+              <div className="flex items-center gap-2 text-xs min-w-0">
                 <span
-                  title="Score limited — contains factual errors. Accuracy ≤ 1.0 caps the overall quality at 40."
-                  className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
-                >
-                  Limited
-                </span>
-              )}
-              <span className={`tabular-nums font-semibold shrink-0 ${isWinner ? "text-teal-300" : "text-white/75"}`}>
-                {a.overall}
-              </span>
-              <span className="text-[10px] text-white/35 shrink-0">/100</span>
+                  className="w-2.5 h-2.5 rounded-sm shrink-0"
+                  style={{ backgroundColor: color }}
+                  aria-hidden="true"
+                />
+                <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-medium text-white/90 flex-1 truncate">{modelLabel(a.model)}</span>
+                {isAccuracyCapped(a.scores) && (
+                  <span
+                    title="Score limited — contains factual errors. Accuracy ≤ 1.0 caps the overall quality at 40."
+                    className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
+                  >
+                    Limited
+                  </span>
+                )}
+                {isWinner && (
+                  <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider text-teal-300">
+                    Winner
+                  </span>
+                )}
+              </div>
+
+              {/* Radar — position:relative so the overall 0-100 can be
+                  absolutely centred on top. pointer-events-none on the
+                  overlay leaves any future Tooltip hook free to receive
+                  mouse events on the polygon. */}
+              <div className="relative">
+                <ResponsiveContainer width="100%" height={200}>
+                  <RadarChart data={data} outerRadius="68%">
+                    <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                    <PolarAngleAxis
+                      dataKey="dim"
+                      tick={{ fontSize: 10, fill: "rgba(255,255,255,0.55)" }}
+                    />
+                    <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
+                    <Radar
+                      name={modelLabel(a.model)}
+                      dataKey="value"
+                      stroke={color}
+                      fill={color}
+                      fillOpacity={0.2}
+                      strokeWidth={2}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center">
+                    <div
+                      className="text-2xl font-semibold tabular-nums leading-none"
+                      style={{ color }}
+                    >
+                      {a.overall}
+                    </div>
+                    <div className="text-[10px] text-white/40 mt-0.5">/100</div>
+                  </div>
+                </div>
+              </div>
             </div>
           );
         })}
