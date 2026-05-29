@@ -6,7 +6,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, MessageCircle, Square } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, MessageCircle, Square, Plus, Minus } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -29,6 +29,10 @@ type Scores = {
   calibration:  number;
   clarity:      number;
   insight:      number;
+  /** |s5: per-model qualitative critique behind the radar's expand toggle.
+   *  Short bullet phrases. Absent/empty on older cached responses. */
+  strengths?:   string[];
+  weaknesses?:  string[];
 };
 
 type Answer = {
@@ -275,7 +279,11 @@ function ModelLoadingBlock({ modelId }: { modelId: string }) {
 // AGG-7 v2: Accuracy first (it's the most consequential dimension),
 // Insight last (lowest weight, the "nice to have"). Order here is
 // also the order they render in the 5-segment breakdown bar.
-const SCORE_KEYS: { key: keyof Scores; label: string }[] = [
+// The five numeric rubric dimensions (excludes the optional strengths/
+// weaknesses string arrays on Scores, so indexing a score by one of these
+// always yields a number).
+type ScoreDimension = "accuracy" | "completeness" | "calibration" | "clarity" | "insight";
+const SCORE_KEYS: { key: ScoreDimension; label: string }[] = [
   { key: "accuracy",     label: "Accuracy" },
   { key: "completeness", label: "Completeness" },
   { key: "calibration",  label: "Calibration" },
@@ -399,7 +407,7 @@ function WinnerBlock({
   // its tied-but-arbitrarily-first peer claimed every credit. Tie-break
   // on overall score now: when sub-scores match, the model with the
   // higher composite wins the highlight.
-  const topByOverallAndScore = (key: keyof Scores) =>
+  const topByOverallAndScore = (key: ScoreDimension) =>
     ranked.reduce((p, c) => {
       if (c.scores[key] > p.scores[key]) return c;
       if (c.scores[key] === p.scores[key] && c.overall > p.overall) return c;
@@ -495,6 +503,15 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
 // middle as the punchline number. Per-model lets readers compare shapes
 // side-by-side without polygons fighting for the same space.
 function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
+  // Which models have their strengths/weaknesses detail expanded. Hook must
+  // precede the early return below to satisfy the rules of hooks.
+  const [openDetail, setOpenDetail] = useState<Set<string>>(new Set());
+  const toggleDetail = (model: string) =>
+    setOpenDetail(prev => {
+      const next = new Set(prev);
+      next.has(model) ? next.delete(model) : next.add(model);
+      return next;
+    });
   const scored = answers.filter((a): a is Answer & { scores: Scores } => !!a.scores);
   if (scored.length === 0) return null;
 
@@ -584,6 +601,20 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                     Winner
                   </span>
                 )}
+                {/* Little +/− to reveal this model's strengths/weaknesses.
+                    Only shown when the summariser actually produced critique
+                    bullets (older cached |s4 responses have none). */}
+                {((a.scores.strengths?.length ?? 0) + (a.scores.weaknesses?.length ?? 0)) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleDetail(a.model)}
+                    aria-expanded={openDetail.has(a.model)}
+                    aria-label={openDetail.has(a.model) ? `Hide ${modelLabel(a.model)} detail` : `Show ${modelLabel(a.model)} detail`}
+                    className="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-md border border-white/15 bg-white/5 text-white/60 hover:text-white hover:border-white/30 transition-colors"
+                  >
+                    {openDetail.has(a.model) ? <Minus className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                  </button>
+                )}
               </div>
 
               {/* Radar — position:relative so the overall 0-100 can be
@@ -615,6 +646,39 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                   </div>
                 </div>
               </div>
+
+              {/* Expanded detail — the answer's pros and cons, judged by the
+                  summariser. Strengths in teal, weaknesses in amber. */}
+              {openDetail.has(a.model) && (
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 space-y-2.5 text-xs">
+                  {(a.scores.strengths?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1.5">Strengths</p>
+                      <ul className="space-y-1">
+                        {a.scores.strengths!.map((s, j) => (
+                          <li key={j} className="flex gap-1.5 text-white/70 leading-snug">
+                            <Plus className="w-3 h-3 mt-0.5 shrink-0 text-teal-300/80" aria-hidden="true" />
+                            <span>{s}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {(a.scores.weaknesses?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-300/80 mb-1.5">Weaknesses</p>
+                      <ul className="space-y-1">
+                        {a.scores.weaknesses!.map((w, j) => (
+                          <li key={j} className="flex gap-1.5 text-white/70 leading-snug">
+                            <Minus className="w-3 h-3 mt-0.5 shrink-0 text-amber-300/80" aria-hidden="true" />
+                            <span>{w}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
