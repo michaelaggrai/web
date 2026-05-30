@@ -584,18 +584,28 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
           // just the polygon shape. A winning dimension is drawn in the
           // model's colour + bold. payload.value is the dim string.
           const renderAxisTick = (props: {
-            payload: { value: string }; x: number; y: number;
+            payload: { value: string }; x: number; y: number; cy: number;
             textAnchor: "start" | "middle" | "end" | "inherit";
           }) => {
-            const { payload, x, y, textAnchor } = props;
+            const { payload, x, y, cy, textAnchor } = props;
             const v = valueByDim[payload.value];
             const isWin = winLabels.has(payload.value);
+            // Two-line label: dimension name, then its 0-10 score one line
+            // below. At the top vertex "below" points inward, so the score
+            // would land on the polygon's top point. textAnchor "middle" +
+            // sitting above the centre uniquely identifies that top label
+            // (the side labels are start/end), so lift it one line up into
+            // the headroom above — the score then occupies the (already
+            // clear) spot the name held, and the name moves further out.
+            const topVertex = textAnchor === "middle" && y < cy;
+            const nameY = topVertex ? y - 11 : y;
+            const scoreY = nameY + 11;
             return (
               <g>
-                <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fontSize={10} fontWeight={isWin ? 700 : 400} fill={isWin ? color : "rgba(255,255,255,0.55)"}>
+                <text x={x} y={nameY} textAnchor={textAnchor} dominantBaseline="central" fontSize={10} fontWeight={isWin ? 700 : 400} fill={isWin ? color : "rgba(255,255,255,0.55)"}>
                   {payload.value}
                 </text>
-                <text x={x} y={y + 11} textAnchor={textAnchor} dominantBaseline="central" fontSize={9} fontWeight={isWin ? 700 : 400} fill={isWin ? color : "rgba(255,255,255,0.38)"}>
+                <text x={x} y={scoreY} textAnchor={textAnchor} dominantBaseline="central" fontSize={9} fontWeight={isWin ? 700 : 400} fill={isWin ? color : "rgba(255,255,255,0.38)"}>
                   {typeof v === "number" ? v.toFixed(1) : "—"}
                 </text>
               </g>
