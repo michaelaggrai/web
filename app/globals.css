@@ -66,8 +66,11 @@
   stroke-linecap: round;
   stroke-dasharray: 4 9;
 }
-/* Perimeter flow overlay. Invisible by default (only the loading spinner
-   lights it up — see .aggrai-icon.is-loading .aggrai-edge-flow). */
+/* Perimeter flow overlay. Invisible by default (opacity:0); the loading
+   spinner, the hover-collapse and the page-load reveal each light it up as
+   a comet sweeping the perimeter. The drop-shadow gives that comet a soft
+   glow so it reads as light rather than a hard line — it only shows when
+   the comet is visible, so it costs nothing at rest. */
 .aggrai-edge-flow {
   fill: none;
   stroke: #5eead4;
@@ -75,22 +78,25 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0;
+  filter: drop-shadow(0 0 2.5px #5eead4);
 }
 /* Default node — `currentColor` is the fallback if a node ever ships
    without a brand class. Brand-coloured nodes override below. */
 .aggrai-node { fill: currentColor; }
-/* Outer-dot palette: a cool jewel-tone sweep anchored to the brand teal.
-   The trick for "uniform yet distinct" is to hold saturation + lightness
-   roughly constant (all Tailwind ~400 level) and vary ONLY the hue, within
-   one temperature family. The earlier set mixed warm (orange/amber) with
-   cool (blue/violet) at clashing brightnesses, which read as chaotic.
-   Clockwise from the top: green → cyan → blue → indigo → violet — one
-   continuous cool ramp that sits naturally around the teal core. */
-.aggrai-node-anthropic { fill: #4FE88A; } /* green   (top)         */
-.aggrai-node-openai    { fill: #2EE6FF; } /* cyan    (upper-right) */
-.aggrai-node-google    { fill: #4DA6FF; } /* blue    (lower-right) */
-.aggrai-node-meta      { fill: #8A86FF; } /* indigo  (lower-left)  */
-.aggrai-node-mistral   { fill: #C77DFF; } /* violet  (upper-left)  */
+/* Outer-dot palette: one tight cool teal→indigo ramp anchored to the brand
+   teal. Saturation + lightness are held roughly constant and ONLY the hue
+   varies, within a single temperature family — so the five dots read as one
+   ownable brand object (a deliberate gradient sweep) rather than a chaotic
+   rainbow, and they survive all the way down to 16px favicon size where a
+   wider hue spread just muddies. The per-provider colour-coding still plays
+   as a *moment* in the page-load reveal (see .aggrai-logo.is-assembling),
+   where each dot pops in with its old hue and settles into the ramp.
+   Clockwise from the top: teal-green → cyan → sky → blue → indigo. */
+.aggrai-node-anthropic { fill: #2DD4BF; } /* teal-green (top)         */
+.aggrai-node-openai    { fill: #22D3EE; } /* cyan      (upper-right)  */
+.aggrai-node-google    { fill: #38BDF8; } /* sky       (lower-right)  */
+.aggrai-node-meta      { fill: #60A5FA; } /* blue      (lower-left)   */
+.aggrai-node-mistral   { fill: #818CF8; } /* indigo    (upper-left)   */
 .aggrai-core { fill: var(--aggrai-teal); transform-origin: 50px 50px; }
 .aggrai-mesh {
   transform-origin: 50px 50px;
@@ -134,15 +140,79 @@
    visually — that's what avoids the flicker loop.
    - Wordmark "slurps" into the icon (letters travel left, rightmost first)
    - Mesh pulses outward then returns to rest size (no shrinking)
-   - Spoke flow + core beat play once, not on a loop */
+   - Spoke flow + core beat play once, not on a loop
+   - Glowing comet does one graceful pass round the perimeter (same light
+     the loader uses) */
 .aggrai-logo.is-collapsed .aggrai-word { max-width: 0; opacity: 0; }
 .aggrai-logo.is-collapsed .aggrai-word b { transform: translateX(-0.8em) scale(.3); opacity: 0; }
 .aggrai-logo.is-collapsed .aggrai-mesh { animation: aggrai-pulse 0.9s cubic-bezier(.4, 0, .2, 1) 1; }
 .aggrai-logo.is-collapsed .aggrai-spoke { animation: aggrai-flow 0.85s linear 1; }
 .aggrai-logo.is-collapsed .aggrai-core { animation: aggrai-beat 1.2s ease-in-out 1; }
+.aggrai-logo.is-collapsed .aggrai-edge-flow {
+  opacity: 1;
+  stroke-dasharray: 18 82;
+  animation: aggrai-comet-once 0.9s linear 1;
+}
+@keyframes aggrai-comet-once {
+  0%   { stroke-dashoffset: 0;    opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { stroke-dashoffset: -100; opacity: 0; }
+}
 /* On mouse-leave the wordmark un-collapses AND the icon does its own
    pulse-back-to-rest so the exit feels as alive as the entry. */
 .aggrai-logo.is-expanding .aggrai-mesh { animation: aggrai-pulse 0.9s cubic-bezier(.4, 0, .2, 1) 1; }
+
+/* ============================================================
+   AGGRAI LOGO — page-load "assemble" reveal.
+   `is-assembling` is added on mount and removed ~2.6s later (logo.tsx)
+   so the resting logo never depends on the animation. Build order:
+   nodes pop in (in their OLD per-provider hue) → spokes fan out → edge
+   traces → glowing comet does one pass → core lands → wordmark rises →
+   each node settles from its old rainbow hue into the new ramp hue. That
+   settle is how the per-model colour-coding survives as a moment.
+   ============================================================ */
+.aggrai-logo.is-assembling .aggrai-mesh { animation: aggrai-grow 1.5s cubic-bezier(.5, 0, .2, 1) both; }
+@keyframes aggrai-grow { 0% { transform: scale(.9); } 100% { transform: scale(1.32); } }
+
+.aggrai-logo.is-assembling .aggrai-node { opacity: 0; transform: scale(0); }
+.aggrai-logo.is-assembling .aggrai-node-anthropic { animation: aggrai-pop .5s cubic-bezier(.34, 1.56, .6, 1) .05s both, aggrai-settle-anthropic .7s ease 1.15s both; transform-origin: 50px 20px; }
+.aggrai-logo.is-assembling .aggrai-node-openai    { animation: aggrai-pop .5s cubic-bezier(.34, 1.56, .6, 1) .13s both, aggrai-settle-openai    .7s ease 1.15s both; transform-origin: 78px 41px; }
+.aggrai-logo.is-assembling .aggrai-node-google    { animation: aggrai-pop .5s cubic-bezier(.34, 1.56, .6, 1) .21s both, aggrai-settle-google    .7s ease 1.15s both; transform-origin: 68px 74px; }
+.aggrai-logo.is-assembling .aggrai-node-meta      { animation: aggrai-pop .5s cubic-bezier(.34, 1.56, .6, 1) .29s both, aggrai-settle-meta      .7s ease 1.15s both; transform-origin: 32px 74px; }
+.aggrai-logo.is-assembling .aggrai-node-mistral   { animation: aggrai-pop .5s cubic-bezier(.34, 1.56, .6, 1) .37s both, aggrai-settle-mistral   .7s ease 1.15s both; transform-origin: 22px 41px; }
+@keyframes aggrai-pop { 0% { opacity: 0; transform: scale(0); } 60% { opacity: 1; transform: scale(1.28); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes aggrai-settle-anthropic { from { fill: #4FE88A; } to { fill: #2DD4BF; } }
+@keyframes aggrai-settle-openai    { from { fill: #2EE6FF; } to { fill: #22D3EE; } }
+@keyframes aggrai-settle-google    { from { fill: #4DA6FF; } to { fill: #38BDF8; } }
+@keyframes aggrai-settle-meta      { from { fill: #8A86FF; } to { fill: #60A5FA; } }
+@keyframes aggrai-settle-mistral   { from { fill: #C77DFF; } to { fill: #818CF8; } }
+
+.aggrai-logo.is-assembling .aggrai-spoke { opacity: 0; animation: aggrai-spoke-in .55s ease both; }
+.aggrai-logo.is-assembling .aggrai-spoke:nth-of-type(1) { animation-delay: .16s; }
+.aggrai-logo.is-assembling .aggrai-spoke:nth-of-type(2) { animation-delay: .24s; }
+.aggrai-logo.is-assembling .aggrai-spoke:nth-of-type(3) { animation-delay: .32s; }
+.aggrai-logo.is-assembling .aggrai-spoke:nth-of-type(4) { animation-delay: .40s; }
+.aggrai-logo.is-assembling .aggrai-spoke:nth-of-type(5) { animation-delay: .48s; }
+@keyframes aggrai-spoke-in { 0% { opacity: 0; stroke-dashoffset: 13; } 100% { opacity: 1; stroke-dashoffset: 0; } }
+
+.aggrai-logo.is-assembling .aggrai-edge { opacity: 0; animation: aggrai-edge-in .8s ease .5s both; }
+@keyframes aggrai-edge-in { to { opacity: .45; } }
+
+.aggrai-logo.is-assembling .aggrai-edge-flow { opacity: 0; stroke-dasharray: 18 82; animation: aggrai-comet-in 1.5s linear .45s both; }
+@keyframes aggrai-comet-in { 0% { stroke-dashoffset: 0; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { stroke-dashoffset: -100; opacity: 0; } }
+
+.aggrai-logo.is-assembling .aggrai-core { opacity: 0; transform: scale(0); animation: aggrai-core-in .6s cubic-bezier(.34, 1.7, .5, 1) .82s both; }
+@keyframes aggrai-core-in { 0% { opacity: 0; transform: scale(0); } 60% { opacity: 1; transform: scale(1.18); } 100% { opacity: 1; transform: scale(1); } }
+
+.aggrai-logo.is-assembling .aggrai-word b { opacity: 0; transform: translateY(.2em); animation: aggrai-rise .55s cubic-bezier(.3, 0, .2, 1) both; }
+.aggrai-logo.is-assembling .aggrai-word b:nth-child(1) { animation-delay: 1.00s; }
+.aggrai-logo.is-assembling .aggrai-word b:nth-child(2) { animation-delay: 1.06s; }
+.aggrai-logo.is-assembling .aggrai-word b:nth-child(3) { animation-delay: 1.12s; }
+.aggrai-logo.is-assembling .aggrai-word b:nth-child(4) { animation-delay: 1.18s; }
+.aggrai-logo.is-assembling .aggrai-word b:nth-child(5) { animation-delay: 1.24s; }
+.aggrai-logo.is-assembling .aggrai-word b:nth-child(6) { animation-delay: 1.30s; }
+@keyframes aggrai-rise { to { opacity: 1; transform: translateY(0); } }
 
 /* Loading spinner — apply .is-loading to a stand-alone .aggrai-icon.
    Layered animation:
@@ -237,6 +307,14 @@
   .aggrai-icon.is-loading { animation: aggrai-fade 1.6s ease-in-out infinite; }
   /* Per-model loader: drop the scale, keep an opacity-only pulse. */
   .brand-pulse { animation: brand-pulse-fade 1.4s ease-in-out infinite; }
+  /* Page-load reveal: show the finished logo immediately, no build, no comet. */
+  .aggrai-logo.is-assembling .aggrai-node,
+  .aggrai-logo.is-assembling .aggrai-spoke,
+  .aggrai-logo.is-assembling .aggrai-edge,
+  .aggrai-logo.is-assembling .aggrai-core,
+  .aggrai-logo.is-assembling .aggrai-word b { opacity: 1; transform: none; animation: none; }
+  .aggrai-logo.is-assembling .aggrai-edge { opacity: 0.45; }
+  .aggrai-logo.is-assembling .aggrai-edge-flow { opacity: 0; animation: none; }
 }
 @keyframes aggrai-fade { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 @keyframes brand-pulse-fade { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }

@@ -1,29 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <!-- Rounded navy background so the icon reads on a light browser
-       bookmark bar / tab strip and looks intentional on iOS home
-       screens. Also matches the dark in-app theme. -->
-  <rect width="100" height="100" rx="20" fill="#16224A"/>
-  <!-- Pentagon edge -->
-  <path d="M50 20 L78 41 L68 74 L32 74 L22 41 Z"
-        fill="none" stroke="#ffffff" stroke-width="2.5" stroke-opacity="0.55"
-        stroke-linejoin="round"/>
-  <!-- Dashed spokes from core to each node -->
-  <g stroke="#ffffff" stroke-width="3" stroke-opacity="0.6"
-     stroke-linecap="round" stroke-dasharray="4 9">
-    <line x1="50" y1="50" x2="50" y2="20"/>
-    <line x1="50" y1="50" x2="78" y2="41"/>
-    <line x1="50" y1="50" x2="68" y2="74"/>
-    <line x1="50" y1="50" x2="32" y2="74"/>
-    <line x1="50" y1="50" x2="22" y2="41"/>
+  <path d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" fill="none" stroke="#8792AD" stroke-width="2.4" stroke-linejoin="round" opacity="0.30"></path>
+  <g stroke="#8792AD" stroke-width="3.2" stroke-linecap="round" opacity="0.55">
+    <line x1="50" y1="50" x2="50" y2="20"></line>
+    <line x1="50" y1="50" x2="78" y2="41"></line>
+    <line x1="50" y1="50" x2="68" y2="74"></line>
+    <line x1="50" y1="50" x2="32" y2="74"></line>
+    <line x1="50" y1="50" x2="22" y2="41"></line>
   </g>
-  <!-- Brand-coloured nodes (clockwise from top): Anthropic, OpenAI,
-       Google/Gemini, Meta, Mistral. Bumped to r=5 (vs 4 in the in-app
-       Logo) so the dots stay legible at 16×16. -->
-  <circle cx="50" cy="20" r="5" fill="#D97757"/>
-  <circle cx="78" cy="41" r="5" fill="#10A37F"/>
-  <circle cx="68" cy="74" r="5" fill="#4285F4"/>
-  <circle cx="32" cy="74" r="5" fill="#0467DF"/>
-  <circle cx="22" cy="41" r="5" fill="#FF7000"/>
-  <!-- Teal synthesised core -->
-  <circle cx="50" cy="50" r="8" fill="#14B8A6"/>
+  <g>
+    <circle cx="50" cy="20" r="6.5" fill="#2DD4BF"></circle>
+    <circle cx="78" cy="41" r="6.5" fill="#22D3EE"></circle>
+    <circle cx="68" cy="74" r="6.5" fill="#38BDF8"></circle>
+    <circle cx="32" cy="74" r="6.5" fill="#60A5FA"></circle>
+    <circle cx="22" cy="41" r="6.5" fill="#818CF8"></circle>
+  </g>
+  <circle cx="50" cy="50" r="9" fill="#14B8A6"></circle>
 </svg>

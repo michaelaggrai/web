@@ -1,6 +1,6 @@
 "use client"
 
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react"
 
 type LogoProps = {
   height?: number
@@ -12,18 +12,22 @@ type LogoProps = {
 }
 
 // Each outer node carries its own class so the pentagon reads as "five
-// models around the synthesised core". Colours are a cool jewel-tone ramp
-// anchored to the brand teal (green → cyan → blue → indigo → violet — see
-// globals.css .aggrai-node-*): constant saturation/lightness, hue varies
-// within one cool family, so the dots stay distinct yet harmonise instead
-// of looking like a chaotic rainbow. Spokes stay neutral so the dots lead.
+// models around the synthesised core". Colours are a cool teal→indigo
+// ramp anchored to the brand teal (see globals.css .aggrai-node-*):
+// constant saturation/lightness, hue varies within one tight cool family,
+// so the dots read as a single ownable brand object and survive down to
+// favicon size. The per-provider rainbow lives on as a *moment*: during
+// the page-load reveal each node pops in with its old hue and settles into
+// the ramp (see .aggrai-logo.is-assembling in globals.css). Spokes stay
+// neutral so the dots lead.
 const MESH = (
   <g className="aggrai-mesh">
     <path className="aggrai-edge" d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" />
-    {/* Overlay of the same pentagon outline, invisible except while loading,
-        where it animates a bright "comet" of light sweeping clockwise around
-        the perimeter — water flowing from one dot to the next. pathLength=100
-        normalises the dash maths to percentages of the perimeter. */}
+    {/* Overlay of the same pentagon outline, invisible except while loading
+        / collapsing / assembling, where it animates a bright "comet" of
+        light sweeping clockwise around the perimeter — water flowing from
+        one dot to the next. pathLength=100 normalises the dash maths to
+        percentages of the perimeter. */}
     <path className="aggrai-edge-flow" pathLength={100} d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" />
     <line className="aggrai-spoke" x1="50" y1="50" x2="50" y2="20" />
     <line className="aggrai-spoke" x1="50" y1="50" x2="78" y2="41" />
@@ -58,14 +62,10 @@ export function Logo({
   // outward-then-back as it un-collapses. Cleared after the animation
   // window completes so subsequent hovers play the pulse fresh.
   const [expanding, setExpanding] = useState(false)
+  // Plays the one-shot "assemble" reveal on mount, then drops the class
+  // ~2.6s later so the resting logo never depends on the animation running.
+  const [assembling, setAssembling] = useState(true)
   const expandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Originally gated mouseenter/leave on (hover: hover) under the
-  // theory that the touch tap animation was competing with the link
-  // click. Real root cause turned out to be elsewhere (same-page Link
-  // no-ops on /app, signed-in routing). Animation + click coexist
-  // fine now that those are fixed — keep mouseenter/leave enabled on
-  // every device so touch users get the same delightful pulse as
-  // desktop users do.
 
   // Measure the wrapper's natural width once after mount, then pin it.
   // We deliberately measure BEFORE the collapsed state ever applies so
@@ -75,6 +75,15 @@ export function Logo({
       setLockedWidth(wrapperRef.current.offsetWidth)
     }
   }, [symbolOnly, height])
+
+  // Remove the assemble class after the reveal completes so the resting
+  // logo is never dependent on the animation having run (e.g. if the tab
+  // was backgrounded). symbol-only spinners don't get the reveal.
+  useEffect(() => {
+    if (symbolOnly) return
+    const t = setTimeout(() => setAssembling(false), 2600)
+    return () => clearTimeout(t)
+  }, [symbolOnly])
 
   if (symbolOnly) {
     // Spinning state animates the mesh at scale(1) — fits in 0 0 100 100.
@@ -100,6 +109,7 @@ export function Logo({
       className="aggrai-logo-wrap"
       onMouseEnter={() => {
         if (expandTimer.current) clearTimeout(expandTimer.current)
+        setAssembling(false) // a hover during the intro ends it cleanly
         setExpanding(false)
         setCollapsed(true)
       }}
@@ -119,7 +129,7 @@ export function Logo({
       }}
     >
       <span
-        className={`aggrai-logo ${collapsed ? "is-collapsed" : ""} ${expanding ? "is-expanding" : ""} ${className}`}
+        className={`aggrai-logo ${assembling ? "is-assembling" : ""} ${collapsed ? "is-collapsed" : ""} ${expanding ? "is-expanding" : ""} ${className}`}
         aria-label="aggrai"
         style={{ ["--aggrai-size" as keyof CSSProperties]: `${height}px` } as CSSProperties}
       >
