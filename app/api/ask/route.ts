@@ -33,6 +33,11 @@ export async function POST(req: NextRequest) {
     } catch { /* no session — proceed anonymously */ }
   }
 
+  // Vercel tags each request with the visitor's country. Forward it so the
+  // backend can pick an English variant (British spelling for GB/IE/AU/… ) for
+  // LIVE asks. Absent in local dev → backend defaults to American.
+  const country = req.headers.get("x-vercel-ip-country") ?? "";
+
   let upstream: Response;
   try {
     upstream = await fetch(`${API_URL}/ask`, {
@@ -40,6 +45,7 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(country ? { "x-aggrai-country": country } : {}),
       },
       body,
     });
