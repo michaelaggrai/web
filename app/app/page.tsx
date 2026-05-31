@@ -493,7 +493,12 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
         <span className="text-[10px] text-white/30">judged by Haiku · all scores 0–10</span>
       </div>
 
-      <div className="space-y-6">
+      {/* Radars: a 2-up grid when this block spans full width (tablet, md–lg),
+          stacked top-to-bottom both on mobile (too narrow for two) and in the
+          narrow desktop rail (lg+, where it sits beside the summary). items-start
+          so an expanded strengths/weaknesses panel grows only its own cell and
+          never stretches or overlaps its neighbour. */}
+      <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2 lg:grid-cols-1 items-start">
         {ranked.map((a, i) => {
           const color = PALETTE[i % PALETTE.length];
           const isWinner = a.overall === maxOverall;
@@ -549,7 +554,7 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
           const hasDetail =
             (a.scores.strengths?.length ?? 0) + (a.scores.weaknesses?.length ?? 0) > 0;
           return (
-            <div key={a.model} className="space-y-2">
+            <div key={a.model} className="space-y-2 min-w-0">
               {/* Header: colour swatch ties this header to the polygon
                   below; Limited badge surfaces the accuracy fatal-flaw
                   cap when it has been applied; Winner tag marks the
