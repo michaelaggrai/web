@@ -117,11 +117,15 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
   premium: { maxModels: 5, catalog: "full",     label: "Premium" },
 }
 
-// Default model selection per tier.
+// Default model selection per tier. MUST mirror TIER_DEFAULTS in the backend
+// (api/server.js). Gemini 2.5 Pro was swapped out of the Pro/Premium defaults
+// for Gemini 3.5 Flash — same provider, flagship-class, but far faster (2.5 Pro
+// p50 ~20s / tail ~140s dragged every default comparison). 2.5 Pro is still in
+// the catalog and selectable; it's just no longer auto-selected.
 export const TIER_DEFAULTS: Record<Tier, string[]> = {
   free:    ["anthropic/claude-haiku-4-5", "openai/gpt-4o-mini", "google/gemini-2.5-flash"],
-  pro:     ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-2.5-pro"],
-  premium: ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-2.5-pro",
+  pro:     ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-3.5-flash"],
+  premium: ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-3.5-flash",
             "anthropic/claude-opus-4.8", "x-ai/grok-4.20"],
 }
 
