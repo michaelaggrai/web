@@ -48,6 +48,10 @@ export async function POST(req: NextRequest) {
         ...(country ? { "x-aggrai-country": country } : {}),
       },
       body,
+      // Forward the client's abort: if the user clicks Stop / navigates away,
+      // req.signal aborts → this upstream fetch aborts → the backend sees the
+      // connection drop and cancels the in-flight model calls (saving cost).
+      signal: req.signal,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upstream unreachable";
