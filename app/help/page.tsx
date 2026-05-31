@@ -9,7 +9,7 @@ export const metadata = {
 const FAQ: { q: string; a: React.ReactNode }[] = [
   {
     q: "What does aggrai do?",
-    a: "You type a question, pick the AI models you want to compare (3 on Free/Pro, up to 5 on Premium), and aggrai sends your question to all of them in parallel. You get every model's answer side-by-side, a single rewritten \"Aggrai's answer\" that synthesises the strongest content from each, contribution attribution showing which model drove which part, and a 0–100 quality score per model judged on accuracy, completeness, calibration, clarity and insight.",
+    a: "You type a question, pick the AI models you want to compare (3 on Free/Pro, up to 5 on Premium), and aggrai sends your question to all of them in parallel. You get every model's answer side-by-side, a single rewritten \"Aggrai's answer\" that synthesises the strongest content from each, contribution attribution showing which model drove which part, and a quality score out of 10 per model judged on accuracy, completeness, calibration, clarity and insight.",
   },
   {
     q: "Which models can I use?",

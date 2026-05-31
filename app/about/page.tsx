@@ -35,7 +35,7 @@ export default function AboutPage() {
           aggrai sends your question to several leading models at once, shows
           you their answers side-by-side, and synthesises a single
           rewritten &ldquo;Aggrai&apos;s answer&rdquo; from the strongest content across
-          all of them. Each answer gets a 0&ndash;100 quality score so you can
+          all of them. Each answer gets a quality score out of 10 so you can
           see at a glance which model handled the question best. You stop
           guessing which model to use and start comparing what they
           actually say.
