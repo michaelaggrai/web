@@ -1259,6 +1259,13 @@ function Home() {
     setIntentHint(null);
     setActiveRecentId(null);
     setSidebarOpen(false);
+    // A new comparison is a fresh start: snap the picker back to this tier's
+    // FULL default set (so Premium gets its 5, not a stale free trio left over
+    // from a restored recent) and re-enable tier-default sync. Without this,
+    // selectRecent()'s `userOwnsSelection = true` sticks forever and the picker
+    // never returns to the tier default.
+    setSelected(new Set(TIER_DEFAULTS[tier]));
+    userOwnsSelection.current = false;
     if (typeof window !== "undefined") {
       // Drop any /app/c/{id} suffix back to plain /app so the URL
       // reflects the empty state. Use replaceState (not pushState) so
