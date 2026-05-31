@@ -6,7 +6,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, MessageCircle, Square, Plus, Minus } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -307,8 +307,12 @@ function overallScore(s: Scores): number {
   const clar = typeof s.clarity      === 'number' ? s.clarity      : 0;
   const ins  = typeof s.insight      === 'number' ? s.insight      : 0;
   const weighted = acc * 0.30 + comp * 0.25 + cal * 0.20 + clar * 0.15 + ins * 0.10;
-  const raw = Math.round((weighted / 5) * 100);
-  return acc <= 1.0 ? Math.min(raw, 40) : raw;
+  // weighted is 0-5; rescale to a 0-10 headline (one decimal) so the headline
+  // sits on the SAME /10 scale as the sub-metrics in the radar. ×2 maps 0-5→0-10.
+  const raw = Math.round(weighted * 2 * 10) / 10;
+  // Fatal-flaw cap: near-zero Accuracy (≤1.0/5) caps the headline at 4.0/10 so
+  // a confidently-wrong answer can't score well on style alone.
+  return acc <= 1.0 ? Math.min(raw, 4.0) : raw;
 }
 
 // True when the fatal-flaw cap on Accuracy actually changed the
@@ -323,7 +327,8 @@ function isAccuracyCapped(s: Scores): boolean {
     s.calibration  * 0.20 +
     s.clarity      * 0.15 +
     s.insight      * 0.10;
-  return Math.round((raw / 5) * 100) > 40;
+  // raw is 0-5; ×2 → 0-10. Capped iff the uncapped headline would top 4.0/10.
+  return Math.round(raw * 2 * 10) / 10 > 4.0;
 }
 
 // The summariser produces markdown with a single section:
@@ -363,93 +368,8 @@ function splitSummary(summary: string): { best: string | null; rest: string } {
   };
 }
 
-// Highlights the single highest-scoring model alongside a CTA to continue
-// a follow-up with just that model. The synthesised "Best answer" is the
-// product; this block points at which model the user might want to keep
-// chatting with afterwards.
-//
-// onContinue is wired by the page: clicking the CTA sets the model picker
-// to only this model and scrolls to the question input. When V2's
-// persistent conversation feature lands, this is the entry point for it.
-function WinnerBlock({
-  answers,
-  onContinue,
-}: {
-  answers: Answer[];
-  onContinue?: (modelId: string) => void;
-}) {
-  const scored = answers.filter((a): a is Answer & { scores: Scores } => !!a.scores);
-  if (scored.length === 0) return null;
-
-  const ranked = [...scored]
-    .map(a => ({ ...a, overall: overallScore(a.scores) }))
-    .sort((a, b) => b.overall - a.overall);
-  const winner = ranked[0];
-  const runnerUp = ranked[1];
-
-  // When sub-scores tie across models (very common with frontier models —
-  // four of them might all hit 5.0 on Accuracy), the previous strict `>`
-  // reduce kept the first-in-array model, which is just user-selection
-  // order. The overall winner could end up "Strongest on nothing" while
-  // its tied-but-arbitrarily-first peer claimed every credit. Tie-break
-  // on overall score now: when sub-scores match, the model with the
-  // higher composite wins the highlight.
-  const topByOverallAndScore = (key: ScoreDimension) =>
-    ranked.reduce((p, c) => {
-      if (c.scores[key] > p.scores[key]) return c;
-      if (c.scores[key] === p.scores[key] && c.overall > p.overall) return c;
-      return p;
-    });
-  const wonOn = SCORE_KEYS.filter(({ key }) =>
-    topByOverallAndScore(key).model === winner.model
-  ).map(k => k.label);
-
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.05] backdrop-blur-xl p-5 shadow-lg">
-      <div className="flex items-start gap-4">
-        <div className="shrink-0 rounded-xl bg-amber-300/10 border border-amber-300/20 p-2.5">
-          <Trophy className="w-4 h-4 text-amber-300" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-1">
-            Strongest single answer
-          </p>
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <ProviderLogo provider={providerOf(winner.model)} className="w-4 h-4 self-center shrink-0" />
-            <span className="text-base sm:text-lg font-semibold text-white truncate">
-              {modelLabel(winner.model)}
-            </span>
-            <span className="text-xl sm:text-2xl font-bold text-teal-300 tabular-nums">
-              {winner.overall}
-            </span>
-            <span className="text-xs text-white/40">/100</span>
-            {runnerUp && (
-              <span className="text-xs text-white/40">
-                · {modelLabel(runnerUp.model)} {runnerUp.overall}
-              </span>
-            )}
-          </div>
-          {wonOn.length > 0 && (
-            <p className="mt-1 text-xs text-white/50">
-              Strongest on {wonOn.join(", ").toLowerCase()}.
-            </p>
-          )}
-        </div>
-        {onContinue && (
-          <button
-            type="button"
-            onClick={() => onContinue(winner.model)}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-teal-500 to-teal-400 px-3 py-2 text-xs font-medium text-white hover:from-teal-400 hover:to-teal-400 transition shadow-sm shadow-teal-500/20"
-            aria-label={`Continue with ${modelLabel(winner.model)}`}
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            Continue with {modelLabel(winner.model).split(" ")[0]}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
+// (The "Strongest single answer" WinnerBlock was removed — the winner is now
+// marked with a trophy next to the top model inside the Aggr-Score block.)
 
 // A single 100% stacked bar at the top of the Summary card showing how much
 // each model's content influenced the rewritten Best answer below. Source is
@@ -470,29 +390,25 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
       <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-3">
         Where the summary came from
       </p>
-      {/* Single stacked bar — segments sit flush so it reads as one whole
-          that sums to 100%. */}
-      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-white/5">
+      {/* Single stacked bar with each model labelled INSIDE its own segment —
+          segments sit flush so it reads as one whole summing to 100%. Dark text
+          for contrast on the light palette; labels truncate in narrow segments,
+          with the title attr as the hover fallback. */}
+      <div className="flex h-9 w-full overflow-hidden rounded-lg bg-white/5">
         {sorted.map(({ model, pct }, i) => (
           <div
             key={model}
+            className="flex items-center gap-1.5 px-2 min-w-0 overflow-hidden"
             style={{ width: `${pct}%`, backgroundColor: PALETTE[i % PALETTE.length] }}
             title={`${modelLabel(model)} · ${pct}%`}
-          />
-        ))}
-      </div>
-      {/* Legend keyed to the segment colours. */}
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
-        {sorted.map(({ model, pct }, i) => (
-          <div key={model} className="flex items-center gap-1.5 text-xs min-w-0">
-            <span
-              className="w-2.5 h-2.5 rounded-sm shrink-0"
-              style={{ backgroundColor: PALETTE[i % PALETTE.length] }}
-              aria-hidden="true"
-            />
+          >
             <ProviderLogo provider={providerOf(model)} className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-white/70 truncate">{modelLabel(model)}</span>
-            <span className="text-white/45 tabular-nums shrink-0">{pct}%</span>
+            <span className="truncate text-[11px] font-semibold text-slate-900/85">
+              {modelLabel(model)}
+            </span>
+            <span className="ml-auto shrink-0 text-[11px] font-semibold tabular-nums text-slate-900/60">
+              {pct}%
+            </span>
           </div>
         ))}
       </div>
@@ -556,7 +472,7 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
         <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80 whitespace-nowrap">
           Aggr-Score
         </p>
-        <span className="text-[10px] text-white/30">judged by Haiku · sub-scores 0–10 · headline 0–100</span>
+        <span className="text-[10px] text-white/30">judged by Haiku · all scores 0–10</span>
       </div>
 
       <div className="space-y-6">
@@ -627,6 +543,9 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                   aria-hidden="true"
                 />
                 <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
+                {isWinner && (
+                  <Trophy className="w-3.5 h-3.5 text-amber-300 shrink-0" aria-label="Winner — highest overall score" />
+                )}
                 <span className="font-medium text-white/90 flex-1 truncate">{modelLabel(a.model)}</span>
                 {isAccuracyCapped(a.scores) && (
                   <span
@@ -634,11 +553,6 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                     className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
                   >
                     Limited
-                  </span>
-                )}
-                {isWinner && (
-                  <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider text-teal-300">
-                    Winner
                   </span>
                 )}
                 {/* Little +/− to reveal this model's strengths/weaknesses.
@@ -695,7 +609,7 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                     className="text-2xl font-semibold tabular-nums leading-none"
                     style={{ color }}
                   >
-                    {a.overall}
+                    {a.overall.toFixed(1)}
                   </div>
                 </div>
               </div>
@@ -860,6 +774,10 @@ function Home() {
 
   const { tier, resolved: tierResolved } = useTier();
   const [question, setQuestion] = useState(initialQuestion);
+  // The question that's currently in flight. `question` (the input) is cleared
+  // on submit, so we stash the submitted text here to show "You asked: …" above
+  // the loading skeleton, matching the loaded result header.
+  const [pendingQuestion, setPendingQuestion] = useState("");
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
   const [selected, setSelected] = useState<Set<string>>(explicitModels ?? new Set(TIER_DEFAULTS.free));
   const [loading, setLoading] = useState(false);
@@ -1128,6 +1046,7 @@ function Home() {
 
     const startedAt = Date.now();
     setLoading(true);
+    setPendingQuestion(q);
     setResult(null);
     setStreamingAnswers([]);
     setPartialAnswers({});
@@ -1523,9 +1442,17 @@ function Home() {
               with per-model blocks getting replaced by actual answer
               cards as the backend streams each model's response. */}
           {loading && (
-            intentHint === "compare" && selected.size > 1 ? (
+            <div className="space-y-6">
+              {/* Mirror the loaded result's "You asked: …" header so the user
+                  can see their question while the comparison streams in. */}
+              {pendingQuestion && (
+                <div className="text-sm text-white/50">
+                  <span className="text-white/30">You asked:</span>{" "}
+                  <span className="text-white/80">{pendingQuestion}</span>
+                </div>
+              )}
+              {intentHint === "compare" && selected.size > 1 ? (
               <div className="space-y-4">
-                <LoadingBlock title="Strongest single answer" gradientId="ld-winner" />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full min-h-[280px]" />
                   <LoadingBlock title="Aggr-Score" gradientId="ld-sm" />
@@ -1608,9 +1535,10 @@ function Home() {
                   })}
                 </div>
               </div>
-            ) : (
-              <LoadingBlock title="Thinking…" gradientId="ld-initial" />
-            )
+              ) : (
+                <LoadingBlock title="Thinking…" gradientId="ld-initial" />
+              )}
+            </div>
           )}
 
           {/* Results */}
@@ -1678,16 +1606,6 @@ function Home() {
                     const { best } = splitSummary(result.summary);
                     return (
                       <>
-                        {result.answers.some(a => a.scores) && (
-                          <WinnerBlock
-                            answers={result.answers}
-                            // 'Continue with X' button hidden until V2
-                            // persistent conversation lands. handleContinueWith
-                            // is left in place so the wire-up is ready when
-                            // we re-enable; just don't pass it for now.
-                            // onContinue={handleContinueWith}
-                          />
-                        )}
                         {/* 75/25 split — Aggr-Score only needs room for a
                             compact radar + 5 axis labels + a centred 0-100.
                             Everything else (long-form Best Answer rewrite,
