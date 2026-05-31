@@ -57,7 +57,7 @@ export default function DocsPage() {
           — each the average of three specific rubric checks. Shown as a radar
           chart (each axis out of 10) with that model&apos;s overall Aggr-Score
           (out of 10) in the centre. Accuracy carries the most
-          weight (30%); a confidently-wrong answer is capped at 40 regardless
+          weight (30%); a confidently-wrong answer is capped at 4.0 regardless
           of how well-written it is. Each model&apos;s strongest dimensions are
           highlighted on its own radar, and you can click any radar (or the
           &ldquo;+&rdquo; button) to expand a plain-English breakdown of that

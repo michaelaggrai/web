@@ -20,8 +20,8 @@ import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parse
 
 // AGG-7 v2 (2026-05-25): switched from 4-dim (comprehension /
 // thought_provoking / nuance / clarity) to research-backed 5-dim.
-// Each sub-score is 0-5 from the judge; overallScore() weights them
-// into a single 0-100 with a fatal-flaw cap on Accuracy.
+// Each dimension is 0-5 from the judge (itself the mean of 3 sub-criteria);
+// overallScore() weights them into a single 0-10 with a fatal-flaw cap on Accuracy.
 // See /Users/ms/assistant/research/scoring-metric-2026-05-24.md.
 type Scores = {
   accuracy:     number;
@@ -278,11 +278,11 @@ const SCORE_KEYS: { key: ScoreDimension; label: string }[] = [
   { key: "insight",      label: "Insight" },
 ];
 
-// AGG-7 v2: weighted composite of the 5 sub-scores (each 0-5) into a
-// single 0-100 quality score, plus a fatal-flaw cap: if Accuracy ≤ 1.0
-// (confidently-wrong or fabricated) the composite is capped at 40 no
-// matter how high the other dims are. "A beautifully-written wrong
-// answer is not a good answer."
+// AGG-7 v2 / scoring v3: weighted composite of the 5 dimensions (each 0-5,
+// itself the mean of 3 sub-criteria) into a single 0-10 headline, plus a
+// fatal-flaw cap: if Accuracy ≤ 1.0 (confidently-wrong or fabricated) the
+// composite is capped at 4.0 no matter how high the other dims are.
+// "A beautifully-written wrong answer is not a good answer."
 //
 // Weights (sum to 1.0):
 //   accuracy     30%   factual correctness, no hallucination
@@ -298,7 +298,7 @@ function overallScore(s: Scores): number {
   // entries with missing sub-dimensions before they reach the client,
   // but if anything sneaks through (older cached responses, future
   // shape drift, etc.) `undefined * 0.30 = NaN` poisons the whole
-  // weighted sum and renders as "NaN /100" in the UI. Coalesce each
+  // weighted sum and renders as "NaN" in the UI. Coalesce each
   // dim to 0 instead — a missing dim now reads as a 0 contribution
   // rather than a render glitch.
   const acc  = typeof s.accuracy     === 'number' ? s.accuracy     : 0;
@@ -439,7 +439,7 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
 
 // One radar per scored model, stacked top-down in ranked order. Each radar
 // plots the 5 sub-metrics (Accuracy / Completeness / Calibration / Clarity /
-// Insight) on 0-10 axes, with that model's overall 0-100 anchored in the
+// Insight) on 0-10 axes, with that model's overall 0-10 anchored in the
 // middle as the punchline number. Per-model lets readers compare shapes
 // side-by-side without polygons fighting for the same space.
 function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
@@ -598,7 +598,7 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                 )}
               </div>
 
-              {/* Radar — position:relative so the overall 0-100 can be
+              {/* Radar — position:relative so the overall 0-10 can be
                   absolutely centred on top. When this model has critique
                   detail, the whole radar is a clickable target that toggles
                   the strengths/weaknesses panel (keyboard-accessible too),
@@ -1640,7 +1640,7 @@ function Home() {
                     return (
                       <>
                         {/* 75/25 split — Aggr-Score only needs room for a
-                            compact radar + 5 axis labels + a centred 0-100.
+                            compact radar + 5 axis labels + a centred 0-10.
                             Everything else (long-form Best Answer rewrite,
                             contributions bars, structured sub-headings) wants
                             the wider column. Progression: 5fr_3fr → 7fr_3fr →
