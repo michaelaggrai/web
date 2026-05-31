@@ -390,10 +390,12 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
       <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-3">
         Where the summary came from
       </p>
-      {/* Single stacked bar with each model labelled INSIDE its own segment —
-          segments sit flush so it reads as one whole summing to 100%. Dark text
-          for contrast on the light palette; labels truncate in narrow segments,
-          with the title attr as the hover fallback. */}
+      {/* Proportional stacked bar (segments sum to 100%). On wider screens each
+          segment is labelled inline (logo + name + %). On narrow screens a name
+          can't fit a ~20% slice, so segments show just logo + % (never
+          truncated) and the full names move to the wrap-friendly legend below
+          (mobile-only — redundant once names are inline). Dark text for contrast
+          on the light palette; title attr is the hover fallback either way. */}
       <div className="flex h-9 w-full overflow-hidden rounded-lg bg-white/5">
         {sorted.map(({ model, pct }, i) => (
           <div
@@ -403,12 +405,28 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
             title={`${modelLabel(model)} · ${pct}%`}
           >
             <ProviderLogo provider={providerOf(model)} className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate text-[11px] font-semibold text-slate-900/85">
+            <span className="hidden truncate text-[11px] font-semibold text-slate-900/85 sm:block">
               {modelLabel(model)}
             </span>
-            <span className="ml-auto shrink-0 text-[11px] font-semibold tabular-nums text-slate-900/60">
+            <span className="ml-auto shrink-0 text-[11px] font-semibold tabular-nums text-slate-900/70">
               {pct}%
             </span>
+          </div>
+        ))}
+      </div>
+      {/* Full model names — only on narrow screens, where they don't fit inside
+          the bar. Wraps cleanly, so it's readable at any width. */}
+      <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1.5 sm:hidden">
+        {sorted.map(({ model, pct }, i) => (
+          <div key={model} className="flex items-center gap-1.5 text-xs min-w-0">
+            <span
+              className="w-2 h-2 rounded-sm shrink-0"
+              style={{ backgroundColor: PALETTE[i % PALETTE.length] }}
+              aria-hidden="true"
+            />
+            <ProviderLogo provider={providerOf(model)} className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate text-white/70">{modelLabel(model)}</span>
+            <span className="shrink-0 tabular-nums text-white/45">{pct}%</span>
           </div>
         ))}
       </div>
