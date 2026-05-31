@@ -396,19 +396,22 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
           truncated) and the full names move to the wrap-friendly legend below
           (mobile-only — redundant once names are inline). Dark text for contrast
           on the light palette; title attr is the hover fallback either way. */}
-      <div className="flex h-9 w-full overflow-hidden rounded-lg bg-white/5">
+      <div className="flex h-2.5 w-full overflow-hidden rounded-lg bg-white/5 sm:h-9">
         {sorted.map(({ model, pct }, i) => (
           <div
             key={model}
-            className="flex items-center gap-1.5 px-2 min-w-0 overflow-hidden"
+            className="flex items-center gap-1 px-1.5 min-w-0 overflow-hidden"
             style={{ width: `${pct}%`, backgroundColor: PALETTE[i % PALETTE.length] }}
             title={`${modelLabel(model)} · ${pct}%`}
           >
-            <ProviderLogo provider={providerOf(model)} className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden truncate text-[11px] font-semibold text-slate-900/85 sm:block">
+            {/* Labels only on sm+ (smaller text so names don't truncate). Below
+                sm the bar is a plain slim colour band and the legend below
+                carries every name + %. */}
+            <ProviderLogo provider={providerOf(model)} className="hidden h-3.5 w-3.5 shrink-0 sm:block" />
+            <span className="hidden truncate text-[10px] font-semibold text-slate-900/85 sm:block">
               {modelLabel(model)}
             </span>
-            <span className="ml-auto shrink-0 text-[11px] font-semibold tabular-nums text-slate-900/70">
+            <span className="ml-auto hidden shrink-0 text-[10px] font-semibold tabular-nums text-slate-900/70 sm:block">
               {pct}%
             </span>
           </div>
@@ -1483,10 +1486,10 @@ function Home() {
               )}
               {intentHint === "compare" && selected.size > 1 ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <LoadingBlock title="Summary" gradientId="ld-summary" className="lg:h-full min-h-[280px]" />
-                  <LoadingBlock title="Aggr-Score" gradientId="ld-sm" />
-                </div>
+                {/* One "Thinking…" block for the Summary + Aggr-Score area while
+                    the summariser computes — the per-model answer cards stream
+                    in below it. (We used to show two separate skeletons here.) */}
+                <LoadingBlock title="Thinking…" gradientId="ld-summary" />
                 {/* Two-column grid with items-start. We tried CSS `columns`
                     masonry here, but it reorders cards column-major (model 3
                     jumps above model 2) and re-balances column heights every
