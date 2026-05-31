@@ -54,8 +54,9 @@ export default function DocsPage() {
         <p>
           A second pass scores each answer on five dimensions — accuracy,
           completeness, calibration (epistemic honesty), clarity, and insight
-          — shown as a radar chart (each axis out of 10) with that model&apos;s
-          overall Aggr-Score (0–100) in the centre. Accuracy carries the most
+          — each the average of three specific rubric checks. Shown as a radar
+          chart (each axis out of 10) with that model&apos;s overall Aggr-Score
+          (out of 10) in the centre. Accuracy carries the most
           weight (30%); a confidently-wrong answer is capped at 40 regardless
           of how well-written it is. Each model&apos;s strongest dimensions are
           highlighted on its own radar, and you can click any radar (or the

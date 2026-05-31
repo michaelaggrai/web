@@ -1,32 +1,16 @@
 import { Trophy, Layers, BarChart3 } from "lucide-react"
 import { AnthropicIcon, OpenAIIcon, GoogleIcon } from "@/components/brand-icons"
 
-// Mockup of the headline results UI shown in /app — a Strongest-single-answer
-// block on top, then a Summary card with contributions + Aggrai's answer.
-// Static content; matches the real product shape so the marketing visual
-// stays honest as the product evolves.
+// Mockup of the headline results UI shown in /app — a Summary card with
+// contributions + Aggrai's answer, then the Aggr-Score block (winner marked
+// with a trophy). Static content; matches the real product shape so the
+// marketing visual stays honest as the product evolves.
 function ResultsMockup() {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-4 sm:p-5 shadow-2xl shadow-black/30 space-y-3">
       {/* Question */}
       <div className="text-xs text-white/40">
         <span className="text-white/25">You asked:</span> Why do recessions hurt the poor more?
-      </div>
-
-      {/* Strongest single answer mini block */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3 flex items-center gap-3">
-        <div className="shrink-0 rounded-lg bg-amber-300/10 border border-amber-300/20 p-1.5">
-          <Trophy className="w-3.5 h-3.5 text-amber-300" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">Strongest single answer</p>
-          <div className="flex items-baseline gap-2 mt-0.5">
-            <AnthropicIcon className="w-3 h-3 self-center text-white/80" />
-            <span className="text-xs font-semibold text-white truncate">Claude Sonnet 4.6</span>
-            <span className="text-base font-bold text-teal-300 tabular-nums">92</span>
-            <span className="text-[10px] text-white/40">/100</span>
-          </div>
-        </div>
       </div>
 
       {/* Summary card with contributions + aggrai's answer */}
@@ -57,12 +41,12 @@ function ResultsMockup() {
       <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
         <div className="flex items-center gap-1.5 mb-2">
           <BarChart3 className="w-3 h-3 text-teal-300" />
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-teal-300/80">Quality scores</p>
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-teal-300/80">Aggr-Score</p>
         </div>
         <div className="space-y-1.5">
-          <ScoreRow Icon={AnthropicIcon} label="Claude Sonnet 4.6" score={92} winner />
-          <ScoreRow Icon={GoogleIcon}    label="Gemini 2.5 Pro"    score={86} />
-          <ScoreRow Icon={OpenAIIcon}    label="GPT-4o"             score={81} />
+          <ScoreRow Icon={AnthropicIcon} label="Claude Sonnet 4.6" score={9.2} winner />
+          <ScoreRow Icon={GoogleIcon}    label="Gemini 2.5 Pro"    score={8.6} />
+          <ScoreRow Icon={OpenAIIcon}    label="GPT-4o"             score={8.1} />
         </div>
       </div>
     </div>
@@ -89,14 +73,15 @@ function ScoreRow({ Icon, label, score, winner = false }: { Icon: typeof Anthrop
   return (
     <div className="flex items-center gap-2 text-[10px]">
       <Icon className="w-2.5 h-2.5 shrink-0 text-white/70" />
-      <span className="text-white/60 truncate w-24 shrink-0">{label}</span>
-      <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+      {winner && <Trophy className="w-2.5 h-2.5 shrink-0 text-amber-300" aria-hidden="true" />}
+      <span className="text-white/60 truncate flex-1 min-w-0">{label}</span>
+      <div className="w-16 h-1 rounded-full bg-white/5 overflow-hidden shrink-0">
         <div
           className={`h-full rounded-full ${winner ? "bg-gradient-to-r from-teal-400 to-teal-300" : "bg-white/30"}`}
-          style={{ width: `${score}%` }}
+          style={{ width: `${score * 10}%` }}
         />
       </div>
-      <span className={`tabular-nums w-7 text-right shrink-0 ${winner ? "text-teal-300 font-semibold" : "text-white/50"}`}>{score}</span>
+      <span className={`tabular-nums w-6 text-right shrink-0 ${winner ? "text-teal-300 font-semibold" : "text-white/50"}`}>{score.toFixed(1)}</span>
     </div>
   )
 }
@@ -125,13 +110,13 @@ function FeaturesExplanation() {
         />
         <FeatureRow
           Icon={BarChart3}
-          title="Quality scores"
-          body="Every answer is judged on accuracy, completeness, calibration, clarity and insight — then combined into a single quality score. So you can see why the synthesis chose what it chose."
+          title="Aggr-Score"
+          body="Every answer is judged on accuracy, completeness, calibration, clarity and insight — each the average of three specific checks — then combined into a single score out of 10. So you can see why the synthesis chose what it chose."
         />
         <FeatureRow
           Icon={Trophy}
-          title="Strongest single answer"
-          body="If you want to keep chatting with one model, we tell you which one had the best individual answer for this question."
+          title="A clear winner"
+          body="The highest-scoring model is marked with a trophy, so if you want to keep going with one model, you know which had the best answer for this question."
         />
       </div>
     </div>
