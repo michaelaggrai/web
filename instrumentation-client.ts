@@ -5,6 +5,14 @@ Sentry.init({
   // Errors only — no performance tracing, no session replay
   tracesSampleRate: 0,
   enabled: process.env.NODE_ENV === "production",
+  // Drop benign fetch cancellations. AbortError / DOMException code 20 fires
+  // when a request is deliberately cancelled — the Stop button, navigating
+  // away mid-stream, closing the tab, or a Next.js route prefetch being
+  // aborted. Never a crash or data loss. The /api/ask catch already filters
+  // these, but Sentry's automatic global handlers re-capture them; this stops
+  // them tripping the "high priority" alert and drowning out real errors.
+  // Matched by error type ("AbortError"), so it covers all browsers' messages.
+  ignoreErrors: ["AbortError", "The user aborted a request"],
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
