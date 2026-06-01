@@ -37,6 +37,13 @@ export async function POST(req: NextRequest) {
   // backend can pick an English variant (British spelling for GB/IE/AU/… ) for
   // LIVE asks. Absent in local dev → backend defaults to American.
   const country = req.headers.get("x-vercel-ip-country") ?? "";
+  // Pseudonymous per-browser id for anonymous visitors (set by lib/anon-id),
+  // forwarded so the backend tracking log can distinguish anonymous users.
+  const anonId = req.headers.get("x-aggrai-anon-id") ?? "";
+  // The synthetic uptime canary tags itself so the backend can exclude it from
+  // "real usage". (Internal-analytics classification only — not a trust
+  // boundary; a client could spoof it, which is fine for V1.)
+  const synthetic = req.headers.get("x-aggrai-synthetic") ?? "";
 
   let upstream: Response;
   try {
@@ -46,6 +53,8 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...(country ? { "x-aggrai-country": country } : {}),
+        ...(anonId ? { "x-aggrai-anon-id": anonId } : {}),
+        ...(synthetic ? { "x-aggrai-synthetic": synthetic } : {}),
       },
       body,
       // Forward the client's abort: if the user clicks Stop / navigates away,

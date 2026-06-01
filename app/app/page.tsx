@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { useSearchParams, usePathname } from "next/navigation";
 import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
+import { getAnonId } from "@/lib/anon-id";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus } from "lucide-react";
@@ -1085,9 +1086,13 @@ function Home() {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
+      const anonId = getAnonId();
       const res = await fetch("/api/ask", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(anonId ? { "x-aggrai-anon-id": anonId } : {}),
+        },
         body: JSON.stringify({ question: q.trim(), models: [...models] }),
         signal: controller.signal,
       });
