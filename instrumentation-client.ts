@@ -12,7 +12,28 @@ Sentry.init({
   // these, but Sentry's automatic global handlers re-capture them; this stops
   // them tripping the "high priority" alert and drowning out real errors.
   // Matched by error type ("AbortError"), so it covers all browsers' messages.
-  ignoreErrors: ["AbortError", "The user aborted a request"],
+  //
+  // The trailing entries are browser-EXTENSION noise (e.g. a content script's
+  // views.js calling a missing method) that gets attributed to our page but
+  // isn't our code. Mirrors the backend foreign-noise filter in
+  // api/instrument.js so neither Sentry project pages us on third-party junk.
+  ignoreErrors: [
+    "AbortError",
+    "The user aborted a request",
+    "has no method",
+    "updateFrom",
+    "Test Issue",
+  ],
+  // Drop anything thrown from a browser extension / injected script — these
+  // originate from chrome-extension://, moz-extension://, a content script like
+  // views.js, etc., never from our bundle, and are never actionable.
+  denyUrls: [
+    /extensions\//i,
+    /^chrome(-extension)?:\/\//i,
+    /^moz-extension:\/\//i,
+    /^safari-(web-)?extension:\/\//i,
+    /\/views\.js/i,
+  ],
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
