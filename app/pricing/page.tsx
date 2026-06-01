@@ -1,68 +1,23 @@
 import Link from "next/link";
-import { Check, Sparkles, Zap, Crown } from "lucide-react";
+import { Check } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { PlanCta } from "@/components/pricing-cta";
-import type { Tier } from "@/lib/models";
+import { PLANS, priceFor } from "@/lib/plans";
 
 export const metadata = {
   title: "Pricing — aggrai",
   description: "Free, Pro, and Premium plans for aggrai.",
 };
 
-const PLANS = [
-  {
-    name: "Free",
-    tier: "free" as Tier,
-    price: "£0",
-    period: "forever",
-    icon: Sparkles,
-    iconColor: "text-white/40",
-    description: "The basics. Try every fast model. No account needed.",
-    features: [
-      "8 basic models",
-      "Up to 3 models per comparison",
-      "Quality scores & metrics",
-      "Aggrai's combined answer",
-    ],
-    cta: { href: "/app", label: "Start free" },
-    highlight: false,
-  },
-  {
-    name: "Pro",
-    tier: "pro" as Tier,
-    price: "£11",
-    period: "per month",
-    icon: Zap,
-    iconColor: "text-teal-300",
-    description: "Every flagship model from every major lab.",
-    features: [
-      "16 advanced models",
-      "Up to 3 models per comparison",
-      "Opus 4.8, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.20…",
-      "Everything in Free",
-    ],
-    cta: { href: "/signin?mode=signup&reason=upgrade&plan=pro&next=/app", label: "Get Pro" },
-    highlight: true,
-  },
-  {
-    name: "Premium",
-    tier: "premium" as Tier,
-    price: "£19",
-    period: "per month",
-    icon: Crown,
-    iconColor: "text-amber-300",
-    description: "For deep research. Reasoning specialists and 5-model comparisons.",
-    features: [
-      "4 research models",
-      "Up to 5 models per comparison",
-      "GPT-5.5 Pro, Qwen3 Max Thinking, Grok Multi-Agent…",
-      "Everything in Pro",
-    ],
-    cta: { href: "/signin?mode=signup&reason=upgrade&plan=premium&next=/app", label: "Get Premium" },
-    highlight: false,
-  },
-];
+// Anonymous CTA per plan. Free goes straight into the app; paid plans go
+// through sign-in and land back on the paid checkout for that plan (the
+// cycle can be switched at checkout).
+function anonCta(key: "free" | "pro" | "premium"): { href: string; label: string } {
+  if (key === "free") return { href: "/app", label: "Start free" };
+  const next = encodeURIComponent(`/checkout?plan=${key}&cycle=monthly`);
+  return { href: `/signin?reason=upgrade&next=${next}`, label: key === "pro" ? "Get Pro" : "Get Premium" };
+}
 
 export default function PricingPage() {
   return (
@@ -87,9 +42,12 @@ export default function PricingPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {PLANS.map(plan => {
             const Icon = plan.icon;
+            const m = priceFor(plan, "monthly");
+            const a = priceFor(plan, "annual");
+            const cta = anonCta(plan.key);
             return (
               <div
-                key={plan.name}
+                key={plan.key}
                 className={`relative flex flex-col rounded-2xl border p-6 transition-all ${
                   plan.highlight
                     ? "border-teal-400/40 bg-teal-400/[0.06] shadow-lg shadow-teal-500/10"
@@ -108,11 +66,14 @@ export default function PricingPage() {
                 </div>
 
                 <div className="mb-1">
-                  <span className="text-3xl font-bold text-white">{plan.price}</span>
-                  <span className="text-white/40 text-sm ml-1">{plan.period}</span>
+                  <span className="text-3xl font-bold text-white">{m.amountLabel}</span>
+                  <span className="text-white/40 text-sm ml-1">{m.isFree ? "forever" : "per month"}</span>
                 </div>
+                <p className="mb-6 h-4 text-xs text-teal-300/80">
+                  {m.isFree ? " " : `or ${a.amountLabel}/yr — ${a.savePctLabel.toLowerCase()}`}
+                </p>
 
-                <p className="text-sm text-white/40 mb-6">{plan.description}</p>
+                <p className="text-sm text-white/40 mb-6">{plan.blurb}</p>
 
                 <ul className="space-y-2 mb-8 flex-1">
                   {plan.features.map(f => (
@@ -124,11 +85,11 @@ export default function PricingPage() {
                 </ul>
 
                 <PlanCta
-                  planTier={plan.tier}
+                  planTier={plan.key}
                   name={plan.name}
-                  anonHref={plan.cta.href}
-                  anonLabel={plan.cta.label}
-                  highlight={plan.highlight}
+                  anonHref={cta.href}
+                  anonLabel={cta.label}
+                  highlight={!!plan.highlight}
                 />
               </div>
             );

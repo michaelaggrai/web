@@ -5,43 +5,21 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   User, CreditCard, Globe, Cookie, Download, Trash2, LogOut, ArrowLeft,
-  Sparkles, Zap, Crown, AlertTriangle,
+  AlertTriangle, Calendar, Receipt, RotateCcw,
 } from "lucide-react";
 import { HomeLink } from "@/components/home-link";
 import { AccountMenu } from "@/components/account-menu";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
-
-type Tier = "free" | "pro" | "premium";
-
-const TIER_LABEL: Record<Tier, string> = {
-  free: "Free",
-  pro: "Pro",
-  premium: "Premium",
-};
-
-// Numeric rank used to decide direction (upgrade vs downgrade) when the
-// user picks a different plan in the picker below.
-const TIER_RANK: Record<Tier, number> = { free: 0, pro: 1, premium: 2 };
-
-type PlanOption = {
-  key: Tier;
-  name: string;
-  price: string;
-  period: string;
-  tagline: string;
-  icon: typeof Sparkles;
-  iconColor: string;
-};
-
-const PLAN_OPTIONS: PlanOption[] = [
-  { key: "free",    name: "Free",    price: "£0",  period: "forever", tagline: "8 basic models, up to 3 per comparison",       icon: Sparkles, iconColor: "text-white/50" },
-  { key: "pro",     name: "Pro",     price: "£11", period: "/mo",     tagline: "16 advanced models, up to 3 per comparison",   icon: Zap,      iconColor: "text-teal-300" },
-  { key: "premium", name: "Premium", price: "£19", period: "/mo",     tagline: "4 research models, up to 5 per comparison",    icon: Crown,    iconColor: "text-amber-300" },
-];
+import {
+  PLANS, planByKey, priceFor, renewalDate, formatDate,
+  TIER_RANK, TIER_LABEL, type Cycle, type Tier,
+} from "@/lib/plans";
+import {
+  getDemoBilling, startDemoBilling, cancelDemoBilling, resumeDemoBilling,
+  type DemoBilling,
+} from "@/lib/billing-demo";
 
 export default function SettingsPage() {
-  // Wrap in Suspense so useSearchParams (used for the ?changed=1 banner)
-  // doesn't blow up the page render before the params resolve.
   return (
     <Suspense fallback={<div className="min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547]" />}>
       <Settings />
@@ -56,19 +34,21 @@ function Settings() {
   const [tier, setTier] = useState<Tier>("free");
   const [loaded, setLoaded] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  // Plan-change state. `changingTo` shows the spinner on the target row;
-  // `confirmingDowngrade` shows the inline confirmation card for the
-  // selected downgrade target (null when no downgrade is being confirmed).
+
+  // Mock subscription record (cycle / renewal / cancellation). No billing
+  // backend yet — see lib/billing-demo.
+  const [billing, setBilling] = useState<DemoBilling | null>(null);
+
+  // Plan-change state (downgrades go through /api/upgrade instantly; upgrades
+  // route to /checkout).
   const [changingTo, setChangingTo] = useState<Tier | null>(null);
   const [confirmingDowngrade, setConfirmingDowngrade] = useState<Tier | null>(null);
   const [planError, setPlanError] = useState("");
-  // Post-change banner: set when we land on /settings?changed=1 after a
-  // hard reload from a successful plan change. Dismissable.
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [showChangedBanner, setShowChangedBanner] = useState(searchParams.get("changed") === "1");
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      // No auth wired — bounce back to landing.
       router.replace("/");
       return;
     }
@@ -81,18 +61,25 @@ function Settings() {
         return;
       }
       setEmail(user.email ?? null);
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tier")
-        .eq("id", user.id)
-        .single();
-      if (profile?.tier === "pro" || profile?.tier === "premium") {
-        setTier(profile.tier);
+      const { data: profile } = await supabase.from("profiles").select("tier").eq("id", user.id).single();
+      const t: Tier = profile?.tier === "pro" || profile?.tier === "premium" ? profile.tier : "free";
+      setTier(t);
+      // Ensure a paying user always has a coherent (mock) subscription record so
+      // the management UI renders consistently — seed one if they reached a paid
+      // tier without going through the new checkout (admin/legacy).
+      if (t !== "free") {
+        let b = getDemoBilling();
+        if (!b || b.tier !== t) {
+          startDemoBilling(t, b?.cycle ?? "monthly");
+          b = getDemoBilling();
+        }
+        setBilling(b);
+      } else {
+        setBilling(null);
       }
       setLoaded(true);
     })();
-    // `router` is a stable reference from next/navigation — no need to
-    // include it in deps. This effect should fire exactly once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function signOut() {
@@ -106,10 +93,7 @@ function Settings() {
     window.location.assign("/");
   }
 
-  // Issue the actual plan-change call. Used by both the upgrade path
-  // (direct click) and the downgrade path (post-confirmation). Hard-reloads
-  // the page on success so useTier + AccountMenu + ModelPicker locked-ids
-  // all pick up the new tier. router.refresh() alone leaves cached state.
+  // Instant tier change — used for downgrades only (no payment needed).
   async function changePlan(target: Tier) {
     if (changingTo !== null) return;
     setChangingTo(target);
@@ -131,25 +115,41 @@ function Settings() {
     }
   }
 
-  // Entry point for a row's Upgrade/Downgrade button.
-  // - Upgrade direction: go straight through (matches /upgrade page UX).
-  // - Downgrade direction: surface an inline confirmation card so the user
-  //   has to opt in to losing flagship access / model slots.
   function handlePlanClick(target: Tier) {
     if (target === tier) return;
-    if (TIER_RANK[target] < TIER_RANK[tier]) {
+    if (TIER_RANK[target] > TIER_RANK[tier]) {
+      // Upgrade → paid checkout flow.
+      router.push(`/checkout?plan=${target}&cycle=${billing?.cycle ?? "monthly"}`);
+    } else {
+      // Downgrade between paid tiers → inline confirm, then instant.
       setConfirmingDowngrade(target);
       setPlanError("");
-    } else {
-      changePlan(target);
     }
   }
 
-  if (!loaded) {
-    return (
-      <div className="min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547]" />
-    );
+  function doCancel() {
+    cancelDemoBilling();
+    setBilling(getDemoBilling());
+    setConfirmingCancel(false);
   }
+  function doResume() {
+    resumeDemoBilling();
+    setBilling(getDemoBilling());
+  }
+
+  if (!loaded) {
+    return <div className="min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547]" />;
+  }
+
+  const plan = planByKey(tier);
+  const cycle: Cycle = billing?.cycle ?? "monthly";
+  const price = priceFor(plan, cycle);
+  // Paid tiers always have a seeded billing record by the time these sections
+  // render (see the mount effect), so the 0 fallback never actually shows —
+  // it just keeps Date.now() off the render path (lint: no impure calls in render).
+  const startedAt = billing?.startedAt ?? 0;
+  const renews = renewalDate(startedAt, cycle);
+  const canceled = !!billing?.canceledAt;
 
   return (
     <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
@@ -158,10 +158,7 @@ function Settings() {
 
       <div className="relative z-10 mx-auto max-w-2xl">
         <div className="mb-8 flex items-center justify-between gap-3">
-          <Link
-            href="/app"
-            className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors"
-          >
+          <Link href="/app" className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors">
             <ArrowLeft className="w-4 h-4" />
             Back to app
           </Link>
@@ -172,21 +169,14 @@ function Settings() {
         </div>
 
         <h1 className="text-2xl font-semibold text-white tracking-tight mb-1">Settings</h1>
-        <p className="text-sm text-white/40 mb-8">Manage your account and preferences.</p>
+        <p className="text-sm text-white/40 mb-8">Manage your account, subscription and preferences.</p>
 
         {showChangedBanner && (
-          <div
-            role="status"
-            className="mb-6 rounded-xl border border-teal-400/30 bg-teal-400/10 px-4 py-3 flex items-center justify-between gap-3"
-          >
+          <div role="status" className="mb-6 rounded-xl border border-teal-400/30 bg-teal-400/10 px-4 py-3 flex items-center justify-between gap-3">
             <p className="text-sm text-teal-200">
               Plan updated — you&apos;re now on <strong className="text-white">{TIER_LABEL[tier]}</strong>.
             </p>
-            <button
-              type="button"
-              onClick={() => setShowChangedBanner(false)}
-              className="text-teal-300/60 hover:text-teal-200 text-xs"
-            >
+            <button type="button" onClick={() => setShowChangedBanner(false)} className="text-teal-300/60 hover:text-teal-200 text-xs">
               Dismiss
             </button>
           </div>
@@ -199,12 +189,7 @@ function Settings() {
             label="Sign out"
             value=""
             action={
-              <button
-                type="button"
-                onClick={signOut}
-                disabled={signingOut}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:text-white hover:border-white/20 transition disabled:opacity-50"
-              >
+              <button type="button" onClick={signOut} disabled={signingOut} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:text-white hover:border-white/20 transition disabled:opacity-50">
                 <LogOut className="w-3.5 h-3.5" />
                 {signingOut ? "Signing out…" : "Sign out"}
               </button>
@@ -212,47 +197,127 @@ function Settings() {
           />
         </Section>
 
-        {/* Plan */}
-        <Section icon={CreditCard} title="Plan">
+        {/* Subscription — paid tiers only */}
+        {tier !== "free" && (
+          <Section icon={CreditCard} title="Subscription">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <plan.icon className={`w-5 h-5 ${plan.iconColor}`} aria-hidden="true" />
+                  <div>
+                    <div className="text-sm font-semibold text-white">aggrai {plan.name}</div>
+                    <div className="text-xs text-white/50 tabular-nums">
+                      {price.amountLabel}{price.unit} · <span className="capitalize">{cycle}</span>
+                    </div>
+                  </div>
+                </div>
+                {canceled ? (
+                  <span className="shrink-0 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                    Canceling
+                  </span>
+                ) : (
+                  <span className="shrink-0 rounded-full border border-teal-400/30 bg-teal-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-teal-300">
+                    Active
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="w-4 h-4 text-white/40 shrink-0" aria-hidden="true" />
+                  <span className="text-white/50">
+                    {canceled ? "Ends" : "Renews"}{" "}
+                    <span className="text-white/80">{formatDate(renews)}</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CreditCard className="w-4 h-4 text-white/40 shrink-0" aria-hidden="true" />
+                  <span className="text-white/50">
+                    Visa <span className="text-white/80 tabular-nums">•••• 4242</span>
+                  </span>
+                </div>
+              </div>
+
+              {canceled && (
+                <p className="mt-3 rounded-lg bg-amber-400/[0.08] border border-amber-400/20 px-3 py-2 text-xs text-amber-200/90">
+                  Your subscription is set to cancel. You keep {plan.name} access until {formatDate(renews)}, then move to Free.
+                </p>
+              )}
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled
+                  title="Editing your payment method ships with Stripe"
+                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/40 cursor-not-allowed"
+                >
+                  Update payment method
+                </button>
+                {canceled ? (
+                  <button type="button" onClick={doResume} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-400/15 border border-teal-400/30 px-3 py-1.5 text-xs font-medium text-teal-200 hover:bg-teal-400/25 transition">
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Resume subscription
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => setConfirmingCancel(true)} className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 hover:text-white hover:border-white/20 transition">
+                    Cancel subscription
+                  </button>
+                )}
+              </div>
+
+              {confirmingCancel && (
+                <div role="alertdialog" aria-label="Confirm cancellation" className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/[0.08] p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" aria-hidden="true" />
+                    <p className="text-xs text-amber-100/90 leading-relaxed">
+                      Cancel your {plan.name} subscription? You&apos;ll keep access until <strong className="text-white">{formatDate(renews)}</strong>, then drop to Free. No further charges.
+                    </p>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 justify-end">
+                    <button type="button" onClick={() => setConfirmingCancel(false)} className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10 hover:text-white transition">
+                      Keep subscription
+                    </button>
+                    <button type="button" onClick={doCancel} className="rounded-lg bg-amber-400/20 border border-amber-400/30 px-3 py-1.5 text-xs font-medium text-amber-100 hover:bg-amber-400/30 transition">
+                      Yes, cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Section>
+        )}
+
+        {/* Change plan */}
+        <Section icon={CreditCard} title={tier === "free" ? "Plan" : "Change plan"}>
           <p className="text-sm text-white/50 leading-relaxed mb-4">
-            Switch any time. Downgrades take effect immediately.{" "}
-            <Link
-              href="/pricing"
-              className="text-teal-300 hover:text-teal-200 underline-offset-2 hover:underline"
-            >
+            {tier === "free"
+              ? "You're on the Free plan — no active subscription."
+              : "Switch tiers any time. Upgrades go through checkout; downgrades take effect immediately."}{" "}
+            <Link href="/pricing" className="text-teal-300 hover:text-teal-200 underline-offset-2 hover:underline">
               Compare plans →
             </Link>
           </p>
 
           <ul className="space-y-2" aria-label="Plan options">
-            {PLAN_OPTIONS.map(plan => {
-              const PlanIcon = plan.icon;
-              const isCurrent = plan.key === tier;
-              const isUpgrade = TIER_RANK[plan.key] > TIER_RANK[tier];
-              const isLoadingThis = changingTo === plan.key;
+            {PLANS.map((p) => {
+              const isCurrent = p.key === tier;
+              const isUpgrade = TIER_RANK[p.key] > TIER_RANK[tier];
+              const isLoadingThis = changingTo === p.key;
               const anyChanging = changingTo !== null;
+              const rowPrice = priceFor(p, "monthly");
 
               return (
-                <li
-                  key={plan.key}
-                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition ${
-                    isCurrent
-                      ? "border-teal-400/40 bg-teal-400/[0.06]"
-                      : "border-white/10 bg-white/[0.03]"
-                  }`}
-                >
-                  <PlanIcon className={`w-4 h-4 shrink-0 ${plan.iconColor}`} aria-hidden="true" />
+                <li key={p.key} className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition ${isCurrent ? "border-teal-400/40 bg-teal-400/[0.06]" : "border-white/10 bg-white/[0.03]"}`}>
+                  <p.icon className={`w-4 h-4 shrink-0 ${p.iconColor}`} aria-hidden="true" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className={`text-sm font-semibold ${isCurrent ? "text-white" : "text-white/85"}`}>
-                        {plan.name}
-                      </span>
+                      <span className={`text-sm font-semibold ${isCurrent ? "text-white" : "text-white/85"}`}>{p.name}</span>
                       <span className="text-xs text-white/50 tabular-nums">
-                        <span className="text-white/70">{plan.price}</span>
-                        <span className="text-white/35">{plan.period}</span>
+                        <span className="text-white/70">{rowPrice.amountLabel}</span>
+                        <span className="text-white/35">{p.key === "free" ? " forever" : "/mo"}</span>
                       </span>
                     </div>
-                    <p className="text-[11px] text-white/40 mt-0.5 leading-snug">{plan.tagline}</p>
+                    <p className="text-[11px] text-white/40 mt-0.5 leading-snug">{p.tagline}</p>
                   </div>
 
                   {isCurrent ? (
@@ -262,11 +327,11 @@ function Settings() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => handlePlanClick(plan.key)}
+                      onClick={() => handlePlanClick(p.key)}
                       disabled={anyChanging}
                       className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed ${
                         isUpgrade
-                          ? plan.key === "premium"
+                          ? p.key === "premium"
                             ? "bg-gradient-to-r from-amber-400 to-amber-300 text-navy hover:from-amber-300 hover:to-amber-200 shadow-sm shadow-amber-500/20"
                             : "bg-gradient-to-r from-teal-500 to-teal-400 text-white hover:from-teal-400 hover:to-teal-400 shadow-sm shadow-teal-500/20"
                           : "border border-white/15 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
@@ -280,16 +345,8 @@ function Settings() {
             })}
           </ul>
 
-          {/* Inline confirmation card for downgrades. Renders below the
-              plan list so the action and its consequence stay visually
-              connected. role="alertdialog" because it's a modal decision
-              point even though it's not a popup. */}
           {confirmingDowngrade && (
-            <div
-              role="alertdialog"
-              aria-label="Confirm downgrade"
-              className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/[0.08] p-4"
-            >
+            <div role="alertdialog" aria-label="Confirm downgrade" className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/[0.08] p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
@@ -306,12 +363,7 @@ function Settings() {
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setConfirmingDowngrade(null)}
-                  disabled={changingTo !== null}
-                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10 hover:text-white transition disabled:opacity-40"
-                >
+                <button type="button" onClick={() => setConfirmingDowngrade(null)} disabled={changingTo !== null} className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10 hover:text-white transition disabled:opacity-40">
                   Cancel
                 </button>
                 <button
@@ -331,39 +383,38 @@ function Settings() {
           )}
 
           {planError && (
-            <div
-              role="alert"
-              className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
-            >
+            <div role="alert" className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {planError}
             </div>
           )}
         </Section>
 
-        {/* Coming soon — placeholders for v2 GDPR + i18n work */}
+        {/* Billing history — paid tiers only */}
+        {tier !== "free" && (
+          <Section icon={Receipt} title="Billing history">
+            <ul className="divide-y divide-white/5">
+              <InvoiceRow date={formatDate(new Date(startedAt))} desc={`${plan.name} · ${cycle}`} amount={`${price.amountLabel}`} />
+            </ul>
+            <p className="mt-3 text-xs text-white/40">
+              {canceled
+                ? `No further payments — subscription ends ${formatDate(renews)}.`
+                : `Next payment ${formatDate(renews)} · ${price.amountLabel}${price.unit}.`}
+            </p>
+          </Section>
+        )}
+
+        {/* Coming soon — v2 placeholders */}
         <Section icon={Globe} title="Language" comingSoon>
-          <p className="text-sm text-white/40">
-            Choose your interface language. Auto-detected from your browser by default.
-          </p>
+          <p className="text-sm text-white/40">Choose your interface language. Auto-detected from your browser by default.</p>
         </Section>
-
         <Section icon={Cookie} title="Cookies & tracking" comingSoon>
-          <p className="text-sm text-white/40">
-            Control which cookies and analytics tools we can use.
-          </p>
+          <p className="text-sm text-white/40">Control which cookies and analytics tools we can use.</p>
         </Section>
-
         <Section icon={Download} title="Export my data" comingSoon>
-          <p className="text-sm text-white/40">
-            Download a copy of your account data and comparison history.
-          </p>
+          <p className="text-sm text-white/40">Download a copy of your account data and comparison history.</p>
         </Section>
-
         <Section icon={Trash2} title="Delete account" comingSoon danger>
-          <p className="text-sm text-white/40">
-            Permanently delete your account and all associated data. This action
-            cannot be undone.
-          </p>
+          <p className="text-sm text-white/40">Permanently delete your account and all associated data. This action cannot be undone.</p>
         </Section>
 
         <p className="mt-10 text-center text-xs text-white/30">
@@ -374,12 +425,26 @@ function Settings() {
   );
 }
 
+function InvoiceRow({ date, desc, amount }: { date: string; desc: string; amount: string }) {
+  return (
+    <li className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
+      <div className="min-w-0">
+        <div className="text-sm text-white/85">{date}</div>
+        <div className="text-[11px] text-white/40 capitalize">{desc}</div>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <span className="rounded-full border border-teal-400/20 bg-teal-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-teal-300">Paid</span>
+        <span className="text-sm text-white/80 tabular-nums">{amount}</span>
+        <button type="button" disabled title="Invoice PDFs ship with Stripe" className="text-white/30 cursor-not-allowed" aria-label="Download invoice">
+          <Download className="w-4 h-4" />
+        </button>
+      </div>
+    </li>
+  );
+}
+
 function Section({
-  icon: Icon,
-  title,
-  children,
-  comingSoon = false,
-  danger = false,
+  icon: Icon, title, children, comingSoon = false, danger = false,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
@@ -388,16 +453,10 @@ function Section({
   danger?: boolean;
 }) {
   return (
-    <section
-      className={`mb-4 rounded-2xl border bg-white/[0.03] p-5 ${
-        danger ? "border-red-400/20" : "border-white/10"
-      } ${comingSoon ? "opacity-60" : ""}`}
-    >
+    <section className={`mb-4 rounded-2xl border bg-white/[0.03] p-5 ${danger ? "border-red-400/20" : "border-white/10"} ${comingSoon ? "opacity-60" : ""}`}>
       <div className="mb-3 flex items-center gap-2">
         <Icon className={`w-4 h-4 ${danger ? "text-red-300/80" : "text-white/60"}`} />
-        <h2 className={`text-sm font-semibold ${danger ? "text-red-200" : "text-white"}`}>
-          {title}
-        </h2>
+        <h2 className={`text-sm font-semibold ${danger ? "text-red-200" : "text-white"}`}>{title}</h2>
         {comingSoon && (
           <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-white/40 border border-white/10 rounded-full px-2 py-0.5">
             Coming soon
@@ -410,10 +469,7 @@ function Section({
 }
 
 function Row({
-  label,
-  value,
-  valueAccent = false,
-  action,
+  label, value, valueAccent = false, action,
 }: {
   label: string;
   value: string;
@@ -424,11 +480,7 @@ function Row({
     <div className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0 border-b border-white/5 last:border-0">
       <div className="min-w-0">
         <div className="text-xs uppercase tracking-wider text-white/40 mb-0.5">{label}</div>
-        {value && (
-          <div className={`text-sm truncate ${valueAccent ? "text-teal-300 font-medium" : "text-white/90"}`}>
-            {value}
-          </div>
-        )}
+        {value && <div className={`text-sm truncate ${valueAccent ? "text-teal-300 font-medium" : "text-white/90"}`}>{value}</div>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>

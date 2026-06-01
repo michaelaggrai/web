@@ -31,8 +31,8 @@ const GOLD =
  *   - anonymous / still resolving → the marketing CTA (anonHref/anonLabel)
  *   - this IS their current plan   → "Current plan" (inert)
  *   - plan is below their tier     → "Included in your plan" (inert)
- *   - plan is above their tier      → "Upgrade to X" → /settings (where a
- *     logged-in user actually changes plan — NOT the /signin sign-up flow)
+ *   - plan is above their tier      → "Upgrade to X" → /checkout (the paid
+ *     upgrade flow — NOT the /signin sign-up flow)
  */
 export function PlanCta({
   planTier,
@@ -86,10 +86,10 @@ export function PlanCta({
     );
   }
 
-  // Above their current plan → real upgrade. Logged-in users manage their
-  // plan on /settings. Premium upgrades go gold.
+  // Above their current plan → real upgrade. Logged-in users go straight to
+  // the paid checkout for that plan. Premium upgrades go gold.
   return (
-    <Link href="/settings" className={`${BASE} ${planTier === "premium" ? GOLD : upgradeClasses(highlight)}`}>
+    <Link href={`/checkout?plan=${planTier}&cycle=monthly`} className={`${BASE} ${planTier === "premium" ? GOLD : upgradeClasses(highlight)}`}>
       Upgrade to {name}
     </Link>
   );

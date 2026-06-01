@@ -1,117 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, Sparkles, Zap, Crown } from "lucide-react";
+import { Check } from "lucide-react";
 import { HomeLink } from "@/components/home-link";
 import { AccountMenu } from "@/components/account-menu";
 import { useTier } from "@/lib/use-tier";
-import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { createClient } from "@/lib/supabase/client";
-import { useEffect } from "react";
-
-type Tier = "free" | "pro" | "premium";
-
-// AGG-33: features list mirrors /pricing PLANS exactly. Anything that
-// diverges here will read as a contradiction to a user comparing the
-// two pages. If /pricing changes, mirror it here.
-const PLANS = [
-  {
-    key: "free" as Tier,
-    name: "Free",
-    price: "£0",
-    period: "forever",
-    icon: Sparkles,
-    iconColor: "text-white/40",
-    description: "The basics. Try every fast model. No account needed.",
-    features: [
-      "8 basic models",
-      "Up to 3 models per comparison",
-      "Quality scores & metrics",
-      "Aggrai's combined answer",
-    ],
-    cta: "Current plan",
-    highlight: false,
-  },
-  {
-    key: "pro" as Tier,
-    name: "Pro",
-    price: "£11",
-    period: "per month",
-    icon: Zap,
-    iconColor: "text-teal-300",
-    description: "Every flagship model from every major lab.",
-    features: [
-      "16 advanced models",
-      "Up to 3 models per comparison",
-      "Opus 4.8, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.20…",
-      "Everything in Free",
-    ],
-    cta: "Upgrade to Pro",
-    highlight: true,
-  },
-  {
-    key: "premium" as Tier,
-    name: "Premium",
-    price: "£19",
-    period: "per month",
-    icon: Crown,
-    iconColor: "text-amber-300",
-    description: "For deep research. Reasoning specialists and 5-model comparisons.",
-    features: [
-      "4 research models",
-      "Up to 5 models per comparison",
-      "GPT-5.5 Pro, Qwen3 Max Thinking, Grok Multi-Agent…",
-      "Everything in Pro",
-    ],
-    cta: "Upgrade to Premium",
-    highlight: false,
-  },
-];
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { PLANS, priceFor, TIER_RANK, type Cycle, type Tier } from "@/lib/plans";
 
 export default function UpgradePage() {
   const { tier: currentTier } = useTier();
   const router = useRouter();
-  const [loading, setLoading] = useState<Tier | null>(null);
-  const [error, setError] = useState("");
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [cycle, setCycle] = useState<Cycle>("monthly");
+  // Seed from the stable module constant so setState only runs in the async
+  // resolver, never synchronously in the effect body.
+  const [signedIn, setSignedIn] = useState<boolean | null>(isSupabaseConfigured ? null : false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) { setSignedIn(false); return; }
-    createClient().auth.getUser().then(({ data }) => {
-      setSignedIn(!!data.user);
-    });
+    if (!isSupabaseConfigured) return;
+    createClient().auth.getUser().then(({ data }) => setSignedIn(!!data.user));
   }, []);
 
-  async function upgrade(tier: Tier) {
-    if (!signedIn) {
-      router.push(`/signin?next=/upgrade&reason=upgrade`);
-      return;
-    }
-    setLoading(tier);
-    setError("");
-    try {
-      const res = await fetch("/api/upgrade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error ?? "Upgrade failed");
-      }
-      // Hard reload — NOT router.push. The useTier hook (+ AccountMenu,
-      // ModelPicker locked-IDs, /app tier validation) all read the user's
-      // tier ONCE on mount and never refresh. router.push() preserves the
-      // React tree so they stay stale. A full-page navigation is the only
-      // way every consumer picks up the new tier reliably. See AGG-32 +
-      // AGG-36 for the deeper diagnosis.
-      window.location.assign("/app?upgraded=1");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setLoading(null);
-    }
+  // Upgrades now go through the checkout flow instead of flipping the tier
+  // instantly. Anonymous visitors sign in first, then land back on checkout.
+  function choose(tier: Tier) {
+    const dest = `/checkout?plan=${tier}&cycle=${cycle}`;
+    if (signedIn) router.push(dest);
+    else router.push(`/signin?reason=upgrade&next=${encodeURIComponent(dest)}`);
   }
 
   return (
@@ -120,40 +37,47 @@ export default function UpgradePage() {
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 
       <div className="relative z-10 w-full max-w-4xl">
-        {/* Top bar — logo + account menu, then the centered hero below */}
         <div className="mb-10 flex items-center justify-between gap-3">
           <HomeLink height={28} gradientId="upgrade-logo" className="opacity-80 hover:opacity-100 transition-opacity" />
           <AccountMenu variant="topbar" />
         </div>
 
-        {/* Centered hero */}
-        <div className="mb-10 flex flex-col items-center text-center">
-          <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">
-            Choose your plan
-          </h1>
-          <p className="mt-3 text-white/50 max-w-md">
-            Unlock more models and compare AI at full depth.
-          </p>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">Choose your plan</h1>
+          <p className="mt-3 text-white/50 max-w-md">Unlock more models and compare AI at full depth.</p>
         </div>
 
-        {error && (
-          <div
-            role="alert"
-            className="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300 text-center"
-          >
-            {error}
+        {/* Billing-cycle toggle */}
+        <div className="mb-9 flex flex-col items-center gap-2">
+          <div role="radiogroup" aria-label="Billing cycle" className="inline-grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+            {(["monthly", "annual"] as Cycle[]).map((c) => {
+              const on = cycle === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setCycle(c)}
+                  className={`rounded-lg px-5 py-1.5 text-sm font-medium transition ${
+                    on ? "bg-white/10 text-white shadow-sm" : "text-white/55 hover:text-white/80"
+                  }`}
+                >
+                  {c === "monthly" ? "Monthly" : "Annual"}
+                </button>
+              );
+            })}
           </div>
-        )}
+          <p className="text-xs text-teal-300/80 h-4">{cycle === "annual" ? "2 months free — save ~17%" : " "}</p>
+        </div>
 
         {/* Plan cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          {PLANS.map(plan => {
+          {PLANS.map((plan) => {
             const isCurrent = currentTier === plan.key;
-            const isBelow = (
-              (plan.key === "free") ||
-              (plan.key === "pro" && currentTier === "premium")
-            );
+            const isBelow = TIER_RANK[plan.key] < TIER_RANK[currentTier];
             const Icon = plan.icon;
+            const price = priceFor(plan, cycle);
 
             return (
               <div
@@ -171,21 +95,24 @@ export default function UpgradePage() {
                 )}
 
                 <div className="flex items-center gap-2 mb-4">
-                  <Icon className={`w-5 h-5 ${plan.iconColor}`} />
+                  <Icon className={`w-5 h-5 ${plan.iconColor}`} aria-hidden="true" />
                   <span className="font-semibold text-white">{plan.name}</span>
                 </div>
 
-                <div className="mb-1">
-                  <span className="text-3xl font-bold text-white">{plan.price}</span>
-                  <span className="text-white/40 text-sm ml-1">{plan.period}</span>
+                <div className="mb-1 flex items-baseline gap-1.5">
+                  <span className="text-3xl font-bold text-white">{price.amountLabel}</span>
+                  <span className="text-white/40 text-sm">{price.isFree ? "forever" : price.unit}</span>
                 </div>
+                <p className="mb-5 h-4 text-xs text-teal-300/80">
+                  {cycle === "annual" && !price.isFree ? `${price.perMonthLabel}/mo · ${price.savePctLabel}` : " "}
+                </p>
 
-                <p className="text-sm text-white/40 mb-6">{plan.description}</p>
+                <p className="text-sm text-white/40 mb-6">{plan.blurb}</p>
 
                 <ul className="space-y-2 mb-8 flex-1">
-                  {plan.features.map(f => (
+                  {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-sm text-white/70">
-                      <Check className="w-4 h-4 text-teal-400 mt-0.5 shrink-0" />
+                      <Check className="w-4 h-4 text-teal-400 mt-0.5 shrink-0" aria-hidden="true" />
                       {f}
                     </li>
                   ))}
@@ -202,9 +129,8 @@ export default function UpgradePage() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => upgrade(plan.key)}
-                    disabled={loading !== null}
-                    className={`w-full rounded-xl py-2.5 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    onClick={() => choose(plan.key)}
+                    className={`w-full rounded-xl py-2.5 text-sm font-medium transition-all ${
                       plan.key === "premium"
                         ? "bg-gradient-to-r from-amber-400 to-amber-300 text-navy hover:from-amber-300 hover:to-amber-200 shadow-lg shadow-amber-500/20"
                         : plan.highlight
@@ -212,7 +138,7 @@ export default function UpgradePage() {
                           : "border border-white/20 bg-white/5 hover:bg-white/10 text-white"
                     }`}
                   >
-                    {loading === plan.key ? "Upgrading…" : signedIn === false ? "Sign up to upgrade" : plan.cta}
+                    {signedIn === false ? "Sign up to upgrade" : `Upgrade to ${plan.name}`}
                   </button>
                 )}
               </div>
