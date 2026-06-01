@@ -9,7 +9,7 @@ import { useTier } from "@/lib/use-tier";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { startDemoBilling } from "@/lib/billing-demo";
 import {
-  planByKey, priceFor, isTier, isCycle, TIER_RANK, type Cycle, type Tier,
+  planByKey, priceFor, isTier, isCycle, TIER_RANK, gbp, type Cycle, type Tier,
 } from "@/lib/plans";
 
 export default function CheckoutPage() {
@@ -67,6 +67,9 @@ function Checkout() {
   }, [resolved, currentTier, planKey]);
 
   const price = priceFor(plan, cycle);
+  // UK B2C convention: the displayed price is VAT-inclusive. Show the VAT
+  // portion of the total (net = total ÷ 1.2; VAT = total − net).
+  const vat = Math.round((price.amount - price.amount / 1.2) * 100) / 100;
   const Icon = plan.icon;
 
   async function pay() {
@@ -194,8 +197,8 @@ function Checkout() {
                 </div>
               )}
               <div className="flex justify-between text-white/40">
-                <span>Tax</span>
-                <span>Calculated at payment</span>
+                <span>VAT (20%, included)</span>
+                <span className="tabular-nums">{gbp(vat)}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-white/10 text-white font-semibold">
                 <span>Total due today</span>

@@ -8,8 +8,9 @@ import { ArrowRight, Sparkles, Zap, Crown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
 
-// Compact plan picker shown only in signup mode. After successful signup,
-// the chosen paid plan is auto-applied via /api/upgrade. Free skips it.
+// Compact plan picker shown only in signup mode. After successful signup, a
+// chosen paid plan routes the new user into /checkout to pay; Free goes
+// straight into the app. (Paid plans are no longer granted for free.)
 type PlanId = "free" | "pro" | "premium";
 type Plan = {
   id: PlanId;
@@ -107,8 +108,8 @@ function SignIn() {
         if (!data.session) {
           // Email confirmation is enabled — no session until they confirm.
           // Stash the plan choice so it sticks through confirm-then-signin.
-          // Read back in the signin branch below and applied via /api/upgrade
-          // once they're actually signed in.
+          // Read back in the signin branch below and sent to /checkout once
+          // they're actually signed in.
           if (plan !== "free") {
             try { sessionStorage.setItem(PENDING_UPGRADE_KEY, plan); } catch { /* private mode */ }
           }
@@ -117,19 +118,11 @@ function SignIn() {
           setLoading(false);
           return;
         }
-        // Auto-apply paid plan if the user selected one on the signup form
-        // AND we got an immediate session (email confirmation OFF).
+        // Paid plan chosen + immediate session (email confirmation OFF) → send
+        // them to checkout to pay. Free falls through into the app. The session
+        // is already set, so /checkout resolves their account without re-login.
         if (plan !== "free") {
-          const ok = await applyUpgrade(plan);
-          if (!ok) {
-            router.push("/upgrade");
-            router.refresh();
-            return;
-          }
-          // Hard reload so useTier + AccountMenu + ModelPicker locked-IDs
-          // all see the new tier. router.push leaves the React tree intact
-          // and they stay stale. See AGG-36 HIGH finding.
-          window.location.assign("/app?upgraded=1");
+          router.push(`/checkout?plan=${plan}&cycle=monthly`);
           return;
         }
       } else {
@@ -141,13 +134,7 @@ function SignIn() {
         try { pending = sessionStorage.getItem(PENDING_UPGRADE_KEY); } catch { /* ignore */ }
         if (pending === "pro" || pending === "premium") {
           try { sessionStorage.removeItem(PENDING_UPGRADE_KEY); } catch { /* ignore */ }
-          const ok = await applyUpgrade(pending);
-          if (!ok) {
-            router.push("/upgrade");
-            router.refresh();
-            return;
-          }
-          window.location.assign("/app?upgraded=1");
+          router.push(`/checkout?plan=${pending}&cycle=monthly`);
           return;
         }
       }
@@ -156,20 +143,6 @@ function SignIn() {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setLoading(false);
-    }
-  }
-
-  // Fires /api/upgrade and returns whether it succeeded.
-  async function applyUpgrade(tier: "pro" | "premium"): Promise<boolean> {
-    try {
-      const res = await fetch("/api/upgrade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier }),
-      });
-      return res.ok;
-    } catch {
-      return false;
     }
   }
 
