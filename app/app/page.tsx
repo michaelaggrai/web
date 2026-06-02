@@ -5,6 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { useSearchParams, usePathname } from "next/navigation";
 import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
 import { getAnonId } from "@/lib/anon-id";
+import { saveConversation, listConversations, loadConversation, type ConvRow } from "@/lib/history";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus } from "lucide-react";
@@ -963,6 +964,56 @@ function Home() {
     createClient().auth.getUser().then(({ data }) => setSignedIn(!!data.user));
   }, []);
 
+  // ── Cross-device history (signed-in users) ────────────────────────────────
+  // Persistent Supabase mirror of the sidebar recents. Anonymous users keep the
+  // sessionStorage sessionRecents above; this only activates when signed in.
+  const [dbRecents, setDbRecents] = useState<ConvRow[]>([]);
+
+  // Load the user's saved history when they sign in.
+  useEffect(() => {
+    if (!signedIn) return;
+    let alive = true;
+    listConversations(30).then(rows => { if (alive) setDbRecents(rows); });
+    return () => { alive = false; };
+  }, [signedIn]);
+
+  // Deep link: opening /app/c/{id} on a device where it isn't in sessionStorage
+  // (a different browser) — pull the saved comparison from Supabase. The
+  // question is empty on a fresh cross-device load, so auto-submit won't fire;
+  // setting the result here just renders the stored answer.
+  useEffect(() => {
+    if (!signedIn || !urlConvId || convFromStorage) return;
+    let alive = true;
+    loadConversation(urlConvId).then(conv => {
+      if (!alive || !conv) return;
+      setQuestion(conv.question);
+      if (conv.models.length) { setSelected(new Set(conv.models)); userOwnsSelection.current = true; }
+      if (conv.result) setResult(conv.result as Result);
+      setActiveRecentId(urlConvId);
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn, urlConvId]);
+
+  // Restore a Supabase history item clicked in the sidebar — loads the full
+  // payload and hydrates in place (no remount), mirroring selectRecent().
+  async function selectDbRecent(id: string) {
+    const conv = await loadConversation(id);
+    if (!conv) return;
+    setActiveRecentId(id);
+    setQuestion(conv.question);
+    setSelected(new Set(conv.models));
+    userOwnsSelection.current = true;
+    if (conv.result) setResult(conv.result as Result);
+    setError("");
+    setIntentHint(null);
+    setSidebarOpen(false);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `/app/c/${id}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
   const maxModels = maxModelsForTier(tier);
   const lockedIds = lockedModelIds(tier, allModels);
 
@@ -1216,6 +1267,16 @@ function Home() {
             result: pendingResult,
           });
         }
+        // Signed-in users: mirror to Supabase for persistent, cross-device
+        // history. Best-effort (never blocks the result) + optimistically
+        // surface it in the sidebar without a re-fetch.
+        if (signedIn && convId) {
+          void saveConversation(convId, { question: q.trim(), models: [...models], result: pendingResult });
+          setDbRecents(prev => [
+            { id: convId, title: q.trim(), question: q.trim(), created_at: new Date().toISOString() },
+            ...prev.filter(r => r.id !== convId),
+          ].slice(0, 30));
+        }
       } else {
         throw new Error("Empty response from server");
       }
@@ -1303,9 +1364,11 @@ function Home() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onNewComparison={newComparison}
-        recents={sessionRecents.map(r => ({ id: r.id, question: r.question }))}
+        recents={signedIn
+          ? dbRecents.map(r => ({ id: r.id, question: r.title || r.question }))
+          : sessionRecents.map(r => ({ id: r.id, question: r.question }))}
         activeId={activeRecentId}
-        onSelectRecent={selectRecent}
+        onSelectRecent={signedIn ? selectDbRecent : selectRecent}
         triggerRef={menuButtonRef}
       />
 
