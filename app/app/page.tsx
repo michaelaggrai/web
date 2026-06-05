@@ -5,6 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { useSearchParams, usePathname } from "next/navigation";
 import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
 import { getAnonId } from "@/lib/anon-id";
+import { getSessionId } from "@/lib/session-id";
 import { saveConversation, listConversations, loadConversation, type ConvRow } from "@/lib/history";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -1138,11 +1139,13 @@ function Home() {
     abortRef.current = controller;
     try {
       const anonId = getAnonId();
+      const sessionId = getSessionId();
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(anonId ? { "x-aggrai-anon-id": anonId } : {}),
+          ...(sessionId ? { "x-aggrai-session-id": sessionId } : {}),
         },
         body: JSON.stringify({ question: q.trim(), models: [...models] }),
         signal: controller.signal,

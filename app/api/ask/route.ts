@@ -44,6 +44,16 @@ export async function POST(req: NextRequest) {
   // "real usage". (Internal-analytics classification only — not a trust
   // boundary; a client could spoof it, which is fine for V1.)
   const synthetic = req.headers.get("x-aggrai-synthetic") ?? "";
+  // Per-tab session id (lib/session-id) — forwarded for session-level analytics
+  // (visitor → session → ask).
+  const sessionId = req.headers.get("x-aggrai-session-id") ?? "";
+  // Visitor IP + browser UA for the backend tracking log. The backend's own
+  // socket is the cloudflared tunnel, so the real client values must be forwarded
+  // from here at the edge. x-forwarded-for is "client, proxy1, …" → take the
+  // first hop. PII (raw IP) — part of the pre-launch GDPR lock-down (AGG-30).
+  const xff = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "";
+  const clientIp = (xff.split(",")[0] ?? "").trim();
+  const ua = req.headers.get("user-agent") ?? "";
 
   let upstream: Response;
   try {
@@ -55,6 +65,9 @@ export async function POST(req: NextRequest) {
         ...(country ? { "x-aggrai-country": country } : {}),
         ...(anonId ? { "x-aggrai-anon-id": anonId } : {}),
         ...(synthetic ? { "x-aggrai-synthetic": synthetic } : {}),
+        ...(sessionId ? { "x-aggrai-session-id": sessionId } : {}),
+        ...(clientIp ? { "x-aggrai-ip": clientIp } : {}),
+        ...(ua ? { "x-aggrai-ua": ua } : {}),
       },
       body,
       // Forward the client's abort: if the user clicks Stop / navigates away,
