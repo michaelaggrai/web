@@ -13,20 +13,22 @@ const API_URL = process.env.API_URL ?? "http://localhost:3456";
 //   - `force-static` makes the route response prerenderable — Vercel
 //     serves the cached payload from edge in ~10ms instead of cold-
 //     starting a Node function (~400ms previously).
-//   - `revalidate = 1800` re-fetches every 30 minutes. Trending refresher
-//     only runs once a day at 04:00 BST, so 30 min staleness is fine.
+//   - `revalidate = 300` re-fetches every 5 min. The 04:00 cron rotates the pool
+//     once a day; a short window bounds how long the landing can show a
+//     just-rotated-out prompt (no longer cache-warm post warm-then-swap → it
+//     would run live). 5 min keeps the post-rotation cold window small.
 //   - Cached upstream fetch belt-and-braces — keeps the warm path cheap.
 //
 // Falls back to an empty list on upstream failure so the hero gracefully
 // degrades to its own FALLBACK_POOL.
 
 export const dynamic = "force-static";
-export const revalidate = 1800;
+export const revalidate = 300;
 
 export async function GET() {
   try {
     const upstream = await fetch(`${API_URL}/prompts?all=1`, {
-      next: { revalidate: 1800 },
+      next: { revalidate: 300 },
     });
     const data = await upstream.json();
     return NextResponse.json(data, { status: upstream.status });
