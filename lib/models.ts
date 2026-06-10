@@ -51,6 +51,15 @@ export const PROVIDERS: { id: string; label: string; description: string }[] = [
   { id: "xAI",       label: "xAI",       description: "Grok, frontier multi-agent experiments." },
 ]
 
+// Display metadata per tier — used by ModelPicker when grouping by tier.
+// `id` is the model CLASS each tab shows; labels use the plan names users
+// know (class basic → Free tab, flagship → Pro, premium → Premium).
+export const TIER_GROUPS: { id: ModelClass; label: string; description: string }[] = [
+  { id: "basic",    label: "Free",    description: "Fast, lightweight models — available to everyone, no account needed." },
+  { id: "flagship", label: "Pro",     description: "Every flagship model from the major labs, unlocked with Pro." },
+  { id: "premium",  label: "Premium", description: "Deep-think research specialists, exclusive to Premium." },
+]
+
 // Fallback catalog used until /api/models responds (or if it fails).
 // Mirrors the backend MODEL_CATALOG in api/server.js. Every ID was
 // live-verified against OpenRouter on 2026-05-23.
@@ -125,11 +134,13 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
 // for Gemini 3.5 Flash — same provider, flagship-class, but far faster (2.5 Pro
 // p50 ~20s / tail ~140s dragged every default comparison). 2.5 Pro is still in
 // the catalog and selectable; it's just no longer auto-selected.
+// 2026-06-10: Premium defaults swap Opus 4.8 → Fable 5 (the tier's exclusive
+// top model should lead its default five). Opus 4.8 stays a Pro flagship.
 export const TIER_DEFAULTS: Record<Tier, string[]> = {
   free:    ["anthropic/claude-haiku-4-5", "openai/gpt-4o-mini", "google/gemini-2.5-flash"],
   pro:     ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-3.5-flash"],
   premium: ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-3.5-flash",
-            "anthropic/claude-opus-4.8", "x-ai/grok-4.20"],
+            "anthropic/claude-fable-5", "x-ai/grok-4.20"],
 }
 
 export function maxModelsForTier(tier: Tier): number {

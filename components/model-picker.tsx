@@ -5,7 +5,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { ProviderLogo } from "@/components/brand-icons"
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { CATEGORIES, PROVIDERS, type ModelCategory, type ModelEntry } from "@/lib/models"
+import { CATEGORIES, PROVIDERS, TIER_GROUPS, type ModelCategory, type ModelClass, type ModelEntry } from "@/lib/models"
 
 export type { ModelEntry }
 
@@ -22,7 +22,8 @@ type Props = {
 // Premium unlocks more slots.
 const PREMIUM_MAX = 5
 
-type GroupBy = "category" | "provider"
+type GroupBy = "category" | "provider" | "tier"
+const GROUP_BY_LABELS: Record<GroupBy, string> = { category: "Category", provider: "Provider", tier: "Tier" }
 
 const GROUP_BY_PERSIST_KEY = "aggrai_picker_group_by_v1"
 
@@ -38,6 +39,9 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
   // category + provider as separate state means flipping the toggle
   // doesn't lose the user's previous tab pick on the other axis.
   const [activeProvider, setActiveProvider] = useState<string>("")
+  // Tier tab for the tier grouping. "basic" (the Free tab) always has
+  // models, so unlike providers it needs no re-anchoring effect.
+  const [activeTier, setActiveTier] = useState<ModelClass>("basic")
   // Brief in-popover toast "Swapped X for Y" when at-max swap fires.
   const [swapNotice, setSwapNotice] = useState<string | null>(null)
   const locked = lockedIds ?? new Set<string>()
@@ -47,7 +51,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
   useEffect(() => {
     try {
       const stored = localStorage.getItem(GROUP_BY_PERSIST_KEY)
-      if (stored === "category" || stored === "provider") setGroupBy(stored)
+      if (stored === "category" || stored === "provider" || stored === "tier") setGroupBy(stored)
     } catch { /* private mode — ignore */ }
   }, [])
 
@@ -83,8 +87,18 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
     return map
   }, [pickable])
 
+  // And keyed by class for the tier grouping (Free / Pro / Premium tabs).
+  const byClass = useMemo(() => {
+    const map = new Map<ModelClass, ModelEntry[]>()
+    for (const m of pickable) {
+      ;(map.get(m.class) ?? map.set(m.class, []).get(m.class)!).push(m)
+    }
+    return map
+  }, [pickable])
+
   const visibleCategories = CATEGORIES.filter(c => byCategory.has(c.id))
   const visibleProviders = PROVIDERS.filter(p => byProvider.has(p.id))
+  const visibleTiers = TIER_GROUPS.filter(t => byClass.has(t.id))
 
   // Initialise / re-anchor activeProvider when the catalog resolves.
   // Picks the first visible provider so the popover never shows an
@@ -108,19 +122,30 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
         active: c.id === activeCategory,
         onSelect: () => setActiveCategory(c.id),
       }))
-    : visibleProviders.map(p => ({
-        id: p.id,
-        label: p.label,
-        description: p.description,
-        count: byProvider.get(p.id)?.length ?? 0,
-        active: p.id === activeProvider,
-        onSelect: () => setActiveProvider(p.id),
-      }))
+    : groupBy === "provider"
+      ? visibleProviders.map(p => ({
+          id: p.id,
+          label: p.label,
+          description: p.description,
+          count: byProvider.get(p.id)?.length ?? 0,
+          active: p.id === activeProvider,
+          onSelect: () => setActiveProvider(p.id),
+        }))
+      : visibleTiers.map(t => ({
+          id: t.id,
+          label: t.label,
+          description: t.description,
+          count: byClass.get(t.id)?.length ?? 0,
+          active: t.id === activeTier,
+          onSelect: () => setActiveTier(t.id),
+        }))
 
   const activeGroup = groups.find(g => g.active) ?? groups[0]
   const activeList = groupBy === "category"
     ? (byCategory.get(activeCategory) ?? [])
-    : (byProvider.get(activeProvider) ?? [])
+    : groupBy === "provider"
+      ? (byProvider.get(activeProvider) ?? [])
+      : (byClass.get(activeTier) ?? [])
 
   function toggle(id: string) {
     if (locked.has(id)) return
@@ -207,12 +232,13 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
           </div>
 
           {/* Group-by segmented toggle. Lets the user flip the tab strip
-              between the curated category buckets (Fast / Creative / …)
-              and a raw provider split (Anthropic / OpenAI / …). The
-              choice persists in localStorage. */}
+              between the curated category buckets (Fast / Creative / …),
+              a raw provider split (Anthropic / OpenAI / …), or the plan
+              tiers (Free / Pro / Premium). The choice persists in
+              localStorage. */}
           <div className="flex items-center gap-1 px-3 pb-2 -mt-1">
             <span className="text-[10px] uppercase tracking-wider text-white/30 mr-1.5">Group by</span>
-            {(["category", "provider"] as const).map(mode => {
+            {(["category", "provider", "tier"] as const).map(mode => {
               const isActive = groupBy === mode
               return (
                 <button
@@ -226,7 +252,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                       : "text-white/40 hover:text-white/70"
                   }`}
                 >
-                  {mode === "category" ? "Category" : "Provider"}
+                  {GROUP_BY_LABELS[mode]}
                 </button>
               )
             })}
@@ -308,7 +334,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
               })}
               {activeList.length === 0 && (
                 <li className="px-2 py-3 text-xs text-white/40 text-center">
-                  No models in this category yet.
+                  No models in this group yet.
                 </li>
               )}
             </ul>
