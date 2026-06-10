@@ -78,8 +78,11 @@ export const FALLBACK_MODELS: ModelEntry[] = [
 
   // Reasoning — Opus 4.7 is general-purpose flagship (Pro). The 4
   // explicit deep-think specialists stay Premium.
-  { id: "openai/gpt-5.4-pro",                       label: "GPT-5.4 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" },
+  { id: "openai/gpt-5.4-pro",                       label: "GPT-5.4 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning", status: "deprecated" },
   { id: "openai/gpt-5.5-pro",                       label: "GPT-5.5 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" },
+  // Fable 5 launched 2026-06: Anthropic's tier above Opus ($10/$50 per 1M —
+  // 2× Opus 4.8). First Anthropic model in the Premium class.
+  { id: "anthropic/claude-fable-5",                 label: "Claude Fable 5",       provider: "Anthropic", class: "premium",  category: "reasoning" },
   // Opus 4.8 launched 2026-05-27. Same price as 4.7, pure upgrade.
   { id: "anthropic/claude-opus-4.8",                label: "Claude Opus 4.8",      provider: "Anthropic", class: "flagship", category: "reasoning" },
   { id: "anthropic/claude-opus-4.7",                label: "Claude Opus 4.7",      provider: "Anthropic", class: "flagship", category: "reasoning", status: "deprecated" },
