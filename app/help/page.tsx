@@ -15,11 +15,11 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     q: "Which models can I use?",
     a: (
       <>
-        29 models across 8 providers: Anthropic (Claude Fable 5, Opus 4.8,
+        32 models across 11 providers: Anthropic (Claude Fable 5, Opus 4.8,
         Sonnet 4.6, Haiku 4.5…), OpenAI (GPT-5.5 Pro, GPT-4o, GPT-4o Mini,
         Codex variants…), Google (Gemini 3.1 Pro, Gemini 2.5 Pro, Gemini 2.5
         Flash…), xAI (Grok 4.20), Meta (Llama 3.3 70B, Llama 3.1 8B),
-        Mistral, DeepSeek, and Qwen. Organised into Fast / Creative /
+        Mistral, DeepSeek, Qwen, Moonshot, Zhipu, and MiniMax. Organised into Fast / Creative /
         Reasoning / Coding / Multimodal / Frontier categories. See the
         full <Link href="/models">model catalog</Link> for the current list.
         We add models as they ship.
@@ -28,7 +28,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Do I need to sign up?",
-    a: "No. Anyone can use the Free tier (8 basic models, 3 per comparison) without an account. You only need an account to upgrade — Pro unlocks 16 advanced models (Opus 4.8, GPT-4o, Sonnet, Grok 4.20, Gemini Pro…), Premium adds 5 research models and lets you compare up to 5 at once.",
+    a: "No. Anyone can use the Free tier (8 basic models, 3 per comparison) without an account. You only need an account to upgrade — Pro unlocks 16 advanced models (Opus 4.8, GPT-4o, Sonnet, Grok 4.20, Gemini Pro…), Premium adds 8 research models and lets you compare up to 5 at once.",
   },
   {
     q: "What's the difference between the plans?",
@@ -38,7 +38,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
         <br />
         <strong>Pro</strong> — 16 advanced models. Every flagship: Claude Opus 4.8, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.20, Llama 3.3 70B, Codex, Devstral and more. Up to 3 per comparison.
         <br />
-        <strong>Premium</strong> — 5 research models. For deep research: Claude Fable 5, GPT-5.5 Pro, DeepSeek v4 Pro, Qwen3 Max Thinking, Grok 4.20 Multi-Agent. Up to 5 per comparison.
+        <strong>Premium</strong> — 8 research models. For deep research: Claude Fable 5, GPT-5.5 Pro, DeepSeek v4 Pro, Kimi K2 Thinking, GLM-5.1, MiniMax M2.5, Qwen3 Max Thinking, Grok 4.20 Multi-Agent. Up to 5 per comparison.
         <br />
         See <Link href="/pricing">Pricing</Link> for details.
       </>

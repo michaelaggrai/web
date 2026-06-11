@@ -49,6 +49,9 @@ export const PROVIDERS: { id: string; label: string; description: string }[] = [
   { id: "DeepSeek",  label: "DeepSeek",  description: "Strong reasoning specialist." },
   { id: "Qwen",      label: "Qwen",      description: "Alibaba, multilingual + reasoning." },
   { id: "xAI",       label: "xAI",       description: "Grok, frontier multi-agent experiments." },
+  { id: "Moonshot",  label: "Moonshot",  description: "Kimi family — long-context deep reasoning." },
+  { id: "Zhipu",     label: "Zhipu",     description: "GLM family — frontier reasoning, open-weight." },
+  { id: "MiniMax",   label: "MiniMax",   description: "Long-context reasoning, very low cost." },
 ]
 
 // Display metadata per tier — used by ModelPicker when grouping by tier.
@@ -97,6 +100,12 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "anthropic/claude-opus-4.7",                label: "Claude Opus 4.7",      provider: "Anthropic", class: "flagship", category: "reasoning", status: "deprecated" },
   { id: "deepseek/deepseek-v4-pro",                 label: "DeepSeek v4 Pro",      provider: "DeepSeek",  class: "premium",  category: "reasoning" },
   { id: "qwen/qwen3-max-thinking",                  label: "Qwen3 Max Thinking",   provider: "Qwen",      class: "premium",  category: "reasoning" },
+  // 2026-06-11: three more Premium deep-thinkers from new providers (Moonshot,
+  // Zhipu, MiniMax). All reasoning-class, all far cheaper than GPT-5.5 Pro.
+  // Mirror of backend MODEL_CATALOG.
+  { id: "moonshotai/kimi-k2-thinking",              label: "Kimi K2 Thinking",     provider: "Moonshot",  class: "premium",  category: "reasoning" },
+  { id: "z-ai/glm-5.1",                             label: "GLM-5.1",              provider: "Zhipu",     class: "premium",  category: "reasoning" },
+  { id: "minimax/minimax-m2.5",                     label: "MiniMax M2.5",         provider: "MiniMax",   class: "premium",  category: "reasoning" },
 
   // Coding
   { id: "openai/gpt-5.3-codex",                     label: "GPT-5.3 Codex",        provider: "OpenAI",    class: "flagship", category: "coding" },
@@ -134,13 +143,16 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
 // for Gemini 3.5 Flash — same provider, flagship-class, but far faster (2.5 Pro
 // p50 ~20s / tail ~140s dragged every default comparison). 2.5 Pro is still in
 // the catalog and selectable; it's just no longer auto-selected.
-// 2026-06-10: Premium defaults swap Opus 4.8 → Fable 5 (the tier's exclusive
-// top model should lead its default five). Opus 4.8 stays a Pro flagship.
+// 2026-06-11: Premium defaults are now all Premium-class deep-thinkers, and the
+// cheap ones — the five cheapest Premium models, one per provider (~$0.10 per
+// compare vs $1.47 for GPT-5.5 Pro alone). The old defaults leaned on flagship
+// generals (Sonnet, GPT-4o, Gemini Flash) that aren't Premium-class. The pricey
+// premiums (GPT-5.5 Pro, Fable 5, Grok Multi-Agent) stay selectable in catalog.
 export const TIER_DEFAULTS: Record<Tier, string[]> = {
   free:    ["anthropic/claude-haiku-4-5", "openai/gpt-4o-mini", "google/gemini-2.5-flash"],
   pro:     ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-3.5-flash"],
-  premium: ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-3.5-flash",
-            "anthropic/claude-fable-5", "x-ai/grok-4.20"],
+  premium: ["deepseek/deepseek-v4-pro", "minimax/minimax-m2.5", "moonshotai/kimi-k2-thinking",
+            "z-ai/glm-5.1", "qwen/qwen3-max-thinking"],
 }
 
 export function maxModelsForTier(tier: Tier): number {

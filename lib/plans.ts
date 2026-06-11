@@ -73,9 +73,9 @@ export const PLANS: Plan[] = [
     monthly: 19,
     annual: 190,
     blurb: "For deep research. Reasoning specialists and 5-model comparisons.",
-    tagline: "5 research models, up to 5 per comparison",
+    tagline: "8 research models, up to 5 per comparison",
     features: [
-      "5 research models",
+      "8 research models",
       "Up to 5 models per comparison",
       "Claude Fable 5, GPT-5.5 Pro, Qwen3 Max Thinking…",
       "Everything in Pro",

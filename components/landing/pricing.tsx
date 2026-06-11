@@ -65,7 +65,7 @@ const tiers: PricingTier[] = [
     Icon: Crown,
     iconColor: "text-amber-300",
     features: [
-      "5 research models",
+      "8 research models",
       "Up to 5 models per comparison",
       "Claude Fable 5, GPT-5.5 Pro, Qwen3 Max Thinking…",
       "Everything in Pro",

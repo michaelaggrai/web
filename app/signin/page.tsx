@@ -52,8 +52,8 @@ const PLANS: Plan[] = [
     period: "/mo",
     icon: Crown,
     iconColor: "text-amber-300",
-    tagline: "5 research models",
-    detail: "Everything in Pro plus 5 reasoning specialists — Claude Fable 5, GPT-5.5 Pro, DeepSeek v4 Pro, Qwen3 Max Thinking, Grok 4.20 Multi-Agent. For deep research. Up to 5 models per comparison.",
+    tagline: "8 research models",
+    detail: "Everything in Pro plus 8 reasoning specialists — Claude Fable 5, GPT-5.5 Pro, Kimi K2 Thinking, DeepSeek v4 Pro, and more. For deep research. Up to 5 models per comparison.",
   },
 ];
 function isPlanId(v: string | null): v is PlanId {

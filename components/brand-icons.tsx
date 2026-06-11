@@ -72,6 +72,9 @@ function initialIcon(letter: string, fill: string) {
 export const DeepSeekIcon = initialIcon("D", "#4F6BFF")
 export const QwenIcon     = initialIcon("Q", "#615CED")
 export const XAIIcon      = initialIcon("X", "#111111")
+export const MoonshotIcon = initialIcon("M", "#111827")
+export const ZhipuIcon    = initialIcon("Z", "#1D4ED8")
+export const MiniMaxIcon  = initialIcon("M", "#E5484D")
 
 const BY_PROVIDER: Record<string, (p: IconProps) => React.JSX.Element> = {
   Anthropic: AnthropicIcon,
@@ -82,6 +85,9 @@ const BY_PROVIDER: Record<string, (p: IconProps) => React.JSX.Element> = {
   DeepSeek: DeepSeekIcon,
   Qwen: QwenIcon,
   xAI: XAIIcon,
+  Moonshot: MoonshotIcon,
+  Zhipu: ZhipuIcon,
+  MiniMax: MiniMaxIcon,
 }
 
 // Provider derived from the model-id prefix (e.g. "anthropic/claude-..." → "Anthropic")
@@ -94,6 +100,9 @@ const PROVIDER_BY_PREFIX: Record<string, string> = {
   "deepseek": "DeepSeek",
   "qwen": "Qwen",
   "x-ai": "xAI",
+  "moonshotai": "Moonshot",
+  "z-ai": "Zhipu",
+  "minimax": "MiniMax",
 }
 
 export function providerOf(modelId: string): string {
