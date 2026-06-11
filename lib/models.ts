@@ -143,16 +143,17 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
 // for Gemini 3.5 Flash — same provider, flagship-class, but far faster (2.5 Pro
 // p50 ~20s / tail ~140s dragged every default comparison). 2.5 Pro is still in
 // the catalog and selectable; it's just no longer auto-selected.
-// 2026-06-11: Premium defaults are now all Premium-class deep-thinkers, and the
-// cheap ones — the five cheapest Premium models, one per provider (~$0.10 per
-// compare vs $1.47 for GPT-5.5 Pro alone). The old defaults leaned on flagship
-// generals (Sonnet, GPT-4o, Gemini Flash) that aren't Premium-class. The pricey
-// premiums (GPT-5.5 Pro, Fable 5, Grok Multi-Agent) stay selectable in catalog.
+// 2026-06-11 (revised): Premium defaults = an explicit hand-picked five, all
+// Premium-class, one per provider, led by Fable 5 (Anthropic flagship) then a
+// spread of deep-thinkers (Grok Multi-Agent / Kimi / DeepSeek / GLM). Replaces
+// the brief "five cheapest" pass — same all-premium rule, marquee + variety
+// over rock-bottom cost. Pricey premiums (GPT-5.5 Pro, Qwen3 Max) stay
+// selectable, off-default. MUST mirror backend TIER_DEFAULTS.
 export const TIER_DEFAULTS: Record<Tier, string[]> = {
   free:    ["anthropic/claude-haiku-4-5", "openai/gpt-4o-mini", "google/gemini-2.5-flash"],
   pro:     ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-3.5-flash"],
-  premium: ["deepseek/deepseek-v4-pro", "minimax/minimax-m2.5", "moonshotai/kimi-k2-thinking",
-            "z-ai/glm-5.1", "qwen/qwen3-max-thinking"],
+  premium: ["anthropic/claude-fable-5", "x-ai/grok-4.20-multi-agent", "moonshotai/kimi-k2-thinking",
+            "deepseek/deepseek-v4-pro", "z-ai/glm-5.1"],
 }
 
 export function maxModelsForTier(tier: Tier): number {
