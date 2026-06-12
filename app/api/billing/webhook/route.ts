@@ -14,8 +14,14 @@ type CycleVal = "monthly" | "annual";
 // Settings renders). Stripe retries failed deliveries, so returning 500 on a
 // transient error is safe.
 export async function POST(req: NextRequest) {
+  // Need both the webhook secret (to verify the signature) and the API key
+  // (getStripe(), used below to retrieve the subscription on invoice.paid).
+  // Check both up front so a missing key returns a clear error rather than
+  // surfacing later as a confusing "Invalid signature".
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+  if (!secret || !process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: "Billing not configured" }, { status: 500 });
+  }
 
   const sig = req.headers.get("stripe-signature");
   if (!sig) return NextResponse.json({ error: "Missing signature" }, { status: 400 });
