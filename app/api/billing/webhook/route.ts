@@ -109,9 +109,22 @@ async function syncSubscription(admin: Admin, sub: Stripe.Subscription) {
   // canceled / unpaid / incomplete → free.
   await admin.from("profiles").update({ tier: active && tier ? tier : "free" }).eq("id", userId);
 
-  // TODO(wiring): nudge the backend POST /invalidate-account so the new tier is
-  // instant instead of waiting on its 1h account-cache TTL. The webhook has no
-  // user access token, so this needs either a shared-secret path on that
-  // endpoint or the /checkout/success page (which has the session) to trigger
-  // it. Tracked for the UI-wiring pass.
+  // Make the new tier take effect immediately instead of waiting on the
+  // backend's 1h account-cache TTL. The webhook has no user JWT, so it
+  // authenticates with the shared service secret. Best-effort: if it fails (or
+  // the secret isn't set yet) the TTL is the fallback, so we never throw here.
+  const serviceSecret = process.env.INTERNAL_API_SECRET;
+  if (serviceSecret) {
+    const apiUrl = process.env.API_URL ?? "http://localhost:3456";
+    try {
+      const r = await fetch(`${apiUrl}/invalidate-account`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-aggrai-service-secret": serviceSecret },
+        body: JSON.stringify({ userId }),
+      });
+      if (!r.ok) console.warn(`invalidate-account (service) returned HTTP ${r.status} for ${userId}`);
+    } catch (err) {
+      console.warn("invalidate-account (service) fetch failed", err);
+    }
+  }
 }
