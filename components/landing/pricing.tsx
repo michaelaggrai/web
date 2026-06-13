@@ -47,9 +47,9 @@ const tiers: PricingTier[] = [
     Icon: Zap,
     iconColor: "text-teal-300",
     features: [
-      "16 advanced models",
+      "15 advanced models",
       "Up to 3 models per comparison",
-      "Opus 4.8, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok…",
+      "Opus 4.8 Fast, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok…",
       "Everything in Free",
     ],
     highlighted: true,
@@ -67,7 +67,7 @@ const tiers: PricingTier[] = [
     features: [
       "8 research models",
       "Up to 5 models per comparison",
-      "Claude Fable 5, GPT-5.5 Pro, Qwen3 Max Thinking…",
+      "Claude Opus 4.8, GPT-5.5 Pro, Qwen3 Max Thinking…",
       "Everything in Pro",
     ],
     buttonText: "Get Premium",

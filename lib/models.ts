@@ -100,9 +100,9 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "openai/gpt-5.5-pro",                       label: "GPT-5.5 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" },
   // Fable 5 launched 2026-06: Anthropic's tier above Opus ($10/$50 per 1M —
   // 2× Opus 4.8). First Anthropic model in the Premium class.
-  { id: "anthropic/claude-fable-5",                 label: "Claude Fable 5",       provider: "Anthropic", class: "premium",  category: "reasoning" },
+  { id: "anthropic/claude-fable-5",                 label: "Claude Fable 5",       provider: "Anthropic", class: "premium",  category: "reasoning", status: "deprecated" }, // Anthropic pulled Fable 5 from GA — hidden; id kept for old links
   // Opus 4.8 launched 2026-05-27. Same price as 4.7, pure upgrade.
-  { id: "anthropic/claude-opus-4.8",                label: "Claude Opus 4.8",      provider: "Anthropic", class: "flagship", category: "reasoning" },
+  { id: "anthropic/claude-opus-4.8",                label: "Claude Opus 4.8",      provider: "Anthropic", class: "premium",  category: "reasoning" }, // premium-exclusive + premium default (replaced Fable 5)
   { id: "anthropic/claude-opus-4.7",                label: "Claude Opus 4.7",      provider: "Anthropic", class: "flagship", category: "reasoning", status: "deprecated" },
   { id: "deepseek/deepseek-v4-pro",                 label: "DeepSeek v4 Pro",      provider: "DeepSeek",  class: "premium",  category: "reasoning" },
   { id: "qwen/qwen3-max-thinking",                  label: "Qwen3 Max Thinking",   provider: "Qwen",      class: "premium",  category: "reasoning" },
@@ -150,7 +150,7 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
 // p50 ~20s / tail ~140s dragged every default comparison). 2.5 Pro is still in
 // the catalog and selectable; it's just no longer auto-selected.
 // 2026-06-11 (revised): Premium defaults = an explicit hand-picked five, all
-// Premium-class, one per provider, led by Fable 5 (Anthropic flagship) then a
+// Premium-class, one per provider, led by Opus 4.8 (Anthropic flagship) then a
 // spread of deep-thinkers (Grok Multi-Agent / Kimi / DeepSeek / GLM). Replaces
 // the brief "five cheapest" pass — same all-premium rule, marquee + variety
 // over rock-bottom cost. Pricey premiums (GPT-5.5 Pro, Qwen3 Max) stay
@@ -158,7 +158,7 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
 export const TIER_DEFAULTS: Record<Tier, string[]> = {
   free:    ["anthropic/claude-haiku-4-5", "openai/gpt-4o-mini", "google/gemini-2.5-flash"],
   pro:     ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-3.5-flash"],
-  premium: ["anthropic/claude-fable-5", "x-ai/grok-4.20-multi-agent", "moonshotai/kimi-k2-thinking",
+  premium: ["anthropic/claude-opus-4.8", "x-ai/grok-4.20-multi-agent", "moonshotai/kimi-k2-thinking",
             "deepseek/deepseek-v4-pro", "z-ai/glm-5.1"],
 }
 
