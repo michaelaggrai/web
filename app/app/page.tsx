@@ -19,7 +19,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useTier } from "@/lib/use-tier";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
-import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parseModelsParam, type ModelEntry } from "@/lib/models";
+import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parseModelsParam, type ModelEntry, type Tier } from "@/lib/models";
 
 // AGG-7 v2 (2026-05-25): switched from 4-dim (comprehension /
 // thought_provoking / nuance / clarity) to research-backed 5-dim.
@@ -808,6 +808,9 @@ function Home() {
   // the loading skeleton, matching the loaded result header.
   const [pendingQuestion, setPendingQuestion] = useState("");
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
+  // Backend-authored defaults (delisted models already swapped for siblings).
+  // Static TIER_DEFAULTS is the pre-fetch fallback; /api/models overrides it.
+  const [tierDefaults, setTierDefaults] = useState<Record<Tier, string[]>>(TIER_DEFAULTS);
   const [selected, setSelected] = useState<Set<string>>(explicitModels ?? new Set(TIER_DEFAULTS.free));
   const [loading, setLoading] = useState(false);
   const [intentHint, setIntentHint] = useState<"compare" | "product" | "direct" | null>(null);
@@ -952,8 +955,8 @@ function Home() {
   // defaults — unless the user has explicitly chosen models.
   useEffect(() => {
     if (userOwnsSelection.current) return;
-    setSelected(new Set(TIER_DEFAULTS[tier]));
-  }, [tier]);
+    setSelected(new Set(tierDefaults[tier]));
+  }, [tier, tierDefaults]);
 
   function handleSelectionChange(next: Set<string>) {
     userOwnsSelection.current = true;
@@ -1021,11 +1024,14 @@ function Home() {
   useEffect(() => {
     fetch("/api/models")
       .then(r => r.json())
-      .then((d: { models?: ModelEntry[] }) => {
+      .then((d: { models?: ModelEntry[]; tierDefaults?: Record<Tier, string[]> }) => {
         if (Array.isArray(d.models) && d.models.length > 0) {
           setAllModels(d.models);
           setModelLabels(d.models);
         }
+        // Backend ships HEALED defaults (delisted swapped for siblings); adopt
+        // them so the picker pre-selects working models.
+        if (d.tierDefaults) setTierDefaults(d.tierDefaults);
       })
       .catch(() => {});
   }, []);
@@ -1065,7 +1071,7 @@ function Home() {
     if (!tierResolved) return;
     autoSubmitted.current = true;
     setQuestion(initialQuestion);
-    submitQuestion(initialQuestion, new Set(TIER_DEFAULTS[tier]), urlConvId ?? undefined);
+    submitQuestion(initialQuestion, new Set(tierDefaults[tier]), urlConvId ?? undefined);
     // submitQuestion + setQuestion are stable closures over this render;
     // we want this effect to fire exactly once on the relevant trigger
     // (mount when explicitModels is set, or tierResolved flip otherwise).
@@ -1076,13 +1082,16 @@ function Home() {
   // excess count from a stale URL or after a tier change.
   useEffect(() => {
     const locked = lockedModelIds(tier, allModels);
+    // Drop models the backend reports as delisted so a dead default / URL pick
+    // isn't submitted (it's already absent from the picker list too).
+    const unavailable = new Set(allModels.filter(m => m.available === false).map(m => m.id));
     const cap = maxModelsForTier(tier);
     setSelected(prev => {
-      const valid = [...prev].filter(id => !locked.has(id)).slice(0, cap);
+      const valid = [...prev].filter(id => !locked.has(id) && !unavailable.has(id)).slice(0, cap);
       if (valid.length === prev.size) return prev;
-      return new Set(valid.length > 0 ? valid : TIER_DEFAULTS[tier]);
+      return new Set(valid.length > 0 ? valid : tierDefaults[tier]);
     });
-  }, [tier, allModels]);
+  }, [tier, allModels, tierDefaults]);
 
   async function submitQuestion(q: string, models: Set<string>, reuseConvId?: string) {
     // URL bookkeeping: every submit lives at a clean /app/c/{id} URL so
@@ -1336,7 +1345,7 @@ function Home() {
     // from a restored recent) and re-enable tier-default sync. Without this,
     // selectRecent()'s `userOwnsSelection = true` sticks forever and the picker
     // never returns to the tier default.
-    setSelected(new Set(TIER_DEFAULTS[tier]));
+    setSelected(new Set(tierDefaults[tier]));
     userOwnsSelection.current = false;
     if (typeof window !== "undefined") {
       // Drop any /app/c/{id} suffix back to plain /app so the URL

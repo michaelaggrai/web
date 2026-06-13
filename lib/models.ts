@@ -21,6 +21,12 @@ export type ModelEntry = {
    * tier-gating, label lookups, and cache keys.
    */
   status?: "active" | "deprecated"
+  /**
+   * Backend-reported OpenRouter availability. false = delisted upstream → the
+   * picker hides it and a delisted default is auto-substituted server-side (see
+   * /models). Undefined = available (backward compat with older payloads).
+   */
+  available?: boolean
 }
 
 // Display metadata per category — used by ModelPicker tabs.

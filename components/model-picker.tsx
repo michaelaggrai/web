@@ -64,7 +64,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
   // render labels for legacy URLs (e.g. ?models=anthropic/claude-opus-4.7).
   // The popover itself (tabs + lists) only offers pickable models — users
   // can't NEWLY select a retired model.
-  const pickable = useMemo(() => all.filter(m => m.status !== "deprecated"), [all])
+  const pickable = useMemo(() => all.filter(m => m.status !== "deprecated" && m.available !== false), [all])
 
   // Group models by category once per render. Only categories that have
   // at least one model are shown as tabs — keeps the UI honest if the
