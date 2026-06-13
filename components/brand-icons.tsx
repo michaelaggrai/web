@@ -75,6 +75,7 @@ export const XAIIcon      = initialIcon("X", "#111111")
 export const MoonshotIcon = initialIcon("M", "#111827")
 export const ZhipuIcon    = initialIcon("Z", "#1D4ED8")
 export const MiniMaxIcon  = initialIcon("M", "#E5484D")
+export const NvidiaIcon   = initialIcon("N", "#76B900")
 
 const BY_PROVIDER: Record<string, (p: IconProps) => React.JSX.Element> = {
   Anthropic: AnthropicIcon,
@@ -88,6 +89,7 @@ const BY_PROVIDER: Record<string, (p: IconProps) => React.JSX.Element> = {
   Moonshot: MoonshotIcon,
   Zhipu: ZhipuIcon,
   MiniMax: MiniMaxIcon,
+  NVIDIA: NvidiaIcon,
 }
 
 // Provider derived from the model-id prefix (e.g. "anthropic/claude-..." → "Anthropic")
@@ -103,6 +105,7 @@ const PROVIDER_BY_PREFIX: Record<string, string> = {
   "moonshotai": "Moonshot",
   "z-ai": "Zhipu",
   "minimax": "MiniMax",
+  "nvidia": "NVIDIA",
 }
 
 export function providerOf(modelId: string): string {

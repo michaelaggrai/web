@@ -56,6 +56,7 @@ export const PROVIDERS: { id: string; label: string; description: string }[] = [
   { id: "Qwen",      label: "Qwen",      description: "Alibaba, multilingual + reasoning." },
   { id: "xAI",       label: "xAI",       description: "Grok, frontier multi-agent experiments." },
   { id: "Moonshot",  label: "Moonshot",  description: "Kimi family — long-context deep reasoning." },
+  { id: "NVIDIA",    label: "NVIDIA",    description: "Nemotron family — open reasoning + orchestration." },
   { id: "Zhipu",     label: "Zhipu",     description: "GLM family — frontier reasoning, open-weight." },
   { id: "MiniMax",   label: "MiniMax",   description: "Long-context reasoning, very low cost." },
 ]
@@ -112,6 +113,8 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "moonshotai/kimi-k2-thinking",              label: "Kimi K2 Thinking",     provider: "Moonshot",  class: "premium",  category: "reasoning" },
   { id: "z-ai/glm-5.1",                             label: "GLM-5.1",              provider: "Zhipu",     class: "premium",  category: "reasoning" },
   { id: "minimax/minimax-m2.5",                     label: "MiniMax M2.5",         provider: "MiniMax",   class: "premium",  category: "reasoning" },
+  { id: "nvidia/nemotron-3-ultra-550b-a55b",        label: "Nemotron 3 Ultra",     provider: "NVIDIA",    class: "premium",  category: "reasoning" },
+  { id: "nvidia/nemotron-3-super-120b-a12b",        label: "Nemotron 3 Super",     provider: "NVIDIA",    class: "flagship", category: "reasoning" },
 
   // Coding
   { id: "openai/gpt-5.3-codex",                     label: "GPT-5.3 Codex",        provider: "OpenAI",    class: "flagship", category: "coding" },

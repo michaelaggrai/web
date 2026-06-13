@@ -4,11 +4,11 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "AI models on aggrai — full catalogue",
   description:
-    "31 models from 11 providers (Anthropic, OpenAI, Google, xAI, Meta, Mistral, DeepSeek, Qwen, Moonshot, Zhipu, MiniMax) grouped by capability. See which models are available on Free, Pro, and Premium tiers.",
+    "33 models from 12 providers (Anthropic, OpenAI, Google, xAI, Meta, Mistral, DeepSeek, Qwen, Moonshot, Zhipu, MiniMax, NVIDIA) grouped by capability. See which models are available on Free, Pro, and Premium tiers.",
   openGraph: {
     title: "AI models on aggrai — full catalogue",
     description:
-      "31 models from Anthropic, OpenAI, Google, xAI, Meta, Mistral, DeepSeek, Qwen, Moonshot, Zhipu, MiniMax — all in one comparison tool.",
+      "33 models from Anthropic, OpenAI, Google, xAI, Meta, Mistral, DeepSeek, Qwen, Moonshot, Zhipu, MiniMax, NVIDIA — all in one comparison tool.",
     url: "/models",
   },
 };

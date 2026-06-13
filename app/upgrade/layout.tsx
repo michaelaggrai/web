@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Upgrade your plan — aggrai",
   description:
-    "Unlock more AI models per comparison. Pro gives you 15 flagships, Premium gives you 8 reasoning specialists with the ability to compare 5 at once.",
+    "Unlock more AI models per comparison. Pro gives you 16 flagships, Premium gives you 9 reasoning specialists with the ability to compare 5 at once.",
   openGraph: {
     title: "Upgrade your plan — aggrai",
     description:

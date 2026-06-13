@@ -56,9 +56,9 @@ export const PLANS: Plan[] = [
     monthly: 11,
     annual: 110,
     blurb: "Every flagship model from every major lab.",
-    tagline: "15 advanced models, up to 3 per comparison",
+    tagline: "16 advanced models, up to 3 per comparison",
     features: [
-      "15 advanced models",
+      "16 advanced models",
       "Up to 3 models per comparison",
       "Opus 4.8 Fast, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.20…",
       "Everything in Free",
@@ -73,9 +73,9 @@ export const PLANS: Plan[] = [
     monthly: 19,
     annual: 190,
     blurb: "For deep research. Reasoning specialists and 5-model comparisons.",
-    tagline: "8 research models, up to 5 per comparison",
+    tagline: "9 research models, up to 5 per comparison",
     features: [
-      "8 research models",
+      "9 research models",
       "Up to 5 models per comparison",
       "Claude Opus 4.8, GPT-5.5 Pro, Qwen3 Max Thinking…",
       "Everything in Pro",
