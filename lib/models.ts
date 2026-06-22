@@ -111,7 +111,7 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   // Zhipu, MiniMax). All reasoning-class, all far cheaper than GPT-5.5 Pro.
   // Mirror of backend MODEL_CATALOG.
   { id: "moonshotai/kimi-k2-thinking",              label: "Kimi K2 Thinking",     provider: "Moonshot",  class: "premium",  category: "reasoning" },
-  { id: "z-ai/glm-5.1",                             label: "GLM-5.1",              provider: "Zhipu",     class: "premium",  category: "reasoning" },
+  { id: "z-ai/glm-5.2",                             label: "GLM-5.2",              provider: "Zhipu",     class: "premium",  category: "reasoning" },
   { id: "minimax/minimax-m2.5",                     label: "MiniMax M2.5",         provider: "MiniMax",   class: "premium",  category: "reasoning" },
   { id: "nvidia/nemotron-3-ultra-550b-a55b",        label: "Nemotron 3 Ultra",     provider: "NVIDIA",    class: "premium",  category: "reasoning" },
   { id: "nvidia/nemotron-3-super-120b-a12b",        label: "Nemotron 3 Super",     provider: "NVIDIA",    class: "flagship", category: "reasoning" },
@@ -162,7 +162,7 @@ export const TIER_DEFAULTS: Record<Tier, string[]> = {
   free:    ["anthropic/claude-haiku-4-5", "openai/gpt-4o-mini", "google/gemini-2.5-flash"],
   pro:     ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-3.5-flash"],
   premium: ["anthropic/claude-opus-4.8", "x-ai/grok-4.20-multi-agent", "moonshotai/kimi-k2-thinking",
-            "deepseek/deepseek-v4-pro", "z-ai/glm-5.1"],
+            "deepseek/deepseek-v4-pro", "z-ai/glm-5.2"],
 }
 
 export function maxModelsForTier(tier: Tier): number {
