@@ -1798,8 +1798,8 @@ function Home() {
               {/* Mirror the loaded result's "You asked: …" header so the user
                   can see their question while the comparison streams in. */}
               {pendingQuestion && (
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
                   <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{pendingQuestion}</p>
                 </div>
               )}
@@ -1957,8 +1957,8 @@ function Home() {
               )}
 
               {/* Asked question — a user-message row (avatar + question) */}
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+              <div className="flex items-center gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
                 <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{result.question}</p>
               </div>
 
