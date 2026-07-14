@@ -843,8 +843,10 @@ function Home() {
     userTurn: number;      // message-row turn for the question
     asstTurn: number;      // message-row turn for the answer
     question: string;
-    modelId: string;
-    answer: string;
+    mode: "single" | "compare";
+    modelId: string;       // single mode: the model that answered
+    answer: string;        // single mode: its answer text
+    result: Result | null; // compare mode: the full comparison Result
     streaming: boolean;
     error: string | null;
   };
@@ -1402,12 +1404,20 @@ function Home() {
     let pendingUser: { turn: number; content: string } | null = null;
     for (const m of [...msgs].sort((a, b) => a.turn - b.turn)) {
       if (m.turn < 2) continue;
-      if (m.role === "user") pendingUser = { turn: m.turn, content: m.content ?? "" };
-      else if (m.role === "assistant_single" && pendingUser) {
+      if (m.role === "user") { pendingUser = { turn: m.turn, content: m.content ?? "" }; continue; }
+      if (!pendingUser) continue;
+      if (m.role === "assistant_single") {
         out.push({
           id: `t${m.turn}`, userTurn: pendingUser.turn, asstTurn: m.turn,
-          question: pendingUser.content, modelId: m.model_id ?? "",
-          answer: m.content ?? "", streaming: false, error: null,
+          question: pendingUser.content, mode: "single", modelId: m.model_id ?? "",
+          answer: m.content ?? "", result: null, streaming: false, error: null,
+        });
+        pendingUser = null;
+      } else if (m.role === "assistant_comparison") {
+        out.push({
+          id: `t${m.turn}`, userTurn: pendingUser.turn, asstTurn: m.turn,
+          question: pendingUser.content, mode: "compare", modelId: "",
+          answer: "", result: (m.result as Result) ?? null, streaming: false, error: null,
         });
         pendingUser = null;
       }
@@ -1417,14 +1427,19 @@ function Home() {
 
   // Stream a single-model follow-up from /api/converse into the thread, then
   // persist both turns to Supabase (best-effort) so it survives a reload.
-  async function submitContinuation(q: string, modelId: string) {
+  // Single-model continuation (opts.modelId) or "Ask all again" — a multi-model
+  // comparison follow-up (opts.models). The compare turn waits for the backend's
+  // 'result' event and stores the full Result; single turns stream token-by-token.
+  async function submitContinuation(q: string, opts: { modelId?: string; models?: string[] }) {
     const convId = activeConvId;
-    if (!convId || !q.trim() || !modelId || followupLoading) return;
+    const compare = !!(opts.models && opts.models.length);
+    const modelId = opts.modelId ?? "";
+    if (!convId || !q.trim() || followupLoading || (!compare && !modelId)) return;
     const maxTurn = followups.reduce((mx, f) => Math.max(mx, f.asstTurn), 1);
     const userTurn = maxTurn + 1;
     const asstTurn = maxTurn + 2;
     const id = `t${asstTurn}`;
-    setFollowups(prev => [...prev, { id, userTurn, asstTurn, question: q.trim(), modelId, answer: "", streaming: true, error: null }]);
+    setFollowups(prev => [...prev, { id, userTurn, asstTurn, question: q.trim(), mode: compare ? "compare" : "single", modelId, answer: "", result: null, streaming: true, error: null }]);
     setExpandedFollowups(new Set([id]));  // collapse older turns; keep the new one open
     setComparisonExpanded(false);          // collapse the original comparison — it's history now
     setFollowupInput("");
@@ -1438,7 +1453,9 @@ function Home() {
       const res = await fetch("/api/converse", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(sessionId ? { "x-aggrai-session-id": sessionId } : {}) },
-        body: JSON.stringify({ conversationId: convId, question: q.trim(), modelId, turn: asstTurn }),
+        body: JSON.stringify(compare
+          ? { conversationId: convId, question: q.trim(), models: opts.models, turn: asstTurn }
+          : { conversationId: convId, question: q.trim(), modelId, turn: asstTurn }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
@@ -1453,6 +1470,7 @@ function Home() {
       let questionId: string | null = null;
       let cost: number | null = null;
       let latency = 0;
+      let compareResult: Result | null = null;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -1462,16 +1480,21 @@ function Home() {
           const line = buffer.slice(0, nl).trim();
           buffer = buffer.slice(nl + 1);
           if (!line) continue;
-          let evt: { stage?: string; delta?: string; answer?: string; questionId?: string; runtime_ms?: number; cost_usd?: number | null; error?: string };
+          let evt: { stage?: string; delta?: string; answer?: string; questionId?: string; runtime_ms?: number; cost_usd?: number | null; error?: string; [k: string]: unknown };
           try { evt = JSON.parse(line); } catch { continue; }
           if (evt.stage === "answer-chunk") {
-            answerText += String(evt.delta ?? "");
-            patch({ answer: answerText });
+            if (!compare) { answerText += String(evt.delta ?? ""); patch({ answer: answerText }); }
           } else if (evt.stage === "answer") {
-            answerText = String(evt.answer ?? answerText);
-            latency = Number(evt.runtime_ms ?? 0);
-            cost = typeof evt.cost_usd === "number" ? evt.cost_usd : null;
-            patch({ answer: answerText });
+            if (!compare) {
+              answerText = String(evt.answer ?? answerText);
+              latency = Number(evt.runtime_ms ?? 0);
+              cost = typeof evt.cost_usd === "number" ? evt.cost_usd : null;
+              patch({ answer: answerText });
+            }
+          } else if (evt.stage === "result") {
+            const { stage: _s, ...rest } = evt; void _s;
+            compareResult = rest as unknown as Result;
+            patch({ result: compareResult });
           } else if (evt.stage === "done") {
             questionId = evt.questionId ?? null;
           } else if (evt.stage === "error") {
@@ -1481,7 +1504,11 @@ function Home() {
       }
       patch({ streaming: false });
       void appendMessage(convId, { turn: userTurn, role: "user", content: q.trim() });
-      void appendMessage(convId, { turn: asstTurn, role: "assistant_single", model_id: modelId, question_id: questionId, content: answerText, cost_usd: cost, latency_ms: latency });
+      if (compare) {
+        void appendMessage(convId, { turn: asstTurn, role: "assistant_comparison", question_id: questionId, result: compareResult });
+      } else {
+        void appendMessage(convId, { turn: asstTurn, role: "assistant_single", model_id: modelId, question_id: questionId, content: answerText, cost_usd: cost, latency_ms: latency });
+      }
       void bumpConversation(convId, asstTurn + 1);
     } catch (err: unknown) {
       const isAbort = err instanceof Error && err.name === "AbortError";
@@ -1499,7 +1526,13 @@ function Home() {
   function handleFollowupSubmit(e: React.FormEvent) {
     e.preventDefault();
     const model = followupModel ?? winnerModel();
-    if (model) void submitContinuation(followupInput, model);
+    if (model) void submitContinuation(followupInput, { modelId: model });
+  }
+
+  // "Ask all again" — re-run the original comparison's models on the follow-up.
+  function handleAskAllAgain() {
+    if (result?.type !== "compare") return;
+    void submitContinuation(followupInput, { models: result.answers.map(a => a.model) });
   }
 
   // Reset to a blank comparison ("New comparison" in the sidebar, or
@@ -1695,12 +1728,29 @@ function Home() {
                     </button>
                   );
                 })}
-                <span
-                  title="Multi-model follow-ups arrive with the next phase"
-                  className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/30 cursor-default"
-                >
-                  Ask all again · soon
-                </span>
+                {(() => {
+                  // Tier gating (Phase 5b): Free can't re-run all models; Pro is
+                  // capped at 3 multi-model follow-ups per conversation; Premium
+                  // is unlimited. The backend enforces too.
+                  const compareUsed = followups.filter(f => f.mode === "compare").length;
+                  const allowed = tier === "premium" || (tier === "pro" && compareUsed < 3);
+                  const reason = tier === "free"
+                    ? "Upgrade to Pro to re-run every model on your follow-up"
+                    : (tier === "pro" && compareUsed >= 3)
+                      ? "Pro includes up to 3 multi-model follow-ups per conversation"
+                      : "Re-run all models on your follow-up";
+                  return (
+                    <button
+                      type="button"
+                      onClick={handleAskAllAgain}
+                      disabled={!allowed || followupLoading || !followupInput.trim()}
+                      title={reason}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Layers className="w-3 h-3" aria-hidden="true" /> Ask all again{tier === "free" ? " · Pro" : ""}
+                    </button>
+                  );
+                })()}
               </div>
               <form onSubmit={handleFollowupSubmit} className="flex items-end gap-2">
                 <textarea
@@ -1711,7 +1761,7 @@ function Home() {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       const m = followupModel ?? winnerModel();
-                      if (m) void submitContinuation(followupInput, m);
+                      if (m) void submitContinuation(followupInput, { modelId: m });
                     }
                   }}
                   rows={2}
@@ -1931,8 +1981,11 @@ function Home() {
                         <p className={`min-w-0 flex-1 break-words ${isExpanded ? "text-[15px] leading-relaxed font-medium text-white/90" : "truncate text-sm text-white/60 group-hover:text-white/80"}`}>{f.question}</p>
                         {!isExpanded && (
                           <span className="hidden sm:flex items-center gap-1.5 text-xs text-white/40 shrink-0">
-                            <ProviderLogo provider={providerOf(f.modelId)} className="w-3 h-3" />
-                            {modelLabel(f.modelId)}
+                            {f.mode === "compare" ? (
+                              <><Layers className="w-3 h-3" aria-hidden="true" /> {f.result?.type === "compare" ? `${f.result.answers.length} models` : "comparison"}</>
+                            ) : (
+                              <><ProviderLogo provider={providerOf(f.modelId)} className="w-3 h-3" /> {modelLabel(f.modelId)}</>
+                            )}
                           </span>
                         )}
                         {!f.streaming && (
@@ -1941,20 +1994,45 @@ function Home() {
                       </button>
                       {isExpanded && (
                         <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
-                            <ProviderLogo provider={providerOf(f.modelId)} className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">{modelLabel(f.modelId)}</span>
-                            {f.streaming && <span className="text-white/40 font-normal">· thinking…</span>}
-                          </div>
                           {f.error ? (
                             <p className="text-sm text-amber-300">{f.error}</p>
-                          ) : f.answer ? (
-                            <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
-                              [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
-                            </div>
+                          ) : f.mode === "compare" ? (
+                            f.result && f.result.type === "compare" ? (
+                              <div className="space-y-4">
+                                <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                                  [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{splitSummary(f.result.summary).best || f.result.summary}</ReactMarkdown>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {[...f.result.answers].sort((a, b) => (b.scores ? overallScore(b.scores) : 0) - (a.scores ? overallScore(a.scores) : 0)).map((a, i) => (
+                                    <span key={a.model} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${i === 0 ? "border-teal-300/30 bg-teal-300/10 text-teal-100" : "border-white/10 bg-white/[0.03] text-white/60"}`}>
+                                      {i === 0 && <Trophy className="w-3 h-3 text-amber-300" aria-hidden="true" />}
+                                      <ProviderLogo provider={providerOf(a.model)} className="w-3 h-3" />
+                                      {modelLabel(a.model)}
+                                      {a.scores && <span className="text-white/40">· {overallScore(a.scores).toFixed(1)}</span>}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-white/40">Comparing models…</p>
+                            )
                           ) : (
-                            <p className="text-sm text-white/30">…</p>
+                            <>
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
+                                <ProviderLogo provider={providerOf(f.modelId)} className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">{modelLabel(f.modelId)}</span>
+                                {f.streaming && <span className="text-white/40 font-normal">· thinking…</span>}
+                              </div>
+                              {f.answer ? (
+                                <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                                  [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-white/30">…</p>
+                              )}
+                            </>
                           )}
                         </div>
                       )}
