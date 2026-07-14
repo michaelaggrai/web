@@ -1397,6 +1397,24 @@ function Home() {
     return [...result.answers].sort((a, b) => sc(b) - sc(a))[0]?.model ?? null;
   }
 
+  // Best-scoring answer the CURRENT tier can still continue with. After a
+  // downgrade the top (or every) model in an old thread may be locked — so the
+  // default target, the composer, and the chips all key off this, not the raw
+  // winner. Null when the whole comparison is above the current plan.
+  function bestAccessibleModel(): string | null {
+    if (!result || result.type !== "compare" || !result.answers.length) return null;
+    const sc = (a: Answer) => (a.scores ? overallScore(a.scores) : 0);
+    const accessible = result.answers.filter(a => !lockedIds.has(a.model));
+    return [...accessible].sort((a, b) => sc(b) - sc(a))[0]?.model ?? null;
+  }
+
+  // The model a follow-up will actually go to: the user's pick if it's still
+  // in-tier, else the best accessible one.
+  function continueTarget(): string | null {
+    if (followupModel && !lockedIds.has(followupModel)) return followupModel;
+    return bestAccessibleModel();
+  }
+
   // Rebuild the follow-up thread from stored message rows (turns ≥ 2; turns 0/1
   // are the initial comparison, already rendered from `result`).
   function toFollowups(msgs: ConvMessage[]): Followup[] {
@@ -1525,14 +1543,19 @@ function Home() {
 
   function handleFollowupSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const model = followupModel ?? winnerModel();
+    const model = continueTarget();
     if (model) void submitContinuation(followupInput, { modelId: model });
   }
 
   // "Ask all again" — re-run the original comparison's models on the follow-up.
   function handleAskAllAgain() {
     if (result?.type !== "compare") return;
-    void submitContinuation(followupInput, { models: result.answers.map(a => a.model) });
+    const models = result.answers.map(a => a.model);
+    // Never re-run models the current tier can't use (e.g. a Premium thread
+    // opened by a downgraded Pro account). The chip is disabled for this too;
+    // this is the belt-and-braces guard. The backend rejects regardless.
+    if (models.some(m => lockedIds.has(m)) || models.length > maxModels) return;
+    void submitContinuation(followupInput, { models });
   }
 
   // Reset to a blank comparison ("New comparison" in the sidebar, or
@@ -1703,13 +1726,29 @@ function Home() {
               then it becomes the "continue the conversation" composer so the
               next action is always where the eye already is. */}
           {result && !loading && result.type === "compare" && signedIn && activeConvId ? (
+            bestAccessibleModel() === null ? (
+              /* Every model in this stored comparison is above the current plan
+                 (e.g. a 5-model Premium thread after a downgrade to Pro). It
+                 can't be continued — nudge to upgrade or start fresh. */
+              <div className="bg-amber-300/[0.05] backdrop-blur-xl rounded-2xl border border-amber-300/25 p-4 sm:p-5 shadow-2xl shadow-black/20">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-300/80 mb-2">
+                  Continue the conversation
+                </p>
+                <p className="text-sm text-white/70 leading-relaxed">
+                  This conversation used models that aren&apos;t in your current plan, so you can&apos;t continue it here.{" "}
+                  <Link href="/upgrade" className="text-amber-200 underline underline-offset-2 hover:text-amber-100">Upgrade</Link>{" "}
+                  to pick it back up, or start a{" "}
+                  <button type="button" onClick={newComparison} className="text-teal-300 underline underline-offset-2 hover:text-teal-200">new comparison</button>.
+                </p>
+              </div>
+            ) : (
             <div className="bg-teal-300/[0.05] backdrop-blur-xl rounded-2xl border border-teal-300/25 p-4 sm:p-5 shadow-2xl shadow-black/20">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-3">
                 Continue the conversation
               </p>
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                {result.answers.map(a => {
-                  const isActive = (followupModel ?? winnerModel()) === a.model;
+                {result.answers.filter(a => !lockedIds.has(a.model)).map(a => {
+                  const isActive = continueTarget() === a.model;
                   const isWinner = winnerModel() === a.model;
                   return (
                     <button
@@ -1729,14 +1768,20 @@ function Home() {
                   );
                 })}
                 {(() => {
-                  // Tier gating (Phase 5b): Free can't re-run all models (single-
-                  // model continuation only); Pro + Premium get unlimited
-                  // multi-model follow-ups (model count follows their comparison
-                  // size). The backend enforces too.
-                  const allowed = tier === "pro" || tier === "premium";
+                  // Tier gating (Phase 5b + downgrade fix): Free can't re-run all
+                  // models. Pro/Premium can — UNLESS this stored comparison uses
+                  // models above the current plan (e.g. a 5-premium thread opened
+                  // by a downgraded Pro account): then re-running them is blocked,
+                  // not merely capped. The backend enforces the same.
+                  const paidTier = tier === "pro" || tier === "premium";
+                  const askAllModels = result.answers.map(a => a.model);
+                  const tierBlocksAll = askAllModels.some(m => lockedIds.has(m)) || askAllModels.length > maxModels;
+                  const allowed = paidTier && !tierBlocksAll;
                   const reason = tier === "free"
                     ? "Upgrade to Pro to re-run every model on your follow-up"
-                    : "Re-run all models on your follow-up";
+                    : tierBlocksAll
+                      ? "This comparison used models above your current plan — upgrade to re-run them all"
+                      : "Re-run all models on your follow-up";
                   return (
                     <button
                       type="button"
@@ -1749,7 +1794,7 @@ function Home() {
                       title={reason}
                       className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      <Layers className="w-3 h-3" aria-hidden="true" /> Ask all again{tier === "free" ? " · Pro" : ""}
+                      <Layers className="w-3 h-3" aria-hidden="true" /> Ask all again{tier === "free" ? " · Pro" : tierBlocksAll ? " · Premium" : ""}
                     </button>
                   );
                 })()}
@@ -1762,12 +1807,12 @@ function Home() {
                   onKeyDown={e => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      const m = followupModel ?? winnerModel();
+                      const m = continueTarget();
                       if (m) void submitContinuation(followupInput, { modelId: m });
                     }
                   }}
                   rows={2}
-                  placeholder={`Ask ${modelLabel(followupModel ?? winnerModel() ?? "")} a follow-up…`}
+                  placeholder={`Ask ${modelLabel(continueTarget() ?? "")} a follow-up…`}
                   className="flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-white placeholder-white/30 focus:outline-none focus:border-teal-300/40"
                   disabled={followupLoading}
                 />
@@ -1781,6 +1826,7 @@ function Home() {
                 </button>
               </form>
             </div>
+            )
           ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex items-center bg-white/[0.08] backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 transition-colors shadow-2xl shadow-black/20">
