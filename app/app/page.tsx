@@ -1740,8 +1740,12 @@ function Home() {
                   return (
                     <button
                       type="button"
-                      onClick={handleAskAllAgain}
-                      disabled={!allowed || followupLoading || !followupInput.trim()}
+                      onClick={() => {
+                        if (!allowed) return;
+                        if (!followupInput.trim()) { followupInputRef.current?.focus(); return; }
+                        handleAskAllAgain();
+                      }}
+                      disabled={!allowed || followupLoading}
                       title={reason}
                       className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
