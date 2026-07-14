@@ -46,9 +46,40 @@ export default function PrivacyPage() {
               Premium) and any related transactional records.</li>
             <li><strong>Technical data</strong>: IP address, browser type, device
               information, and basic usage telemetry needed to operate the Service.</li>
-            <li><strong>Cookies</strong>: session cookies used for authentication and a
-              beta-access cookie. We do not use advertising or tracking cookies.</li>
+            <li><strong>Cookies</strong>: strictly-necessary cookies to keep you signed in
+              and to remember your cookie choice, plus optional error-monitoring that runs
+              only with your consent (see the table below). We do not use advertising or
+              cross-site tracking cookies.</li>
           </ul>
+
+          <div className="overflow-x-auto">
+            <table className="mt-2 w-full border-collapse text-sm">
+              <thead>
+                <tr className="text-left text-white/50">
+                  <th className="py-2 pr-4 font-medium">Cookie</th>
+                  <th className="py-2 pr-4 font-medium">Purpose</th>
+                  <th className="py-2 font-medium">Category</th>
+                </tr>
+              </thead>
+              <tbody className="align-top">
+                <tr className="border-t border-white/10">
+                  <td className="py-2 pr-4"><code>sb-*</code> (Supabase)</td>
+                  <td className="py-2 pr-4">Keeps you signed in.</td>
+                  <td className="py-2 whitespace-nowrap">Strictly necessary</td>
+                </tr>
+                <tr className="border-t border-white/10">
+                  <td className="py-2 pr-4"><code>aggrai_consent_v1</code></td>
+                  <td className="py-2 pr-4">Remembers your cookie choice.</td>
+                  <td className="py-2 whitespace-nowrap">Strictly necessary</td>
+                </tr>
+                <tr className="border-t border-white/10">
+                  <td className="py-2 pr-4">Sentry (error monitoring)</td>
+                  <td className="py-2 pr-4">Reports crashes so we can fix them. Loads only after you Accept; manage it any time in Settings &rarr; Cookies &amp; tracking.</td>
+                  <td className="py-2 whitespace-nowrap">Analytics (optional)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
           <h2>2. How we use it</h2>
           <ul>
@@ -136,7 +167,10 @@ export default function PrivacyPage() {
           <p>
             Depending on your jurisdiction you may have the right to access, correct,
             export, or delete the personal data we hold about you, and to object to
-            or restrict certain processing. To exercise these rights email
+            or restrict certain processing. You can download a copy of your data or
+            permanently delete your account yourself at any time from{" "}
+            <a href="/settings">Settings &rarr; Privacy &amp; data</a>. To exercise these
+            rights another way, email
             <a href="mailto:privacy@aggrai.com"> privacy@aggrai.com</a>. We may need to verify
             your identity before responding.
           </p>

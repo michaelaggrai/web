@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Montserrat } from "next/font/google";
 import "./globals.css";
+import CookieConsent from "@/components/CookieConsent";
 
 const geist = Geist({ subsets: ["latin"] });
 const montserrat = Montserrat({
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           flash-of-white on first paint and the white iOS overscroll bounce. */}
       <body className={`${geist.className} min-h-full bg-navy text-white antialiased`}>
         {children}
+        <CookieConsent />
       </body>
     </html>
   );

@@ -1,5 +1,11 @@
 import * as Sentry from "@sentry/nextjs";
+import { analyticsAllowed } from "@/lib/consent";
 
+// GDPR: browser error monitoring is a NON-ESSENTIAL (analytics) collector, so
+// Sentry only initialises once the user has accepted cookies. Accepting in the
+// banner reloads the page, so this runs again with consent === "accepted".
+// Until then Sentry is never init'd and captureRouterTransitionStart is a no-op.
+if (analyticsAllowed()) {
 Sentry.init({
   dsn: "https://5f36c1a224eb799f05f0e43c5a8ed5c0@o4511430108905472.ingest.de.sentry.io/4511430125355088",
   // Errors only — no performance tracing, no session replay
@@ -35,5 +41,6 @@ Sentry.init({
     /\/views\.js/i,
   ],
 });
+}
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

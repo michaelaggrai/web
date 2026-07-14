@@ -18,6 +18,7 @@ import {
   getDemoBilling, startDemoBilling, cancelDemoBilling, resumeDemoBilling,
   type DemoBilling,
 } from "@/lib/billing-demo";
+import { ConsentControl, ExportData, DeleteAccount } from "@/components/privacy-data";
 
 export default function SettingsPage() {
   return (
@@ -407,14 +408,14 @@ function Settings() {
         <Section icon={Globe} title="Language" comingSoon>
           <p className="text-sm text-white/40">Choose your interface language. Auto-detected from your browser by default.</p>
         </Section>
-        <Section icon={Cookie} title="Cookies & tracking" comingSoon>
-          <p className="text-sm text-white/40">Control which cookies and analytics tools we can use.</p>
+        <Section icon={Cookie} title="Cookies & tracking">
+          <ConsentControl />
         </Section>
-        <Section icon={Download} title="Export my data" comingSoon>
-          <p className="text-sm text-white/40">Download a copy of your account data and comparison history.</p>
+        <Section icon={Download} title="Export my data">
+          <ExportData />
         </Section>
-        <Section icon={Trash2} title="Delete account" comingSoon danger>
-          <p className="text-sm text-white/40">Permanently delete your account and all associated data. This action cannot be undone.</p>
+        <Section icon={Trash2} title="Delete account" danger>
+          <DeleteAccount />
         </Section>
 
         <p className="mt-10 text-center text-xs text-white/30">
