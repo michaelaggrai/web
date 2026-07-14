@@ -1314,13 +1314,11 @@ function Home() {
         // history. Best-effort (never blocks the result) + optimistically
         // surface it in the sidebar without a re-fetch.
         if (signedIn && convId) {
+          // saveConversation writes the conversation row (question + result) —
+          // the backend reads turns 0/1 from THAT (reliable), so we don't seed
+          // message rows here (they FK to conversations and can lose the write
+          // race). Only follow-ups (turn ≥ 2) are written, by submitContinuation.
           void saveConversation(convId, { question: q.trim(), models: [...models], result: pendingResult });
-          // Seed the thread's first two turns so /converse has history to read
-          // (Phase 5a). Best-effort; only comparisons are continuable.
-          if (pendingResult.type === "compare") {
-            void appendMessage(convId, { turn: 0, role: "user", content: q.trim() });
-            void appendMessage(convId, { turn: 1, role: "assistant_comparison", result: pendingResult });
-          }
           setDbRecents(prev => [
             { id: convId, title: q.trim(), question: q.trim(), created_at: new Date().toISOString() },
             ...prev.filter(r => r.id !== convId),
@@ -1812,6 +1810,106 @@ function Home() {
           {/* Results */}
           {result && !loading && (
             <div className="space-y-6">
+              {/* Conversation continuation (Phase 5a) — composer pinned at the
+                  TOP with the follow-up thread newest-first below it, so a new
+                  turn pushes older turns (and the original comparison) down. */}
+              {result.type === "compare" && (
+                <div className="space-y-6">
+                  {signedIn && activeConvId ? (
+                    <div className="rounded-2xl border border-teal-300/20 bg-teal-300/[0.04] p-4 sm:p-5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-3">
+                        Continue the conversation
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        {result.answers.map(a => {
+                          const target = followupModel ?? winnerModel();
+                          const isActive = target === a.model;
+                          const isWinner = winnerModel() === a.model;
+                          return (
+                            <button
+                              key={a.model}
+                              type="button"
+                              onClick={() => handleContinueWith(a.model)}
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                                isActive
+                                  ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
+                                  : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
+                              }`}
+                            >
+                              {isWinner && <Trophy className="w-3 h-3 text-amber-300" aria-hidden="true" />}
+                              <ProviderLogo provider={providerOf(a.model)} className="w-3 h-3" />
+                              {modelLabel(a.model)}
+                            </button>
+                          );
+                        })}
+                        <span
+                          title="Multi-model follow-ups arrive with the next phase"
+                          className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/30 cursor-default"
+                        >
+                          Ask all again · soon
+                        </span>
+                      </div>
+                      <form onSubmit={handleFollowupSubmit} className="flex items-end gap-2">
+                        <textarea
+                          ref={followupInputRef}
+                          value={followupInput}
+                          onChange={e => setFollowupInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              const m = followupModel ?? winnerModel();
+                              if (m) void submitContinuation(followupInput, m);
+                            }
+                          }}
+                          rows={1}
+                          placeholder={`Ask ${modelLabel(followupModel ?? winnerModel() ?? "")} a follow-up…`}
+                          className="flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-teal-300/40"
+                          disabled={followupLoading}
+                        />
+                        <button
+                          type="submit"
+                          disabled={followupLoading || !followupInput.trim()}
+                          aria-label="Send follow-up"
+                          className="shrink-0 inline-flex items-center justify-center rounded-xl bg-teal-400 px-4 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-teal-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </form>
+                    </div>
+                  ) : !signedIn ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/50">
+                      <a href="/login" className="text-teal-300 hover:text-teal-200 font-medium">Sign in</a>{" "}
+                      to continue this conversation with a follow-up.
+                    </div>
+                  ) : null}
+                  {[...followups].reverse().map(f => (
+                    <div key={f.id} className="space-y-3">
+                      <div className="text-sm text-white/50">
+                        <span className="text-white/30">You asked:</span>{" "}
+                        <span className="text-white/80">{f.question}</span>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
+                          <ProviderLogo provider={providerOf(f.modelId)} className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{modelLabel(f.modelId)}</span>
+                          {f.streaming && <span className="text-white/40 font-normal">· thinking…</span>}
+                        </div>
+                        {f.error ? (
+                          <p className="text-sm text-amber-300">{f.error}</p>
+                        ) : f.answer ? (
+                          <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                            [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-white/30">…</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Asked question */}
               <div className="text-sm text-white/50">
                 <span className="text-white/30">You asked:</span>{" "}
@@ -2015,106 +2113,6 @@ function Home() {
                     </div>
                   )}
                 </>
-              )}
-
-              {/* Conversation continuation (Phase 5a) — single-model follow-up
-                  thread + composer, stacked below the turn-1 comparison. */}
-              {result.type === "compare" && (
-                <div className="space-y-6">
-                  {followups.map(f => (
-                    <div key={f.id} className="space-y-3">
-                      <div className="text-sm text-white/50">
-                        <span className="text-white/30">You asked:</span>{" "}
-                        <span className="text-white/80">{f.question}</span>
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
-                          <ProviderLogo provider={providerOf(f.modelId)} className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{modelLabel(f.modelId)}</span>
-                          {f.streaming && <span className="text-white/40 font-normal">· thinking…</span>}
-                        </div>
-                        {f.error ? (
-                          <p className="text-sm text-amber-300">{f.error}</p>
-                        ) : f.answer ? (
-                          <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
-                            [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-white/30">…</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {signedIn && activeConvId ? (
-                    <div className="rounded-2xl border border-teal-300/20 bg-teal-300/[0.04] p-4 sm:p-5">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-3">
-                        Continue the conversation
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        {result.answers.map(a => {
-                          const target = followupModel ?? winnerModel();
-                          const isActive = target === a.model;
-                          const isWinner = winnerModel() === a.model;
-                          return (
-                            <button
-                              key={a.model}
-                              type="button"
-                              onClick={() => handleContinueWith(a.model)}
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                                isActive
-                                  ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
-                                  : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
-                              }`}
-                            >
-                              {isWinner && <Trophy className="w-3 h-3 text-amber-300" aria-hidden="true" />}
-                              <ProviderLogo provider={providerOf(a.model)} className="w-3 h-3" />
-                              {modelLabel(a.model)}
-                            </button>
-                          );
-                        })}
-                        <span
-                          title="Multi-model follow-ups arrive with the next phase"
-                          className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/30 cursor-default"
-                        >
-                          Ask all again · soon
-                        </span>
-                      </div>
-                      <form onSubmit={handleFollowupSubmit} className="flex items-end gap-2">
-                        <textarea
-                          ref={followupInputRef}
-                          value={followupInput}
-                          onChange={e => setFollowupInput(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              const m = followupModel ?? winnerModel();
-                              if (m) void submitContinuation(followupInput, m);
-                            }
-                          }}
-                          rows={1}
-                          placeholder={`Ask ${modelLabel(followupModel ?? winnerModel() ?? "")} a follow-up…`}
-                          className="flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-teal-300/40"
-                          disabled={followupLoading}
-                        />
-                        <button
-                          type="submit"
-                          disabled={followupLoading || !followupInput.trim()}
-                          aria-label="Send follow-up"
-                          className="shrink-0 inline-flex items-center justify-center rounded-xl bg-teal-400 px-4 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-teal-300 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </form>
-                    </div>
-                  ) : !signedIn ? (
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/50">
-                      <a href="/login" className="text-teal-300 hover:text-teal-200 font-medium">Sign in</a>{" "}
-                      to continue this conversation with a follow-up.
-                    </div>
-                  ) : null}
-                </div>
               )}
             </div>
           )}
