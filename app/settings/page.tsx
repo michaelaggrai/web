@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   User, CreditCard, Globe, Cookie, Download, Trash2, LogOut, ArrowLeft,
-  AlertTriangle, Calendar, Receipt, RotateCcw,
+  AlertTriangle, Calendar, Receipt, RotateCcw, Brain,
 } from "lucide-react";
 import { HomeLink } from "@/components/home-link";
 import { AccountMenu } from "@/components/account-menu";
@@ -19,6 +19,7 @@ import {
   type DemoBilling,
 } from "@/lib/billing-demo";
 import { ConsentControl, ExportData, DeleteAccount } from "@/components/privacy-data";
+import { MemorySettings } from "@/components/settings/memory";
 
 export default function SettingsPage() {
   return (
@@ -403,6 +404,15 @@ function Settings() {
             </p>
           </Section>
         )}
+
+        {/* Memory — tailors conversation follow-ups (Phase 5c) */}
+        <Section icon={Brain} title="Memory">
+          <p className="text-sm text-white/50 leading-relaxed mb-4">
+            Tell aggrai how you like your answers, and it will apply this as you continue a conversation.
+            Used only for you; included in your data export and deleted with your account.
+          </p>
+          <MemorySettings />
+        </Section>
 
         {/* Coming soon — v2 placeholders */}
         <Section icon={Globe} title="Language" comingSoon>

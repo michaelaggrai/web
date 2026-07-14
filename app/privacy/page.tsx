@@ -42,6 +42,14 @@ export default function PrivacyPage() {
               address and a securely hashed password (handled by our auth provider).</li>
             <li><strong>Questions and selections</strong>: the questions you ask, the
               AI models you choose, and the resulting responses.</li>
+            <li><strong>Conversations &amp; memory</strong>: if you&apos;re signed in and
+              continue a comparison, we save the conversation thread — your follow-up
+              questions and the answers — so you can return to it across devices. You can
+              also set an optional <em>memory</em> profile (how you like answers written —
+              length, tone, background, interests). If you switch on &ldquo;Learn from my
+              conversations&rdquo; (<strong>off by default</strong>), we additionally store
+              short facts aggrai infers from your chats. All of this is per-account and can
+              be reviewed, edited or cleared in <a href="/settings">Settings &rarr; Memory</a>.</li>
             <li><strong>Plan and billing</strong>: the tier you&apos;re on (Free, Pro, or
               Premium) and any related transactional records.</li>
             <li><strong>Technical &amp; analytics data</strong>: only with your consent,
@@ -111,6 +119,10 @@ export default function PrivacyPage() {
           <ul>
             <li>To provide and operate the Service (routing your question to the
               models you selected, returning their answers).</li>
+            <li>To tailor answers when you continue a conversation, by including the
+              memory preferences and any learned facts you have chosen to store (Settings
+              &rarr; Memory) in the prompt sent to the model. Your first question in a
+              thread is not personalised this way, and memory is never used to train models.</li>
             <li>To enforce tier limits and prevent abuse.</li>
             <li>To improve the Service — for example by caching responses to common
               questions so they load instantly for everyone, and by logging how
@@ -178,6 +190,9 @@ export default function PrivacyPage() {
               must retain it to comply with legal obligations.</li>
             <li>Cached example responses are retained for up to 24 hours and refreshed
               periodically.</li>
+            <li>Saved conversations and your memory profile are retained until you delete
+              the conversation, clear your memory, or delete your account. Both are included
+              in your data export and erased when you delete your account.</li>
             <li>Operational logs (errors, abuse signals) are retained for up to 90 days.</li>
           </ul>
 
