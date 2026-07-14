@@ -853,6 +853,16 @@ function Home() {
   const [followupModel, setFollowupModel] = useState<string | null>(null);  // null → winner
   const [followupInput, setFollowupInput] = useState("");
   const [followupLoading, setFollowupLoading] = useState(false);
+  // Which follow-up turns are expanded. Older turns collapse to a one-line
+  // question header once a newer turn arrives, so the thread stays tidy; the
+  // newest (and any streaming) turn is always open. A turn can be re-opened.
+  const [expandedFollowups, setExpandedFollowups] = useState<Set<string>>(new Set());
+  const toggleFollowup = (id: string) =>
+    setExpandedFollowups(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   const followupAbortRef = useRef<AbortController | null>(null);
 
   // Hydrate from sessionStorage on first mount only
@@ -1015,7 +1025,12 @@ function Home() {
       setActiveRecentId(urlConvId);
       // Restore the follow-up thread (Phase 5a) so a reload shows all turns.
       setActiveConvId(urlConvId);
-      listMessages(urlConvId).then(msgs => { if (alive) setFollowups(toFollowups(msgs)); });
+      listMessages(urlConvId).then(msgs => {
+        if (!alive) return;
+        const f = toFollowups(msgs);
+        setFollowups(f);
+        setExpandedFollowups(new Set(f.length ? [f[f.length - 1].id] : []));
+      });
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1038,7 +1053,11 @@ function Home() {
     setActiveConvId(id);
     setFollowups([]);
     setFollowupModel(null);
-    listMessages(id).then(msgs => setFollowups(toFollowups(msgs)));
+    listMessages(id).then(msgs => {
+      const f = toFollowups(msgs);
+      setFollowups(f);
+      setExpandedFollowups(new Set(f.length ? [f[f.length - 1].id] : []));
+    });
     if (typeof window !== "undefined") {
       window.history.replaceState(null, "", `/app/c/${id}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1400,6 +1419,7 @@ function Home() {
     const asstTurn = maxTurn + 2;
     const id = `t${asstTurn}`;
     setFollowups(prev => [...prev, { id, userTurn, asstTurn, question: q.trim(), modelId, answer: "", streaming: true, error: null }]);
+    setExpandedFollowups(new Set([id]));  // collapse older turns; keep the new one open
     setFollowupInput("");
     setFollowupLoading(true);
     const controller = new AbortController();
@@ -1491,6 +1511,7 @@ function Home() {
     // Clear the continuation thread (Phase 5a).
     setActiveConvId(null);
     setFollowups([]);
+    setExpandedFollowups(new Set());
     setFollowupModel(null);
     setFollowupInput("");
     // A new comparison is a fresh start: snap the picker back to this tier's
@@ -1886,31 +1907,52 @@ function Home() {
                       to continue this conversation with a follow-up.
                     </div>
                   )}
-                  {[...followups].reverse().map(f => (
+                  {[...followups].reverse().map(f => {
+                    const isExpanded = f.streaming || expandedFollowups.has(f.id);
+                    return (
                     <div key={f.id} className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
-                        <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{f.question}</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
-                          <ProviderLogo provider={providerOf(f.modelId)} className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{modelLabel(f.modelId)}</span>
-                          {f.streaming && <span className="text-white/40 font-normal">· thinking…</span>}
-                        </div>
-                        {f.error ? (
-                          <p className="text-sm text-amber-300">{f.error}</p>
-                        ) : f.answer ? (
-                          <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
-                            [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-white/30">…</p>
+                      {/* Question row = the collapse toggle. Older turns sit
+                          collapsed to this one line; click to reopen. */}
+                      <button
+                        type="button"
+                        onClick={() => { if (!f.streaming) toggleFollowup(f.id); }}
+                        aria-expanded={isExpanded}
+                        className="group flex w-full items-center gap-3 text-left"
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                        <p className={`min-w-0 flex-1 break-words ${isExpanded ? "text-[15px] leading-relaxed font-medium text-white/90" : "truncate text-sm text-white/60 group-hover:text-white/80"}`}>{f.question}</p>
+                        {!isExpanded && (
+                          <span className="hidden sm:flex items-center gap-1.5 text-xs text-white/40 shrink-0">
+                            <ProviderLogo provider={providerOf(f.modelId)} className="w-3 h-3" />
+                            {modelLabel(f.modelId)}
+                          </span>
                         )}
-                      </div>
+                        {!f.streaming && (
+                          <ChevronDown className={`w-4 h-4 shrink-0 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
+                        )}
+                      </button>
+                      {isExpanded && (
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
+                            <ProviderLogo provider={providerOf(f.modelId)} className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{modelLabel(f.modelId)}</span>
+                            {f.streaming && <span className="text-white/40 font-normal">· thinking…</span>}
+                          </div>
+                          {f.error ? (
+                            <p className="text-sm text-amber-300">{f.error}</p>
+                          ) : f.answer ? (
+                            <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                              [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-white/30">…</p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
