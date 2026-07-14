@@ -1636,7 +1636,71 @@ function Home() {
             </div>
           )}
 
-          {/* Input */}
+          {/* Input — the top block morphs: it's the "what would you like to
+              know?" ask box until a comparison is fully done (summary + scores),
+              then it becomes the "continue the conversation" composer so the
+              next action is always where the eye already is. */}
+          {result && !loading && result.type === "compare" && signedIn && activeConvId ? (
+            <div className="bg-teal-300/[0.05] backdrop-blur-xl rounded-2xl border border-teal-300/25 p-4 sm:p-5 shadow-2xl shadow-black/20">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-3">
+                Continue the conversation
+              </p>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                {result.answers.map(a => {
+                  const isActive = (followupModel ?? winnerModel()) === a.model;
+                  const isWinner = winnerModel() === a.model;
+                  return (
+                    <button
+                      key={a.model}
+                      type="button"
+                      onClick={() => handleContinueWith(a.model)}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        isActive
+                          ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
+                          : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      {isWinner && <Trophy className="w-3 h-3 text-amber-300" aria-hidden="true" />}
+                      <ProviderLogo provider={providerOf(a.model)} className="w-3 h-3" />
+                      {modelLabel(a.model)}
+                    </button>
+                  );
+                })}
+                <span
+                  title="Multi-model follow-ups arrive with the next phase"
+                  className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/30 cursor-default"
+                >
+                  Ask all again · soon
+                </span>
+              </div>
+              <form onSubmit={handleFollowupSubmit} className="flex items-end gap-2">
+                <textarea
+                  ref={followupInputRef}
+                  value={followupInput}
+                  onChange={e => setFollowupInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      const m = followupModel ?? winnerModel();
+                      if (m) void submitContinuation(followupInput, m);
+                    }
+                  }}
+                  rows={2}
+                  placeholder={`Ask ${modelLabel(followupModel ?? winnerModel() ?? "")} a follow-up…`}
+                  className="flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-white placeholder-white/30 focus:outline-none focus:border-teal-300/40"
+                  disabled={followupLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={followupLoading || !followupInput.trim()}
+                  aria-label="Send follow-up"
+                  className="shrink-0 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </form>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex items-center bg-white/[0.08] backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 transition-colors shadow-2xl shadow-black/20">
               <textarea
@@ -1694,6 +1758,7 @@ function Home() {
               lockedIds={lockedIds}
             />
           </form>
+          )}
 
           {error && (
             <div
@@ -1810,78 +1875,17 @@ function Home() {
           {/* Results */}
           {result && !loading && (
             <div className="space-y-6">
-              {/* Conversation continuation (Phase 5a) — composer pinned at the
-                  TOP with the follow-up thread newest-first below it, so a new
-                  turn pushes older turns (and the original comparison) down. */}
+              {/* Conversation continuation (Phase 5a) — the follow-up thread,
+                  newest-first. The composer itself lives in the top input block,
+                  which morphs into it once the comparison is done. */}
               {result.type === "compare" && (
                 <div className="space-y-6">
-                  {signedIn && activeConvId ? (
-                    <div className="rounded-2xl border border-teal-300/20 bg-teal-300/[0.04] p-4 sm:p-5">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-3">
-                        Continue the conversation
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        {result.answers.map(a => {
-                          const target = followupModel ?? winnerModel();
-                          const isActive = target === a.model;
-                          const isWinner = winnerModel() === a.model;
-                          return (
-                            <button
-                              key={a.model}
-                              type="button"
-                              onClick={() => handleContinueWith(a.model)}
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                                isActive
-                                  ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
-                                  : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
-                              }`}
-                            >
-                              {isWinner && <Trophy className="w-3 h-3 text-amber-300" aria-hidden="true" />}
-                              <ProviderLogo provider={providerOf(a.model)} className="w-3 h-3" />
-                              {modelLabel(a.model)}
-                            </button>
-                          );
-                        })}
-                        <span
-                          title="Multi-model follow-ups arrive with the next phase"
-                          className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/30 cursor-default"
-                        >
-                          Ask all again · soon
-                        </span>
-                      </div>
-                      <form onSubmit={handleFollowupSubmit} className="flex items-end gap-2">
-                        <textarea
-                          ref={followupInputRef}
-                          value={followupInput}
-                          onChange={e => setFollowupInput(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              const m = followupModel ?? winnerModel();
-                              if (m) void submitContinuation(followupInput, m);
-                            }
-                          }}
-                          rows={1}
-                          placeholder={`Ask ${modelLabel(followupModel ?? winnerModel() ?? "")} a follow-up…`}
-                          className="flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-teal-300/40"
-                          disabled={followupLoading}
-                        />
-                        <button
-                          type="submit"
-                          disabled={followupLoading || !followupInput.trim()}
-                          aria-label="Send follow-up"
-                          className="shrink-0 inline-flex items-center justify-center rounded-xl bg-teal-400 px-4 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-teal-300 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </form>
-                    </div>
-                  ) : !signedIn ? (
+                  {!signedIn && (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/50">
                       <a href="/login" className="text-teal-300 hover:text-teal-200 font-medium">Sign in</a>{" "}
                       to continue this conversation with a follow-up.
                     </div>
-                  ) : null}
+                  )}
                   {[...followups].reverse().map(f => (
                     <div key={f.id} className="space-y-3">
                       <div className="text-sm text-white/50">
