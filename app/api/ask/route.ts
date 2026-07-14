@@ -54,6 +54,10 @@ export async function POST(req: NextRequest) {
   const xff = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "";
   const clientIp = (xff.split(",")[0] ?? "").trim();
   const ua = req.headers.get("user-agent") ?? "";
+  // GDPR (Phase 4b): the analytics-consent choice — the first-party
+  // aggrai_consent_v1 cookie, sent automatically. Forwarded so the backend can
+  // stamp it on the tracking row (and, in 4b enforcement, honour it).
+  const consent = req.cookies.get("aggrai_consent_v1")?.value ?? "";
 
   let upstream: Response;
   try {
@@ -68,6 +72,7 @@ export async function POST(req: NextRequest) {
         ...(sessionId ? { "x-aggrai-session-id": sessionId } : {}),
         ...(clientIp ? { "x-aggrai-ip": clientIp } : {}),
         ...(ua ? { "x-aggrai-ua": ua } : {}),
+        ...(consent === "accepted" || consent === "rejected" ? { "x-aggrai-consent": consent } : {}),
       },
       body,
       // Forward the client's abort: if the user clicks Stop / navigates away,
