@@ -10,7 +10,7 @@ import { saveConversation, listConversations, loadConversation, type ConvRow } f
 import { appendMessage, bumpConversation, listMessages, type ConvMessage } from "@/lib/messages";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -263,6 +263,100 @@ function ModelLoadingBlock({ modelId }: { modelId: string }) {
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4">
       <ModelLoader modelId={modelId} size={LOADING_BRAND_SIZE} label={modelLabel(modelId)} />
       <p className="text-xs text-white/40">{modelLabel(modelId)}</p>
+    </div>
+  );
+}
+
+// Playful flavour lines that rotate under the headline so the wait feels alive
+// even in the gaps between real events. Two sets — one per phase.
+const THINKING_FLAVORS = [
+  "no peeking at each other's work",
+  "each one thinking solo",
+  "the more minds the merrier",
+  "gathering every angle",
+  "same question, five takes",
+];
+const SCORING_FLAVORS = [
+  "reading every answer twice",
+  "tallying the Aggr-Score",
+  "marking on the merits",
+  "checking who backed it up",
+  "crowning a winner",
+];
+
+// The live orchestration status shown while a comparison streams in. Replaces a
+// static "Thinking…" with a phase-aware headline (names the model that just
+// landed), a rotating flavour line, and a per-model checklist that ticks green
+// as each answer arrives — so the top block narrates what aggrai is doing.
+function ThinkingStatus({
+  modelIds, done, typing, gradientId,
+}: {
+  modelIds: string[];
+  done: string[];      // finished, in completion order (newest last)
+  typing: string[];    // currently streaming
+  gradientId: string;
+}) {
+  const total = modelIds.length;
+  const doneCount = done.length;
+  const allIn = total > 0 && doneCount >= total;
+
+  // Rotate a flavour line every ~2.4s. Deterministic (no Math.random) so it
+  // stays stable across the frequent re-renders that streaming triggers.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((v) => v + 1), 2400);
+    return () => clearInterval(t);
+  }, []);
+  const flavors = allIn ? SCORING_FLAVORS : THINKING_FLAVORS;
+  const flavor = flavors[tick % flavors.length];
+
+  let headline: string;
+  if (allIn) {
+    headline = `Gathered all ${total} answers — scoring them now…`;
+  } else if (doneCount === 0) {
+    headline = `Asking ${total} models…`;
+  } else {
+    const last = modelLabel(done[done.length - 1]);
+    const remaining = total - doneCount;
+    headline = `${last} is in — awaiting ${remaining} more…`;
+  }
+
+  return (
+    <div
+      role="status"
+      aria-label="Comparing models"
+      className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4"
+    >
+      <Logo height={LOADING_AGGRAI_SIZE} spinning symbolOnly gradientId={gradientId} />
+      <p className="text-sm font-medium text-white/80 text-center" aria-live="polite">{headline}</p>
+      <p className="text-xs text-white/35 text-center">{flavor}…</p>
+      <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+        {modelIds.map((id) => {
+          const isDone = done.includes(id);
+          const isTyping = !isDone && typing.includes(id);
+          return (
+            <span
+              key={id}
+              title={modelLabel(id)}
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                isDone
+                  ? "border-teal-300/40 bg-teal-300/10 text-teal-200"
+                  : isTyping
+                    ? "border-white/15 bg-white/[0.05] text-white/70"
+                    : "border-white/10 text-white/30"
+              }`}
+            >
+              <ProviderLogo provider={providerOf(id)} className="w-2.5 h-2.5 shrink-0" />
+              <span className="max-w-[90px] truncate">{modelLabel(id)}</span>
+              {isDone ? (
+                <Check className="w-2.5 h-2.5 text-teal-300" aria-hidden="true" />
+              ) : isTyping ? (
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse" aria-hidden="true" />
+              ) : null}
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1911,10 +2005,16 @@ function Home() {
               )}
               {intentHint === "compare" && selected.size > 1 ? (
               <div className="space-y-4">
-                {/* One "Thinking…" block for the Summary + Aggr-Score area while
-                    the summariser computes — the per-model answer cards stream
-                    in below it. (We used to show two separate skeletons here.) */}
-                <LoadingBlock title="Thinking…" gradientId="ld-summary" />
+                {/* Live orchestration status for the Summary + Aggr-Score area:
+                    a phase-aware headline + per-model checklist that ticks green
+                    as each answer lands, then flips to "scoring" once all are in.
+                    The per-model answer cards stream in below it. */}
+                <ThinkingStatus
+                  modelIds={[...selected]}
+                  done={streamingAnswers.map(a => a.model)}
+                  typing={[...selected].filter(id => partialAnswers[id] != null)}
+                  gradientId="ld-summary"
+                />
                 {/* Two-column grid with items-start. We tried CSS `columns`
                     masonry here, but it reorders cards column-major (model 3
                     jumps above model 2) and re-balances column heights every
