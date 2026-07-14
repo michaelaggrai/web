@@ -1729,16 +1729,14 @@ function Home() {
                   );
                 })}
                 {(() => {
-                  // Tier gating (Phase 5b): Free can't re-run all models; Pro is
-                  // capped at 3 multi-model follow-ups per conversation; Premium
-                  // is unlimited. The backend enforces too.
-                  const compareUsed = followups.filter(f => f.mode === "compare").length;
-                  const allowed = tier === "premium" || (tier === "pro" && compareUsed < 3);
+                  // Tier gating (Phase 5b): Free can't re-run all models (single-
+                  // model continuation only); Pro + Premium get unlimited
+                  // multi-model follow-ups (model count follows their comparison
+                  // size). The backend enforces too.
+                  const allowed = tier === "pro" || tier === "premium";
                   const reason = tier === "free"
                     ? "Upgrade to Pro to re-run every model on your follow-up"
-                    : (tier === "pro" && compareUsed >= 3)
-                      ? "Pro includes up to 3 multi-model follow-ups per conversation"
-                      : "Re-run all models on your follow-up";
+                    : "Re-run all models on your follow-up";
                   return (
                     <button
                       type="button"
