@@ -44,10 +44,14 @@ export default function PrivacyPage() {
               AI models you choose, and the resulting responses.</li>
             <li><strong>Plan and billing</strong>: the tier you&apos;re on (Free, Pro, or
               Premium) and any related transactional records.</li>
-            <li><strong>Technical data</strong>: IP address, browser type, device
-              information, and basic usage telemetry needed to operate the Service.</li>
-            <li><strong>Cookies</strong>: strictly-necessary cookies to keep you signed in
-              and to remember your cookie choice, plus optional error-monitoring that runs
+            <li><strong>Technical &amp; analytics data</strong>: only with your consent,
+              a pseudonymous per-browser id, your IP address, coarse device/browser type
+              and approximate country — used to understand usage and catch errors. If you
+              reject analytics we do not store these; we keep only anonymised operational
+              records (see &ldquo;If you reject analytics&rdquo; below).</li>
+            <li><strong>Cookies &amp; local storage</strong>: strictly-necessary cookies to
+              keep you signed in and to remember your cookie choice, plus optional analytics
+              — error monitoring and the pseudonymous usage identifiers above — that run
               only with your consent (see the table below). We do not use advertising or
               cross-site tracking cookies.</li>
           </ul>
@@ -56,7 +60,7 @@ export default function PrivacyPage() {
             <table className="mt-2 w-full border-collapse text-sm">
               <thead>
                 <tr className="text-left text-white/50">
-                  <th className="py-2 pr-4 font-medium">Cookie</th>
+                  <th className="py-2 pr-4 font-medium">Cookie / storage</th>
                   <th className="py-2 pr-4 font-medium">Purpose</th>
                   <th className="py-2 font-medium">Category</th>
                 </tr>
@@ -77,9 +81,31 @@ export default function PrivacyPage() {
                   <td className="py-2 pr-4">Reports crashes so we can fix them. Loads only after you Accept; manage it any time in Settings &rarr; Cookies &amp; tracking.</td>
                   <td className="py-2 whitespace-nowrap">Analytics (optional)</td>
                 </tr>
+                <tr className="border-t border-white/10">
+                  <td className="py-2 pr-4"><code>aggrai_anon_id</code> (local storage)</td>
+                  <td className="py-2 pr-4">A pseudonymous per-browser id so we can tell anonymous visitors apart. Written only after you Accept; removed if you Reject.</td>
+                  <td className="py-2 whitespace-nowrap">Analytics (optional)</td>
+                </tr>
+                <tr className="border-t border-white/10">
+                  <td className="py-2 pr-4"><code>aggrai_session_id</code> (session storage)</td>
+                  <td className="py-2 pr-4">Groups your activity within a single browser tab. Written only after you Accept; cleared when the tab closes or you Reject.</td>
+                  <td className="py-2 whitespace-nowrap">Analytics (optional)</td>
+                </tr>
               </tbody>
             </table>
           </div>
+
+          <p className="mt-4">
+            <strong>If you reject analytics</strong>, we switch off the items marked
+            &ldquo;optional&rdquo; above and clear their identifiers. We still process what
+            we genuinely need to run aggrai: your account (to sign you in and provide your
+            history), the questions you ask and the models you run — with their token and
+            cost accounting — and a coarse country to choose a language variant. Those
+            records carry no per-visitor id, IP address or device profile, and we rely on
+            our legitimate interest in operating and securing the Service (and, for account
+            data, on performing our contract with you). Signing in is unaffected by this
+            choice.
+          </p>
 
           <h2>2. How we use it</h2>
           <ul>
