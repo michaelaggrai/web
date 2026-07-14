@@ -30,17 +30,19 @@ export interface UserDataExport {
   conversations: Record<string, unknown>[];
   messages: Record<string, unknown>[];
   user_memory: Record<string, unknown> | null;
+  profile_events: Record<string, unknown>[];
 }
 
 // Gather every row of the user's personal data for a GDPR Article-15/20 export.
 export async function gatherUserData(admin: SupabaseClient, userId: string): Promise<UserDataExport> {
-  const [profile, questions, events, conversations, messages, userMemory] = await Promise.all([
+  const [profile, questions, events, conversations, messages, userMemory, profileEvents] = await Promise.all([
     admin.from("profiles").select("*").eq("id", userId).maybeSingle(),
     admin.from("questions").select("*").eq("user_id", userId),
     admin.from("events").select("*").eq("user_id", userId),
     admin.from("conversations").select("*").eq("user_id", userId),
     admin.from("messages").select("*").eq("user_id", userId),
     admin.from("user_memory").select("*").eq("user_id", userId).maybeSingle(),
+    admin.from("profile_events").select("*").eq("user_id", userId),
   ]);
   const qids = (questions.data ?? []).map((q) => q.id as string);
   const model_runs: Record<string, unknown>[] = [];
@@ -63,6 +65,7 @@ export async function gatherUserData(admin: SupabaseClient, userId: string): Pro
     conversations: conversations.data ?? [],
     messages: messages.data ?? [],
     user_memory: userMemory.data ?? null,
+    profile_events: profileEvents.data ?? [],
   };
 }
 
@@ -79,6 +82,7 @@ export async function deleteUserData(admin: SupabaseClient, userId: string) {
   // than relying on the ON DELETE CASCADE / SET NULL FKs (Phase 5a/5c).
   await admin.from("messages").delete().eq("user_id", userId);
   await admin.from("user_memory").delete().eq("user_id", userId);
+  await admin.from("profile_events").delete().eq("user_id", userId);
   await admin.from("questions").delete().eq("user_id", userId);
   await admin.from("events").delete().eq("user_id", userId);
   await admin.from("conversations").delete().eq("user_id", userId);
