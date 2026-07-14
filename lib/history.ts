@@ -63,6 +63,10 @@ export async function saveConversation(
       question: data.question,
       models: data.models,
       updated_at: new Date().toISOString(),
+      // Recents sort by conversation activity (Phase 5a) — set on the root turn
+      // so a new comparison floats to the top; bumpConversation() updates it as
+      // follow-ups land.
+      last_message_at: new Date().toISOString(),
     };
     if (data.result !== undefined) row.result = data.result;
     await createClient().from("conversations").upsert(row, { onConflict: "id" });
@@ -78,7 +82,7 @@ export async function listConversations(limit = 30): Promise<ConvRow[]> {
     const { data, error } = await createClient()
       .from("conversations")
       .select("id, title, question, created_at")
-      .order("updated_at", { ascending: false })
+      .order("last_message_at", { ascending: false })
       .limit(limit);
     if (error || !data) return [];
     return data as ConvRow[];

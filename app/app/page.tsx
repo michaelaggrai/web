@@ -7,6 +7,7 @@ import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
 import { getAnonId } from "@/lib/anon-id";
 import { getSessionId } from "@/lib/session-id";
 import { saveConversation, listConversations, loadConversation, type ConvRow } from "@/lib/history";
+import { appendMessage, bumpConversation, listMessages, type ConvMessage } from "@/lib/messages";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus } from "lucide-react";
@@ -833,6 +834,27 @@ function Home() {
   const [sessionRecents, setSessionRecents] = useState<SessionRecent[]>([]);
   const [activeRecentId, setActiveRecentId] = useState<string | null>(null);
 
+  // ── Conversation continuation (Phase 5a) ──────────────────────────────────
+  // A single-model follow-up thread rendered BELOW the turn-1 comparison. Each
+  // Followup is one exchange: the user's question + the chosen model's answer,
+  // streamed from /api/converse. Signed-in only (the thread lives in Supabase).
+  type Followup = {
+    id: string;
+    userTurn: number;      // message-row turn for the question
+    asstTurn: number;      // message-row turn for the answer
+    question: string;
+    modelId: string;
+    answer: string;
+    streaming: boolean;
+    error: string | null;
+  };
+  const [activeConvId, setActiveConvId] = useState<string | null>(urlConvId);
+  const [followups, setFollowups] = useState<Followup[]>([]);
+  const [followupModel, setFollowupModel] = useState<string | null>(null);  // null → winner
+  const [followupInput, setFollowupInput] = useState("");
+  const [followupLoading, setFollowupLoading] = useState(false);
+  const followupAbortRef = useRef<AbortController | null>(null);
+
   // Hydrate from sessionStorage on first mount only
   useEffect(() => {
     try {
@@ -868,6 +890,10 @@ function Home() {
     setActiveRecentId(id);
     setQuestion(found.question);
     setResult(found.result);
+    // Anonymous session recents can't be continued (no RLS-scoped thread).
+    setActiveConvId(null);
+    setFollowups([]);
+    setFollowupModel(null);
     setSelected(new Set(found.models));
     // Mark as user-chosen so the tier-defaults sync effect doesn't clobber
     // the restored selection on the next render (e.g. if useTier resolves
@@ -910,6 +936,7 @@ function Home() {
   // handler below re-expands individual blocks as their answers arrive.
   useEffect(() => { setExpandedAnswers(new Set()); }, [result]);
   const questionInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const followupInputRef = useRef<HTMLTextAreaElement | null>(null);  // Phase 5a continuation composer
   // Reference to the mobile menu button so the AppSidebar can restore
   // focus here when the drawer closes (a11y — Escape, X click, backdrop).
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -921,22 +948,14 @@ function Home() {
   // abort the next one.
   const abortRef = useRef<AbortController | null>(null);
 
-  // "Continue with X" — narrow the model picker to just that model, clear
-  // the visible result, and scroll the question input into view focused.
-  // Until V2's persistent conversation feature lands, this is a "soft"
-  // continuation: the user's next question goes to that single model with
-  // no carried context, which is still much closer to the "pick a model
-  // and chat with it" mental model than today's restart-from-scratch flow.
+  // "Continue with X" (Phase 5a) — set the follow-up target model + focus the
+  // continuation composer. The comparison stays on screen; the next follow-up
+  // streams from /api/converse into the thread below it (no restart-from-scratch).
   function handleContinueWith(modelId: string) {
-    setSelected(new Set([modelId]));
-    userOwnsSelection.current = true;  // stop tier-default auto-sync from overriding
-    setResult(null);
-    setError("");
-    setIntentHint(null);
-    // Scroll + focus on the next tick so the layout collapse has happened.
+    setFollowupModel(modelId);
     setTimeout(() => {
-      questionInputRef.current?.focus();
-      questionInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      followupInputRef.current?.focus();
+      followupInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 50);
   }
   const toggleAnswer = (modelId: string) => {
@@ -994,6 +1013,9 @@ function Home() {
       if (conv.models.length) { setSelected(new Set(conv.models)); userOwnsSelection.current = true; }
       if (conv.result) setResult(conv.result as Result);
       setActiveRecentId(urlConvId);
+      // Restore the follow-up thread (Phase 5a) so a reload shows all turns.
+      setActiveConvId(urlConvId);
+      listMessages(urlConvId).then(msgs => { if (alive) setFollowups(toFollowups(msgs)); });
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1012,6 +1034,11 @@ function Home() {
     setError("");
     setIntentHint(null);
     setSidebarOpen(false);
+    // Restore the follow-up thread (Phase 5a).
+    setActiveConvId(id);
+    setFollowups([]);
+    setFollowupModel(null);
+    listMessages(id).then(msgs => setFollowups(toFollowups(msgs)));
     if (typeof window !== "undefined") {
       window.history.replaceState(null, "", `/app/c/${id}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1263,6 +1290,10 @@ function Home() {
           if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
         }
         setResult(pendingResult);
+        // A fresh comparison starts a fresh continuation thread (Phase 5a).
+        setActiveConvId(convId ?? null);
+        setFollowups([]);
+        setFollowupModel(null);
         // Capture into session recents so the sidebar shows it and the
         // user can jump back to this comparison without re-querying.
         pushRecent(q.trim(), models, pendingResult);
@@ -1284,6 +1315,12 @@ function Home() {
         // surface it in the sidebar without a re-fetch.
         if (signedIn && convId) {
           void saveConversation(convId, { question: q.trim(), models: [...models], result: pendingResult });
+          // Seed the thread's first two turns so /converse has history to read
+          // (Phase 5a). Best-effort; only comparisons are continuable.
+          if (pendingResult.type === "compare") {
+            void appendMessage(convId, { turn: 0, role: "user", content: q.trim() });
+            void appendMessage(convId, { turn: 1, role: "assistant_comparison", result: pendingResult });
+          }
           setDbRecents(prev => [
             { id: convId, title: q.trim(), question: q.trim(), created_at: new Date().toISOString() },
             ...prev.filter(r => r.id !== convId),
@@ -1327,6 +1364,119 @@ function Home() {
     await submitQuestion(question, selected);
   }
 
+  // ── Continuation handlers (Phase 5a) ──────────────────────────────────────
+  // The winner = the highest Aggr-Score answer; the default "Continue with X".
+  function winnerModel(): string | null {
+    if (!result || result.type !== "compare" || !result.answers.length) return null;
+    const sc = (a: Answer) => (a.scores ? overallScore(a.scores) : 0);
+    return [...result.answers].sort((a, b) => sc(b) - sc(a))[0]?.model ?? null;
+  }
+
+  // Rebuild the follow-up thread from stored message rows (turns ≥ 2; turns 0/1
+  // are the initial comparison, already rendered from `result`).
+  function toFollowups(msgs: ConvMessage[]): Followup[] {
+    const out: Followup[] = [];
+    let pendingUser: { turn: number; content: string } | null = null;
+    for (const m of [...msgs].sort((a, b) => a.turn - b.turn)) {
+      if (m.turn < 2) continue;
+      if (m.role === "user") pendingUser = { turn: m.turn, content: m.content ?? "" };
+      else if (m.role === "assistant_single" && pendingUser) {
+        out.push({
+          id: `t${m.turn}`, userTurn: pendingUser.turn, asstTurn: m.turn,
+          question: pendingUser.content, modelId: m.model_id ?? "",
+          answer: m.content ?? "", streaming: false, error: null,
+        });
+        pendingUser = null;
+      }
+    }
+    return out;
+  }
+
+  // Stream a single-model follow-up from /api/converse into the thread, then
+  // persist both turns to Supabase (best-effort) so it survives a reload.
+  async function submitContinuation(q: string, modelId: string) {
+    const convId = activeConvId;
+    if (!convId || !q.trim() || !modelId || followupLoading) return;
+    const maxTurn = followups.reduce((mx, f) => Math.max(mx, f.asstTurn), 1);
+    const userTurn = maxTurn + 1;
+    const asstTurn = maxTurn + 2;
+    const id = `t${asstTurn}`;
+    setFollowups(prev => [...prev, { id, userTurn, asstTurn, question: q.trim(), modelId, answer: "", streaming: true, error: null }]);
+    setFollowupInput("");
+    setFollowupLoading(true);
+    const controller = new AbortController();
+    followupAbortRef.current = controller;
+    const patch = (fields: Partial<Followup>) =>
+      setFollowups(prev => prev.map(f => (f.id === id ? { ...f, ...fields } : f)));
+    try {
+      const sessionId = getSessionId();
+      const res = await fetch("/api/converse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(sessionId ? { "x-aggrai-session-id": sessionId } : {}) },
+        body: JSON.stringify({ conversationId: convId, question: q.trim(), modelId, turn: asstTurn }),
+        signal: controller.signal,
+      });
+      if (!res.ok || !res.body) {
+        let msg = `Request failed (HTTP ${res.status})`;
+        try { const j = JSON.parse(await res.text()); if (j?.error) msg = j.error; } catch { /* keep generic */ }
+        throw new Error(msg);
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let answerText = "";
+      let questionId: string | null = null;
+      let cost: number | null = null;
+      let latency = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) !== -1) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line) continue;
+          let evt: { stage?: string; delta?: string; answer?: string; questionId?: string; runtime_ms?: number; cost_usd?: number | null; error?: string };
+          try { evt = JSON.parse(line); } catch { continue; }
+          if (evt.stage === "answer-chunk") {
+            answerText += String(evt.delta ?? "");
+            patch({ answer: answerText });
+          } else if (evt.stage === "answer") {
+            answerText = String(evt.answer ?? answerText);
+            latency = Number(evt.runtime_ms ?? 0);
+            cost = typeof evt.cost_usd === "number" ? evt.cost_usd : null;
+            patch({ answer: answerText });
+          } else if (evt.stage === "done") {
+            questionId = evt.questionId ?? null;
+          } else if (evt.stage === "error") {
+            throw new Error(evt.error ?? "The model failed to answer.");
+          }
+        }
+      }
+      patch({ streaming: false });
+      void appendMessage(convId, { turn: userTurn, role: "user", content: q.trim() });
+      void appendMessage(convId, { turn: asstTurn, role: "assistant_single", model_id: modelId, question_id: questionId, content: answerText, cost_usd: cost, latency_ms: latency });
+      void bumpConversation(convId, asstTurn + 1);
+    } catch (err: unknown) {
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      if (isAbort) patch({ streaming: false });
+      else {
+        Sentry.captureException(err, { tags: { feature: "converse" } });
+        patch({ streaming: false, error: err instanceof Error ? err.message : "Something went wrong" });
+      }
+    } finally {
+      setFollowupLoading(false);
+      followupAbortRef.current = null;
+    }
+  }
+
+  function handleFollowupSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const model = followupModel ?? winnerModel();
+    if (model) void submitContinuation(followupInput, model);
+  }
+
   // Reset to a blank comparison ("New comparison" in the sidebar, or
   // tap on the topbar / sidebar logo). After the AGG-38 body-scroll
   // refactor, also scroll the document back to the top — otherwise a
@@ -1340,6 +1490,11 @@ function Home() {
     setIntentHint(null);
     setActiveRecentId(null);
     setSidebarOpen(false);
+    // Clear the continuation thread (Phase 5a).
+    setActiveConvId(null);
+    setFollowups([]);
+    setFollowupModel(null);
+    setFollowupInput("");
     // A new comparison is a fresh start: snap the picker back to this tier's
     // FULL default set (so Premium gets its 5, not a stale free trio left over
     // from a restored recent) and re-enable tier-default sync. Without this,
@@ -1860,6 +2015,106 @@ function Home() {
                     </div>
                   )}
                 </>
+              )}
+
+              {/* Conversation continuation (Phase 5a) — single-model follow-up
+                  thread + composer, stacked below the turn-1 comparison. */}
+              {result.type === "compare" && (
+                <div className="space-y-6">
+                  {followups.map(f => (
+                    <div key={f.id} className="space-y-3">
+                      <div className="text-sm text-white/50">
+                        <span className="text-white/30">You asked:</span>{" "}
+                        <span className="text-white/80">{f.question}</span>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
+                          <ProviderLogo provider={providerOf(f.modelId)} className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{modelLabel(f.modelId)}</span>
+                          {f.streaming && <span className="text-white/40 font-normal">· thinking…</span>}
+                        </div>
+                        {f.error ? (
+                          <p className="text-sm text-amber-300">{f.error}</p>
+                        ) : f.answer ? (
+                          <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                            [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-white/30">…</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {signedIn && activeConvId ? (
+                    <div className="rounded-2xl border border-teal-300/20 bg-teal-300/[0.04] p-4 sm:p-5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-3">
+                        Continue the conversation
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        {result.answers.map(a => {
+                          const target = followupModel ?? winnerModel();
+                          const isActive = target === a.model;
+                          const isWinner = winnerModel() === a.model;
+                          return (
+                            <button
+                              key={a.model}
+                              type="button"
+                              onClick={() => handleContinueWith(a.model)}
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                                isActive
+                                  ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
+                                  : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
+                              }`}
+                            >
+                              {isWinner && <Trophy className="w-3 h-3 text-amber-300" aria-hidden="true" />}
+                              <ProviderLogo provider={providerOf(a.model)} className="w-3 h-3" />
+                              {modelLabel(a.model)}
+                            </button>
+                          );
+                        })}
+                        <span
+                          title="Multi-model follow-ups arrive with the next phase"
+                          className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/30 cursor-default"
+                        >
+                          Ask all again · soon
+                        </span>
+                      </div>
+                      <form onSubmit={handleFollowupSubmit} className="flex items-end gap-2">
+                        <textarea
+                          ref={followupInputRef}
+                          value={followupInput}
+                          onChange={e => setFollowupInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              const m = followupModel ?? winnerModel();
+                              if (m) void submitContinuation(followupInput, m);
+                            }
+                          }}
+                          rows={1}
+                          placeholder={`Ask ${modelLabel(followupModel ?? winnerModel() ?? "")} a follow-up…`}
+                          className="flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-teal-300/40"
+                          disabled={followupLoading}
+                        />
+                        <button
+                          type="submit"
+                          disabled={followupLoading || !followupInput.trim()}
+                          aria-label="Send follow-up"
+                          className="shrink-0 inline-flex items-center justify-center rounded-xl bg-teal-400 px-4 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-teal-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </form>
+                    </div>
+                  ) : !signedIn ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/50">
+                      <a href="/login" className="text-teal-300 hover:text-teal-200 font-medium">Sign in</a>{" "}
+                      to continue this conversation with a follow-up.
+                    </div>
+                  ) : null}
+                </div>
               )}
             </div>
           )}

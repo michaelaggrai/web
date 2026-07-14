@@ -10,6 +10,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 //   questions      — user_id = auth.users.id   (anon rows, user_id NULL, are NOT this user's identified data)
 //   events         — user_id = auth.users.id
 //   conversations  — user_id = auth.users.id
+//   messages       — user_id = auth.users.id   (Phase 5a conversation turns)
+//   user_memory    — user_id = auth.users.id   (Phase 5c; empty until then)
 //   model_runs     — question_id → the user's questions
 //   usage_events   — question_id → the user's questions
 
@@ -26,15 +28,19 @@ export interface UserDataExport {
   usage_events: Record<string, unknown>[];
   events: Record<string, unknown>[];
   conversations: Record<string, unknown>[];
+  messages: Record<string, unknown>[];
+  user_memory: Record<string, unknown> | null;
 }
 
 // Gather every row of the user's personal data for a GDPR Article-15/20 export.
 export async function gatherUserData(admin: SupabaseClient, userId: string): Promise<UserDataExport> {
-  const [profile, questions, events, conversations] = await Promise.all([
+  const [profile, questions, events, conversations, messages, userMemory] = await Promise.all([
     admin.from("profiles").select("*").eq("id", userId).maybeSingle(),
     admin.from("questions").select("*").eq("user_id", userId),
     admin.from("events").select("*").eq("user_id", userId),
     admin.from("conversations").select("*").eq("user_id", userId),
+    admin.from("messages").select("*").eq("user_id", userId),
+    admin.from("user_memory").select("*").eq("user_id", userId).maybeSingle(),
   ]);
   const qids = (questions.data ?? []).map((q) => q.id as string);
   const model_runs: Record<string, unknown>[] = [];
@@ -55,6 +61,8 @@ export async function gatherUserData(admin: SupabaseClient, userId: string): Pro
     usage_events,
     events: events.data ?? [],
     conversations: conversations.data ?? [],
+    messages: messages.data ?? [],
+    user_memory: userMemory.data ?? null,
   };
 }
 
@@ -67,6 +75,10 @@ export async function deleteUserData(admin: SupabaseClient, userId: string) {
     await admin.from("model_runs").delete().in("question_id", c);
     await admin.from("usage_events").delete().in("question_id", c);
   }
+  // messages before conversations/questions so the delete is explicit rather
+  // than relying on the ON DELETE CASCADE / SET NULL FKs (Phase 5a/5c).
+  await admin.from("messages").delete().eq("user_id", userId);
+  await admin.from("user_memory").delete().eq("user_id", userId);
   await admin.from("questions").delete().eq("user_id", userId);
   await admin.from("events").delete().eq("user_id", userId);
   await admin.from("conversations").delete().eq("user_id", userId);
