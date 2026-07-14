@@ -1777,9 +1777,9 @@ function Home() {
               {/* Mirror the loaded result's "You asked: …" header so the user
                   can see their question while the comparison streams in. */}
               {pendingQuestion && (
-                <div className="text-sm text-white/50">
-                  <span className="text-white/30">You asked:</span>{" "}
-                  <span className="text-white/80">{pendingQuestion}</span>
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                  <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{pendingQuestion}</p>
                 </div>
               )}
               {intentHint === "compare" && selected.size > 1 ? (
@@ -1888,9 +1888,9 @@ function Home() {
                   )}
                   {[...followups].reverse().map(f => (
                     <div key={f.id} className="space-y-3">
-                      <div className="text-sm text-white/50">
-                        <span className="text-white/30">You asked:</span>{" "}
-                        <span className="text-white/80">{f.question}</span>
+                      <div className="flex items-start gap-3">
+                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                        <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{f.question}</p>
                       </div>
                       <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
@@ -1914,10 +1914,10 @@ function Home() {
                 </div>
               )}
 
-              {/* Asked question */}
-              <div className="text-sm text-white/50">
-                <span className="text-white/30">You asked:</span>{" "}
-                <span className="text-white/80">{result.question}</span>
+              {/* Asked question — a user-message row (avatar + question) */}
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{result.question}</p>
               </div>
 
               {result.type === "product" || result.type === "direct" ? (
