@@ -857,6 +857,10 @@ function Home() {
   // question header once a newer turn arrives, so the thread stays tidy; the
   // newest (and any streaming) turn is always open. A turn can be re-opened.
   const [expandedFollowups, setExpandedFollowups] = useState<Set<string>>(new Set());
+  // The original turn-1 comparison also collapses to a one-line header once the
+  // user has continued (it's a historical turn then); expanded when there are no
+  // follow-ups, or when the user re-opens it.
+  const [comparisonExpanded, setComparisonExpanded] = useState(true);
   const toggleFollowup = (id: string) =>
     setExpandedFollowups(prev => {
       const next = new Set(prev);
@@ -1030,6 +1034,7 @@ function Home() {
         const f = toFollowups(msgs);
         setFollowups(f);
         setExpandedFollowups(new Set(f.length ? [f[f.length - 1].id] : []));
+        setComparisonExpanded(f.length === 0);
       });
     });
     return () => { alive = false; };
@@ -1057,6 +1062,7 @@ function Home() {
       const f = toFollowups(msgs);
       setFollowups(f);
       setExpandedFollowups(new Set(f.length ? [f[f.length - 1].id] : []));
+      setComparisonExpanded(f.length === 0);
     });
     if (typeof window !== "undefined") {
       window.history.replaceState(null, "", `/app/c/${id}`);
@@ -1420,6 +1426,7 @@ function Home() {
     const id = `t${asstTurn}`;
     setFollowups(prev => [...prev, { id, userTurn, asstTurn, question: q.trim(), modelId, answer: "", streaming: true, error: null }]);
     setExpandedFollowups(new Set([id]));  // collapse older turns; keep the new one open
+    setComparisonExpanded(false);          // collapse the original comparison — it's history now
     setFollowupInput("");
     setFollowupLoading(true);
     const controller = new AbortController();
@@ -1512,6 +1519,7 @@ function Home() {
     setActiveConvId(null);
     setFollowups([]);
     setExpandedFollowups(new Set());
+    setComparisonExpanded(true);
     setFollowupModel(null);
     setFollowupInput("");
     // A new comparison is a fresh start: snap the picker back to this tier's
@@ -1956,12 +1964,36 @@ function Home() {
                 </div>
               )}
 
-              {/* Asked question — a user-message row (avatar + question) */}
-              <div className="flex items-center gap-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
-                <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{result.question}</p>
-              </div>
+              {/* Asked question — a user-message row. For a comparison with
+                  follow-ups it's a toggle that collapses the whole comparison
+                  (it's a historical turn once you've continued). */}
+              {result.type === "compare" ? (
+                <button
+                  type="button"
+                  onClick={() => setComparisonExpanded(v => !v)}
+                  aria-expanded={followups.length === 0 || comparisonExpanded}
+                  className="group flex w-full items-center gap-3 text-left"
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                  <p className={`min-w-0 flex-1 break-words ${(followups.length === 0 || comparisonExpanded) ? "text-[15px] leading-relaxed font-medium text-white/90" : "truncate text-sm text-white/60 group-hover:text-white/80"}`}>{result.question}</p>
+                  {followups.length > 0 && !comparisonExpanded && (
+                    <span className="hidden sm:flex items-center gap-1.5 text-xs text-white/40 shrink-0">
+                      <Layers className="w-3 h-3" /> {result.answers.length} models
+                    </span>
+                  )}
+                  {followups.length > 0 && (
+                    <ChevronDown className={`w-4 h-4 shrink-0 text-white/40 transition-transform ${comparisonExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
+                  )}
+                </button>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                  <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{result.question}</p>
+                </div>
+              )}
 
+              {(followups.length === 0 || comparisonExpanded) && (
+              <>
               {result.type === "product" || result.type === "direct" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
                   <div className="mb-3">
@@ -2159,6 +2191,8 @@ function Home() {
                     </div>
                   )}
                 </>
+              )}
+              </>
               )}
             </div>
           )}
