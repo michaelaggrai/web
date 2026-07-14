@@ -31,11 +31,8 @@ export default function CookieConsent() {
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-white/10 bg-neutral-900/95 p-4 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:gap-4">
         <p className="text-sm leading-relaxed text-white/70">
-          We use essential cookies to keep you signed in and remember this choice.
-          With your consent, we also turn on analytics — crash reporting and
-          anonymous usage insights (a per-browser id, device and approximate
-          location) — to help us improve aggrai. Reject and we keep only the
-          minimal, anonymised records we need to operate the service.{" "}
+          We use essential cookies to keep you signed in. With your consent, we
+          also use analytics to catch crashes and understand usage.{" "}
           <Link href="/privacy" className="text-white/90 underline underline-offset-2 hover:text-white">
             Privacy &amp; cookies
           </Link>
