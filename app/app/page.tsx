@@ -1304,7 +1304,9 @@ function Home() {
           ...(anonId ? { "x-aggrai-anon-id": anonId } : {}),
           ...(sessionId ? { "x-aggrai-session-id": sessionId } : {}),
         },
-        body: JSON.stringify({ question: q.trim(), models: [...models] }),
+        // P6b root-link: pass the conversation short-id so the backend stamps the
+        // root questions row (turn 1) → a thread reconstructs from `questions` alone.
+        body: JSON.stringify({ question: q.trim(), models: [...models], ...(convId ? { conversation_id: convId } : {}) }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
