@@ -25,6 +25,10 @@ export async function proxy(req: NextRequest) {
   // disallowed in robots.txt itself.
   if (pathname === "/login") return NextResponse.next();
   if (pathname === "/sitemap.xml" || pathname === "/robots.txt") return NextResponse.next();
+  // Legal / transparency pages stay publicly reachable even behind the beta wall —
+  // a privacy policy or terms you must log in to read defeats the purpose, and the
+  // cookie-consent banner links to /privacy (GDPR / AGG-30).
+  if (pathname === "/privacy" || pathname === "/terms") return NextResponse.next();
   if (req.cookies.get("auth")?.value !== PASSWORD) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
