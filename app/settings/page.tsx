@@ -418,6 +418,13 @@ function Settings() {
         <Section icon={Globe} title="Language" comingSoon>
           <p className="text-sm text-white/40">Choose your interface language. Auto-detected from your browser by default.</p>
         </Section>
+
+        {/* Privacy & data — cookies/tracking, export, deletion (GDPR / AGG-30).
+            Grouped under one heading so the /privacy policy's "Settings → Privacy
+            & data" pointer lands on a matching anchor. */}
+        <h2 className="mt-8 mb-3 px-1 text-xs font-semibold uppercase tracking-wider text-white/40">
+          Privacy &amp; data
+        </h2>
         <Section icon={Cookie} title="Cookies & tracking">
           <ConsentControl />
         </Section>

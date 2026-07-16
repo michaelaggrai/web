@@ -50,7 +50,9 @@ export async function POST(req: NextRequest) {
   // Visitor IP + browser UA for the backend tracking log. The backend's own
   // socket is the cloudflared tunnel, so the real client values must be forwarded
   // from here at the edge. x-forwarded-for is "client, proxy1, …" → take the
-  // first hop. PII (raw IP) — part of the pre-launch GDPR lock-down (AGG-30).
+  // first hop. PII (raw IP + UA) — forwarded ONLY when the visitor Accepted
+  // analytics (opt-in, mirrors the anon/session id gating); withheld pre-consent
+  // and on reject (AGG-30). The backend re-applies the same gate (defence in depth).
   const xff = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "";
   const clientIp = (xff.split(",")[0] ?? "").trim();
   const ua = req.headers.get("user-agent") ?? "";
@@ -70,8 +72,8 @@ export async function POST(req: NextRequest) {
         ...(anonId ? { "x-aggrai-anon-id": anonId } : {}),
         ...(synthetic ? { "x-aggrai-synthetic": synthetic } : {}),
         ...(sessionId ? { "x-aggrai-session-id": sessionId } : {}),
-        ...(clientIp ? { "x-aggrai-ip": clientIp } : {}),
-        ...(ua ? { "x-aggrai-ua": ua } : {}),
+        ...(clientIp && consent === "accepted" ? { "x-aggrai-ip": clientIp } : {}),
+        ...(ua && consent === "accepted" ? { "x-aggrai-ua": ua } : {}),
         ...(consent === "accepted" || consent === "rejected" ? { "x-aggrai-consent": consent } : {}),
       },
       body,

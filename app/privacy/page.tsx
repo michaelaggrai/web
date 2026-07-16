@@ -6,7 +6,7 @@ export const metadata = {
   description: "How aggrai collects, uses, and protects your data.",
 };
 
-const LAST_UPDATED = "23 May 2026";
+const LAST_UPDATED = "16 July 2026";
 
 export default function PrivacyPage() {
   return (
@@ -53,10 +53,12 @@ export default function PrivacyPage() {
             <li><strong>Plan and billing</strong>: the tier you&apos;re on (Free, Pro, or
               Premium) and any related transactional records.</li>
             <li><strong>Technical &amp; analytics data</strong>: only with your consent,
-              a pseudonymous per-browser id, your IP address, coarse device/browser type
-              and approximate country — used to understand usage and catch errors. If you
-              reject analytics we do not store these; we keep only anonymised operational
-              records (see &ldquo;If you reject analytics&rdquo; below).</li>
+              a pseudonymous per-browser id, your IP address and coarse device/browser
+              type — used to understand usage and catch errors. If you reject analytics we
+              do not store these, and any IP address we do store (with consent) is erased
+              within 90 days. Separately, we always process an approximate country from your
+              connection to choose a language variant, under our legitimate interest
+              (see &ldquo;If you reject analytics&rdquo; below).</li>
             <li><strong>Cookies &amp; local storage</strong>: strictly-necessary cookies to
               keep you signed in and to remember your cookie choice, plus optional analytics
               — error monitoring and the pseudonymous usage identifiers above — that run
@@ -193,7 +195,9 @@ export default function PrivacyPage() {
             <li>Saved conversations and your memory profile are retained until you delete
               the conversation, clear your memory, or delete your account. Both are included
               in your data export and erased when you delete your account.</li>
-            <li>Operational logs (errors, abuse signals) are retained for up to 90 days.</li>
+            <li>Operational logs (errors, abuse signals) and any IP address stored with
+              your consent are retained for up to 90 days, after which IP addresses are
+              automatically erased.</li>
           </ul>
 
           <h2>7. Security</h2>
