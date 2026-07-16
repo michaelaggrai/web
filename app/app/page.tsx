@@ -7,7 +7,11 @@ import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
 import { getAnonId } from "@/lib/anon-id";
 import { getSessionId } from "@/lib/session-id";
 import { saveConversation, listConversations, loadConversation, type ConvRow } from "@/lib/history";
-import { appendMessage, bumpConversation, listMessages, type ConvMessage } from "@/lib/messages";
+import { appendMessage, bumpConversation, type ConvMessage } from "@/lib/messages";
+// P6b Phase 4: read threads from the raw source-of-truth tables (questions +
+// model_runs) instead of the messages table. Same ConvMessage[] shape → toFollowups
+// + rendering unchanged. Writers above still dual-write messages until Phase 6.
+import { listThread } from "@/lib/thread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check } from "lucide-react";
@@ -1125,7 +1129,7 @@ function Home() {
       setActiveRecentId(urlConvId);
       // Restore the follow-up thread (Phase 5a) so a reload shows all turns.
       setActiveConvId(urlConvId);
-      listMessages(urlConvId).then(msgs => {
+      listThread(urlConvId).then(msgs => {
         if (!alive) return;
         const f = toFollowups(msgs);
         setFollowups(f);
@@ -1154,7 +1158,7 @@ function Home() {
     setActiveConvId(id);
     setFollowups([]);
     setFollowupModel(null);
-    listMessages(id).then(msgs => {
+    listThread(id).then(msgs => {
       const f = toFollowups(msgs);
       setFollowups(f);
       setExpandedFollowups(new Set(f.length ? [f[f.length - 1].id] : []));
