@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   User, CreditCard, Globe, Cookie, Download, Trash2, LogOut, ArrowLeft,
-  AlertTriangle, Calendar, Receipt, RotateCcw, Brain,
+  AlertTriangle, Calendar, Receipt, RotateCcw, Brain, BarChart3,
 } from "lucide-react";
 import { HomeLink } from "@/components/home-link";
 import { AccountMenu } from "@/components/account-menu";
@@ -412,6 +412,20 @@ function Settings() {
             Used only for you; included in your data export and deleted with your account.
           </p>
           <MemorySettings />
+        </Section>
+
+        {/* Analytics — per-user usage dashboard (AGG-27) */}
+        <Section icon={BarChart3} title="Analytics">
+          <p className="mb-3 text-sm leading-relaxed text-white/50">
+            Your usage at a glance — questions, tokens, activity streaks, and which models
+            perform best for you.
+          </p>
+          <Link
+            href="/settings/analytics"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10"
+          >
+            View your analytics →
+          </Link>
         </Section>
 
         {/* Coming soon — v2 placeholders */}
