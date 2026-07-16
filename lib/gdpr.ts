@@ -1,19 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// Single source of truth for the tables that hold a user's personal data, used
-// by BOTH the export and delete endpoints. When Phase 5 lands (messages,
-// user_memory) or any new user-keyed table is added, extend this file ONLY —
-// so export/delete can never silently drift out of sync with the schema.
+// Single source of truth for the tables that hold a user's personal data, used by
+// BOTH the export and delete endpoints. When a new user-keyed table is added,
+// extend this file ONLY — so export/delete can never silently drift out of sync
+// with the schema.
 //
-// Linkage today:
+// Linkage today (P6b Phase 6 — `messages` + `usage_events` are RETIRED; their data
+// now lives in questions + model_runs):
 //   profiles       — id      = auth.users.id
 //   questions      — user_id = auth.users.id   (anon rows, user_id NULL, are NOT this user's identified data)
 //   events         — user_id = auth.users.id
-//   conversations  — user_id = auth.users.id
-//   messages       — user_id = auth.users.id   (Phase 5a conversation turns)
-//   user_memory    — user_id = auth.users.id   (Phase 5c; empty until then)
-//   model_runs     — question_id → the user's questions
-//   usage_events   — question_id → the user's questions
+//   conversations  — user_id = auth.users.id   (thread headers)
+//   user_memory    — user_id = auth.users.id
+//   profile_events — user_id = auth.users.id   (account-lifecycle log)
+//   model_runs     — question_id → the user's questions (answer + summariser + classifier rows)
 
 function chunk<T>(arr: T[], n: number): T[][] {
   const out: T[][] = [];
@@ -25,45 +25,35 @@ export interface UserDataExport {
   profile: Record<string, unknown> | null;
   questions: Record<string, unknown>[];
   model_runs: Record<string, unknown>[];
-  usage_events: Record<string, unknown>[];
   events: Record<string, unknown>[];
   conversations: Record<string, unknown>[];
-  messages: Record<string, unknown>[];
   user_memory: Record<string, unknown> | null;
   profile_events: Record<string, unknown>[];
 }
 
 // Gather every row of the user's personal data for a GDPR Article-15/20 export.
 export async function gatherUserData(admin: SupabaseClient, userId: string): Promise<UserDataExport> {
-  const [profile, questions, events, conversations, messages, userMemory, profileEvents] = await Promise.all([
+  const [profile, questions, events, conversations, userMemory, profileEvents] = await Promise.all([
     admin.from("profiles").select("*").eq("id", userId).maybeSingle(),
     admin.from("questions").select("*").eq("user_id", userId),
     admin.from("events").select("*").eq("user_id", userId),
     admin.from("conversations").select("*").eq("user_id", userId),
-    admin.from("messages").select("*").eq("user_id", userId),
     admin.from("user_memory").select("*").eq("user_id", userId).maybeSingle(),
     admin.from("profile_events").select("*").eq("user_id", userId),
   ]);
   const qids = (questions.data ?? []).map((q) => q.id as string);
   const model_runs: Record<string, unknown>[] = [];
-  const usage_events: Record<string, unknown>[] = [];
-  // Batch the question-linked tables so a heavy user can't blow the IN() limit.
+  // Batch the question-linked model_runs so a heavy user can't blow the IN() limit.
   for (const c of chunk(qids, 200)) {
-    const [mr, ue] = await Promise.all([
-      admin.from("model_runs").select("*").in("question_id", c),
-      admin.from("usage_events").select("*").in("question_id", c),
-    ]);
+    const mr = await admin.from("model_runs").select("*").in("question_id", c);
     model_runs.push(...(mr.data ?? []));
-    usage_events.push(...(ue.data ?? []));
   }
   return {
     profile: profile.data ?? null,
     questions: questions.data ?? [],
     model_runs,
-    usage_events,
     events: events.data ?? [],
     conversations: conversations.data ?? [],
-    messages: messages.data ?? [],
     user_memory: userMemory.data ?? null,
     profile_events: profileEvents.data ?? [],
   };
@@ -76,11 +66,7 @@ export async function deleteUserData(admin: SupabaseClient, userId: string) {
   const qids = ((await admin.from("questions").select("id").eq("user_id", userId)).data ?? []).map((q) => q.id as string);
   for (const c of chunk(qids, 200)) {
     await admin.from("model_runs").delete().in("question_id", c);
-    await admin.from("usage_events").delete().in("question_id", c);
   }
-  // messages before conversations/questions so the delete is explicit rather
-  // than relying on the ON DELETE CASCADE / SET NULL FKs (Phase 5a/5c).
-  await admin.from("messages").delete().eq("user_id", userId);
   await admin.from("user_memory").delete().eq("user_id", userId);
   await admin.from("profile_events").delete().eq("user_id", userId);
   await admin.from("questions").delete().eq("user_id", userId);
