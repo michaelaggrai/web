@@ -98,7 +98,6 @@ interface Run {
   model: string;
   role: string;
   total_tokens: number | null;
-  cost_usd: number | null;
   scores: { overall?: number } | null;
 }
 
@@ -131,7 +130,7 @@ export async function GET(req: NextRequest) {
   for (const c of chunk(ids, 200)) {
     const { data } = await supabase
       .from("model_runs")
-      .select("question_id, model, role, total_tokens, cost_usd, scores")
+      .select("question_id, model, role, total_tokens, scores")
       .in("question_id", c);
     runs.push(...((data ?? []) as Run[]));
   }
@@ -152,13 +151,12 @@ export async function GET(req: NextRequest) {
   const { current, longest } = computeStreaks([...dayCounts.keys()]);
 
   // --- Per answer-model tallies (the Models tab) ---
-  const byModel = new Map<string, { questions: number; tokens: number; cost: number; scoreSum: number; scoreN: number }>();
+  const byModel = new Map<string, { questions: number; tokens: number; scoreSum: number; scoreN: number }>();
   for (const r of runs) {
     if (r.role !== "answer") continue;
-    const m = byModel.get(r.model) ?? { questions: 0, tokens: 0, cost: 0, scoreSum: 0, scoreN: 0 };
+    const m = byModel.get(r.model) ?? { questions: 0, tokens: 0, scoreSum: 0, scoreN: 0 };
     m.questions++;
     m.tokens += Number(r.total_tokens) || 0;
-    m.cost += Number(r.cost_usd) || 0;
     const ov = r.scores?.overall;
     if (typeof ov === "number") { m.scoreSum += ov; m.scoreN++; }
     byModel.set(r.model, m);
@@ -173,7 +171,6 @@ export async function GET(req: NextRequest) {
       tokens: v.tokens,
       avgScore: v.scoreN > 0 ? Math.round((v.scoreSum / v.scoreN) * 10) / 10 : null,
       scoredCount: v.scoreN,
-      ...(paid ? { cost: Math.round(v.cost * 1e6) / 1e6 } : {}),
     }))
     .sort((a, b) => b.questions - a.questions);
 

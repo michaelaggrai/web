@@ -24,7 +24,6 @@ interface ModelRow {
   tokens: number;
   avgScore: number | null;
   scoredCount: number;
-  cost?: number;
 }
 interface Overview {
   conversations: number;
@@ -54,7 +53,6 @@ function compact(n: number): string {
   if (n >= 1e3) return +(n / 1e3).toFixed(n >= 1e5 ? 0 : 1) + "K";
   return String(n);
 }
-const usd = (n: number) => (n >= 0.005 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 
 export function AnalyticsDashboard() {
   const [range, setRange] = useState<Range>("30d");
@@ -126,7 +124,7 @@ export function AnalyticsDashboard() {
         <div className={loading ? "opacity-60 transition-opacity" : "transition-opacity"}>
           {tab === "overview"
             ? <OverviewTab overview={data.overview} range={data.range} />
-            : <ModelsTab models={data.models} paid={paid} />}
+            : <ModelsTab models={data.models} />}
         </div>
       ) : null}
 
@@ -225,7 +223,7 @@ function Heatmap({ data, range }: { data: { date: string; count: number }[]; ran
   );
 }
 
-function ModelsTab({ models, paid }: { models: ModelRow[]; paid: boolean }) {
+function ModelsTab({ models }: { models: ModelRow[] }) {
   if (!models.length) {
     return <div className="text-sm text-white/40">No model runs in this range yet — this fills in as you compare models.</div>;
   }
@@ -239,7 +237,6 @@ function ModelsTab({ models, paid }: { models: ModelRow[]; paid: boolean }) {
               <div className="truncate text-sm font-medium text-white">{modelLabel(m.model)}</div>
               <div className="text-[11px] text-white/40">
                 {m.questions} answer{m.questions === 1 ? "" : "s"} · {compact(m.tokens)} tokens
-                {paid && m.cost != null ? ` · ${usd(m.cost)}` : ""}
               </div>
             </div>
             {m.avgScore != null && (
