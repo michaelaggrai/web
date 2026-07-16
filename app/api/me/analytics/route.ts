@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
   const since = sinceFor(range);
 
   // 1) the caller's own questions (RLS policy questions_select_own scopes to owner)
-  let query = supabase.from("questions").select("id, ts, conversation_id").eq("user_id", user.id);
+  let query = supabase.from("questions").select("id, ts, conversation_id, topics").eq("user_id", user.id);
   if (since) query = query.gte("ts", since);
   const { data: questions, error: qErr } = await query;
   if (qErr) {
@@ -178,6 +178,67 @@ export async function GET(req: NextRequest) {
     .map(([date, count]) => ({ date, count }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
+  // --- Topic insights (AGG-27 P6b) — from questions.topics (nightly tag-topics) ---
+  const qTopics = new Map<string, string[]>();
+  let tagged = 0;
+  for (const r of qs) {
+    const raw = (r as { topics?: unknown }).topics;
+    const t = Array.isArray(raw) ? (raw as string[]) : [];
+    if (t.length) { qTopics.set(r.id as string, t); tagged++; }
+  }
+  // Scored answers per question (model + overall 0-10).
+  const qScores = new Map<string, { model: string; overall: number }[]>();
+  for (const r of runs) {
+    if (r.role !== "answer") continue;
+    const ov = r.scores?.overall;
+    if (typeof ov !== "number") continue;
+    const arr = qScores.get(r.question_id) ?? [];
+    arr.push({ model: r.model, overall: ov });
+    qScores.set(r.question_id, arr);
+  }
+  const topicCount = new Map<string, number>();
+  const topicModel = new Map<string, Map<string, { sum: number; n: number }>>();
+  const dayScore = new Map<string, { sum: number; n: number }>();
+  for (const r of qs) {
+    const topics = qTopics.get(r.id as string);
+    const scores = qScores.get(r.id as string);
+    if (topics) {
+      for (const topic of topics) {
+        topicCount.set(topic, (topicCount.get(topic) ?? 0) + 1);
+        if (scores) {
+          let mm = topicModel.get(topic);
+          if (!mm) { mm = new Map(); topicModel.set(topic, mm); }
+          for (const s of scores) {
+            const e = mm.get(s.model) ?? { sum: 0, n: 0 };
+            e.sum += s.overall; e.n++; mm.set(s.model, e);
+          }
+        }
+      }
+    }
+    if (scores && scores.length) {
+      const dk = dayKey(r.ts as string);
+      const e = dayScore.get(dk) ?? { sum: 0, n: 0 };
+      for (const s of scores) { e.sum += s.overall; e.n++; }
+      dayScore.set(dk, e);
+    }
+  }
+  const topicBreakdown = [...topicCount.entries()]
+    .map(([topic, count]) => ({ topic, count }))
+    .sort((a, b) => b.count - a.count);
+  const bestPerTopic: { topic: string; model: string; avgScore: number; samples: number }[] = [];
+  for (const [topic, mm] of topicModel) {
+    let best: { model: string; avgScore: number; samples: number } | null = null;
+    for (const [model, e] of mm) {
+      const avg = Math.round((e.sum / e.n) * 10) / 10;
+      if (!best || avg > best.avgScore) best = { model, avgScore: avg, samples: e.n };
+    }
+    if (best) bestPerTopic.push({ topic, ...best });
+  }
+  bestPerTopic.sort((a, b) => (topicCount.get(b.topic) ?? 0) - (topicCount.get(a.topic) ?? 0));
+  const scoreTrend = [...dayScore.entries()]
+    .map(([date, e]) => ({ date, avgScore: Math.round((e.sum / e.n) * 10) / 10, n: e.n }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   return NextResponse.json(
     {
       tier,
@@ -197,6 +258,7 @@ export async function GET(req: NextRequest) {
         funFact: funFact(totalTokens),
       },
       models,
+      insights: { topicBreakdown, bestPerTopic, scoreTrend, tagged, totalQuestions: qs.length },
     },
     { headers: { "Cache-Control": "no-store" } },
   );
