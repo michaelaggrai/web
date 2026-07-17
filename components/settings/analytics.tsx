@@ -351,9 +351,13 @@ function InsightsTab({ insights }: { insights: Insights }) {
 
       {i.scoreTrend.length > 1 && <ScoreTrend data={i.scoreTrend} />}
 
-      {i.tagged < i.totalQuestions && (
-        <p className="text-[11px] text-white/30">{i.tagged} of {i.totalQuestions} questions categorised so far — the rest are tagged nightly.</p>
-      )}
+      {/* Freshness: Overview + Models are live, but topics come from the nightly
+          tag-topics cron — so this tab alone can lag by up to a day. */}
+      <p className="text-[11px] text-white/30">
+        {i.tagged < i.totalQuestions
+          ? `${i.tagged} of ${i.totalQuestions} questions categorised so far — topics are tagged nightly, so your most recent ones may not appear yet.`
+          : "Topics are tagged nightly, so questions you ask today may not appear here until tomorrow."}
+      </p>
     </div>
   );
 }
