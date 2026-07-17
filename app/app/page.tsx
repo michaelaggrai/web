@@ -1162,6 +1162,10 @@ function Home() {
     partialAnswers: Record<string, string>; // model -> text so far
     doneModels: string[];                   // finished, in completion order
     partialSummary: string;                 // the rewrite, streaming
+    // AGG-39 D-converse: this turn's live-search grounding, if any. Per-follow-up
+    // (not the page-level searchInfo) — each turn searches independently, so the
+    // sources shown must belong to that turn, not the first ask.
+    searchInfo: { ok: boolean; sources: { title: string; url: string }[] } | null;
   };
   const [activeConvId, setActiveConvId] = useState<string | null>(urlConvId);
   const [followups, setFollowups] = useState<Followup[]>([]);
@@ -1809,7 +1813,9 @@ function Home() {
       // Rebuilt from storage, so nothing is in flight: the streaming fields are
       // empty and `models` comes from the stored result, which the render reads
       // in preference to them anyway.
-      const settled = { partialAnswers: {}, doneModels: [], partialSummary: "" };
+      // searchInfo is a live-session affordance (the source list); on reload the
+      // grounded answer text + its [1][2] markers persist, matching the first ask.
+      const settled = { partialAnswers: {}, doneModels: [], partialSummary: "", searchInfo: null };
       if (m.role === "assistant_single") {
         out.push({
           id: `t${m.turn}`, userTurn: pendingUser.turn, asstTurn: m.turn,
@@ -1850,7 +1856,7 @@ function Home() {
       id, userTurn, asstTurn, question: q.trim(), mode: compare ? "compare" : "single", modelId,
       answer: "", result: null, streaming: true, error: null,
       models: compare ? (opts.models ?? []) : [modelId],
-      partialAnswers: {}, doneModels: [], partialSummary: "",
+      partialAnswers: {}, doneModels: [], partialSummary: "", searchInfo: null,
     }]);
     setExpandedFollowups(new Set([id]));  // collapse older turns; keep the new one open
     setComparisonExpanded(false);          // collapse the original comparison — it's history now
@@ -1894,7 +1900,12 @@ function Home() {
           if (!line) continue;
           let evt: { stage?: string; delta?: string; answer?: string; questionId?: string; runtime_ms?: number; cost_usd?: number | null; error?: string; [k: string]: unknown };
           try { evt = JSON.parse(line); } catch { continue; }
-          if (evt.stage === "answer-chunk") {
+          if (evt.stage === "search") {
+            // AGG-39 D-converse: this turn was grounded on live search. Surface
+            // its sources on THIS follow-up (not the page-level searchInfo).
+            const sources = Array.isArray(evt.sources) ? evt.sources as { title: string; url: string }[] : [];
+            patch({ searchInfo: { ok: evt.ok !== false, sources } });
+          } else if (evt.stage === "answer-chunk") {
             if (compare) {
               // Per-model deltas — the same events /ask renders live. Merge into
               // this turn's partials so the follow-up shows the models typing
@@ -2491,6 +2502,20 @@ function Home() {
                             // per-model cards all identical. Nothing here is a
                             // turn-only variant any more.
                             <div className="space-y-4">
+                              {/* AGG-39 D-converse: this turn's grounding — sources
+                                  if we searched, else the recency caveat if the
+                                  models flagged it. Same conditional as the first-
+                                  ask compare view, so a follow-up can't drift. */}
+                              {f.searchInfo ? (
+                                <SearchSources info={f.searchInfo} />
+                              ) : (f.result && f.result.type === "compare" && f.result.recencyWarning && (
+                                <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-200/90 flex items-start gap-2">
+                                  <span aria-hidden="true" className="mt-px">⏳</span>
+                                  <span>
+                                    This looks time-sensitive. These models answer from their training data and don&apos;t have live access to current events — the latest facts, prices, or news may have changed since. Double-check anything that moves fast.
+                                  </span>
+                                </div>
+                              ))}
                               <SummaryPanel
                                 result={f.result}
                                 partialSummary={f.partialSummary}
@@ -2525,6 +2550,9 @@ function Home() {
                               ) : (
                                 <p className="text-sm text-white/30">…</p>
                               )}
+                              {/* AGG-39 D-converse: a grounded single follow-up shows
+                                  its sources — the [1][2] markers in the text point here. */}
+                              {f.searchInfo && <div className="mt-4"><SearchSources info={f.searchInfo} /></div>}
                             </>
                           )}
                         </div>
