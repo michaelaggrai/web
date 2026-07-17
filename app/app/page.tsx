@@ -1742,11 +1742,27 @@ function Home() {
   }
 
   // ── Continuation handlers (Phase 5a) ──────────────────────────────────────
-  // The winner = the highest Aggr-Score answer; the default "Continue with X".
+  // The comparison that drives the "continue" bar — its models, winner trophy,
+  // and default target. It's the MOST RECENT compare turn (an "ask all again"
+  // follow-up), else the root. Turn 1's winner isn't the conversation's current
+  // winner once a later turn re-scored the models, so keying off `result` (the
+  // root) left the trophy stuck on turn 1's winner. Single-model follow-ups don't
+  // re-run a comparison, so they don't change this.
+  function latestComparison(): Extract<Result, { type: "compare" }> | null {
+    for (let i = followups.length - 1; i >= 0; i--) {
+      const f = followups[i];
+      if (f.mode === "compare" && f.result?.type === "compare") return f.result;
+    }
+    return result?.type === "compare" ? result : null;
+  }
+
+  // The winner = the highest Aggr-Score answer of the latest comparison; the
+  // default "Continue with X".
   function winnerModel(): string | null {
-    if (!result || result.type !== "compare" || !result.answers.length) return null;
+    const c = latestComparison();
+    if (!c || !c.answers.length) return null;
     const sc = (a: Answer) => (a.scores ? overallScore(a.scores) : 0);
-    return [...result.answers].sort((a, b) => sc(b) - sc(a))[0]?.model ?? null;
+    return [...c.answers].sort((a, b) => sc(b) - sc(a))[0]?.model ?? null;
   }
 
   // Best-scoring answer the CURRENT tier can still continue with. After a
@@ -1754,9 +1770,10 @@ function Home() {
   // default target, the composer, and the chips all key off this, not the raw
   // winner. Null when the whole comparison is above the current plan.
   function bestAccessibleModel(): string | null {
-    if (!result || result.type !== "compare" || !result.answers.length) return null;
+    const c = latestComparison();
+    if (!c || !c.answers.length) return null;
     const sc = (a: Answer) => (a.scores ? overallScore(a.scores) : 0);
-    const accessible = result.answers.filter(a => !lockedIds.has(a.model));
+    const accessible = c.answers.filter(a => !lockedIds.has(a.model));
     return [...accessible].sort((a, b) => sc(b) - sc(a))[0]?.model ?? null;
   }
 
@@ -1767,11 +1784,12 @@ function Home() {
     return bestAccessibleModel();
   }
 
-  // Follow-up targets a user can pick from: this comparison's models, minus any
-  // now above their tier (a downgraded account opening an old Premium thread).
+  // Follow-up targets a user can pick from: the latest comparison's models, minus
+  // any now above their tier (a downgraded account opening an old Premium thread).
   function followupCandidates(): string[] {
-    if (result?.type !== "compare") return [];
-    return result.answers.map(a => a.model).filter(m => !lockedIds.has(m));
+    const c = latestComparison();
+    if (!c) return [];
+    return c.answers.map(a => a.model).filter(m => !lockedIds.has(m));
   }
   // Multi-model follow-ups are Pro+; the backend rejects compare for free
   // outright, so offering the click would just buy an error.
@@ -2177,7 +2195,9 @@ function Home() {
                 Continue the conversation
               </p>
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                {result.answers.filter(a => !lockedIds.has(a.model)).map(a => {
+                {/* Models + winner reflect the LATEST comparison turn (an "ask all
+                    again" follow-up re-scores them), not turn 1. */}
+                {(latestComparison() ?? result).answers.filter(a => !lockedIds.has(a.model)).map(a => {
                   const sel = selectedFollowupModels();
                   const isActive = sel.includes(a.model);
                   const isWinner = winnerModel() === a.model;
@@ -2510,21 +2530,17 @@ function Home() {
                             // per-model cards all identical. Nothing here is a
                             // turn-only variant any more.
                             <div className="space-y-4">
-                              {/* AGG-39 D-converse: this turn's grounding — sources
-                                  if we searched, else the recency caveat if the
-                                  models flagged it. Live searchInfo first, then the
-                                  persisted result.search, so a revisited grounded
-                                  follow-up keeps its sources instead of the caveat. */}
-                              {(f.searchInfo ?? (f.result?.type === "compare" ? f.result.search ?? null : null)) ? (
-                                <SearchSources info={(f.searchInfo ?? (f.result?.type === "compare" ? f.result.search ?? null : null))!} />
-                              ) : (f.result && f.result.type === "compare" && f.result.recencyWarning && (
-                                <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-200/90 flex items-start gap-2">
-                                  <span aria-hidden="true" className="mt-px">⏳</span>
-                                  <span>
-                                    This looks time-sensitive. These models answer from their training data and don&apos;t have live access to current events — the latest facts, prices, or news may have changed since. Double-check anything that moves fast.
-                                  </span>
-                                </div>
-                              ))}
+                              {/* AGG-39: a follow-up shows its sources when this turn
+                                  (or its persisted result) was grounded — live
+                                  searchInfo first, then result.search. NO recency
+                                  caveat on a follow-up: it continues a thread that
+                                  may already be grounded (an earlier turn searched),
+                                  so a standalone "no live access" warning is
+                                  misleading. The caveat stays on the first ask only. */}
+                              {(() => {
+                                const s = f.searchInfo ?? (f.result?.type === "compare" ? f.result.search ?? null : null);
+                                return s ? <SearchSources info={s} /> : null;
+                              })()}
                               <SummaryPanel
                                 result={f.result}
                                 partialSummary={f.partialSummary}
