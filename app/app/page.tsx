@@ -365,6 +365,39 @@ function ThinkingStatus({
   );
 }
 
+// The Best answer typing in live, replacing ThinkingStatus the moment the
+// summariser's first prose lands. Mirrors the final result's Summary card
+// (same shell, same prose classes) so when `result` arrives the swap reads as
+// the text finishing rather than the layout jumping. Contributions and the
+// score rail can't appear here — they only exist once the whole JSON envelope
+// has parsed, which is the very wait this is covering.
+function StreamingSummary({ text }: { text: string }) {
+  return (
+    <div
+      role="status"
+      aria-label="Writing the summary"
+      className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0"
+    >
+      <div className="flex items-center gap-2 mb-4">
+        <Layers className="w-3.5 h-3.5 text-teal-300" />
+        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+      </div>
+      <div className="prose prose-sm sm:prose-base prose-invert max-w-none
+        prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
+        prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
+        prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2 not-prose">
+          Aggrai&apos;s answer
+          <span className="ml-1.5 normal-case tracking-normal text-white/30 font-medium">
+            · writing…
+          </span>
+        </p>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      </div>
+    </div>
+  );
+}
+
 // AGG-7 v2: Accuracy first (it's the most consequential dimension),
 // Insight last (lowest weight, the "nice to have"). Order here is
 // also the order they render in the 5-segment breakdown bar.
@@ -1045,6 +1078,14 @@ function Home() {
   // cleared from here) when the model's full `stage: "answer"` event
   // lands with metadata (token count, runtime, truncated flag).
   const [partialAnswers, setPartialAnswers] = useState<Record<string, string>>({});
+  // The summariser's "Best answer" prose, typed in as it's written. It runs LAST
+  // and takes ~26s, so before this the user watched a spinner for that whole
+  // stretch with every model answer already on screen. The backend digs the
+  // "summary" field out of the JSON envelope mid-stream and sends it as
+  // `stage: "summary-chunk"`; `reset: true` means a keystone fallback restarted
+  // the envelope and this partial is dead text. Replaced by the canonical
+  // summary when `result` lands.
+  const [partialSummary, setPartialSummary] = useState<string>("");
   // When the final result lands we collapse all per-model blocks so the
   // user's eye goes straight to the summary. The streaming-answer
   // handler below re-expands individual blocks as their answers arrive.
@@ -1290,6 +1331,7 @@ function Home() {
     setResult(null);
     setStreamingAnswers([]);
     setPartialAnswers({});
+    setPartialSummary("");
     setError("");
     setIntentHint(null);
     setQuestion("");
@@ -1348,6 +1390,9 @@ function Home() {
 
           if (evt.stage === "intent" && (evt.intent === "compare" || evt.intent === "product" || evt.intent === "direct")) {
             setIntentHint(evt.intent);
+          } else if (evt.stage === "summary-chunk") {
+            if (evt.reset) setPartialSummary("");
+            else setPartialSummary(prev => prev + String(evt.delta ?? ""));
           } else if (evt.stage === "answer-chunk") {
             // Real-time token delta from the LLM (via backend SSE).
             // Append to that model's partial text — the loading-state
@@ -2015,12 +2060,30 @@ function Home() {
                     a phase-aware headline + per-model checklist that ticks green
                     as each answer lands, then flips to "scoring" once all are in.
                     The per-model answer cards stream in below it. */}
-                <ThinkingStatus
-                  modelIds={[...selected]}
-                  done={streamingAnswers.map(a => a.model)}
-                  typing={[...selected].filter(id => partialAnswers[id] != null)}
-                  gradientId="ld-summary"
-                />
+                {/* Once the summariser's prose starts arriving it takes over
+                    this slot from the status card — every answer is already in
+                    by then, so ThinkingStatus has nothing left to report and the
+                    user has ~26s of reading to get on with instead.
+                    `best || partialSummary` mirrors the final result's render
+                    below: the prompt asks for a "## Best answer" heading but the
+                    summariser doesn't actually emit one, so splitSummary returns
+                    best=null on real traffic and the whole summary IS the body.
+                    Gating on `best` alone would render nothing, ever. */}
+                {(() => {
+                  const streamedSummary = partialSummary.trim()
+                    ? (splitSummary(partialSummary).best || partialSummary)
+                    : "";
+                  return streamedSummary ? (
+                    <StreamingSummary text={streamedSummary} />
+                  ) : (
+                    <ThinkingStatus
+                      modelIds={[...selected]}
+                      done={streamingAnswers.map(a => a.model)}
+                      typing={[...selected].filter(id => partialAnswers[id] != null)}
+                      gradientId="ld-summary"
+                    />
+                  );
+                })()}
                 {/* Two-column grid with items-start. We tried CSS `columns`
                     masonry here, but it reorders cards column-major (model 3
                     jumps above model 2) and re-balances column heights every
