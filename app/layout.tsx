@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Montserrat } from "next/font/google";
 import "./globals.css";
 import CookieConsent from "@/components/CookieConsent";
+import { PageViewBeacon } from "@/components/page-view-beacon";
 
 const geist = Geist({ subsets: ["latin"] });
 const montserrat = Montserrat({
@@ -79,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${geist.className} min-h-full bg-navy text-white antialiased`}>
         {children}
         <CookieConsent />
+        <PageViewBeacon />
       </body>
     </html>
   );
