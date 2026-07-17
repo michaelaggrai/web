@@ -59,12 +59,17 @@ type Answer = {
 type Contribution = { model: string; pct: number };
 type SectionAttribution = { heading: string; primary: string; supporting: string[] };
 
+// AGG-39: the live web-search sources, embedded IN the persisted result so a
+// restored/revisited ask keeps its "Searched the web" block (the live
+// stage:'search' event is gone on reload). Matches SearchSources' `info` prop.
+type SearchBlock = { ok: boolean; provider?: string; sources: { title: string; url: string }[] };
+
 type Result =
   | { type: "product"; answer: string; question: string; cached?: boolean }
   // "direct" = a single-right-answer factual question (2+2, capital of France)
   // where a multi-model comparison adds no value. Rendered like product but
   // with a witty "we didn't burn the energy comparing" note.
-  | { type: "direct"; answer: string; question: string; cached?: boolean }
+  | { type: "direct"; answer: string; question: string; cached?: boolean; search?: SearchBlock | null }
   | {
       type: "compare";
       summary: string;
@@ -77,6 +82,9 @@ type Result =
       // models' training cutoff — the UI shows a "may not reflect the latest"
       // banner so users don't trust time-sensitive answers blindly.
       recencyWarning?: boolean;
+      // AGG-39: sources if this ask was grounded on live search. Present even on a
+      // restored result, so revisiting a grounded ask still shows them.
+      search?: SearchBlock | null;
       cached?: boolean;
     };
 
@@ -2504,10 +2512,11 @@ function Home() {
                             <div className="space-y-4">
                               {/* AGG-39 D-converse: this turn's grounding — sources
                                   if we searched, else the recency caveat if the
-                                  models flagged it. Same conditional as the first-
-                                  ask compare view, so a follow-up can't drift. */}
-                              {f.searchInfo ? (
-                                <SearchSources info={f.searchInfo} />
+                                  models flagged it. Live searchInfo first, then the
+                                  persisted result.search, so a revisited grounded
+                                  follow-up keeps its sources instead of the caveat. */}
+                              {(f.searchInfo ?? (f.result?.type === "compare" ? f.result.search ?? null : null)) ? (
+                                <SearchSources info={(f.searchInfo ?? (f.result?.type === "compare" ? f.result.search ?? null : null))!} />
                               ) : (f.result && f.result.type === "compare" && f.result.recencyWarning && (
                                 <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-200/90 flex items-start gap-2">
                                   <span aria-hidden="true" className="mt-px">⏳</span>
@@ -2602,8 +2611,13 @@ function Home() {
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
                   </div>
                   {/* AGG-39: a grounded direct answer (e.g. "who's the president")
-                      shows its sources — the [1][2] markers in the text point here. */}
-                  {searchInfo && <div className="mt-4"><SearchSources info={searchInfo} /></div>}
+                      shows its sources — the [1][2] markers in the text point here.
+                      Live searchInfo first, then result.search so a revisited
+                      grounded direct answer keeps its sources. */}
+                  {(() => {
+                    const s = searchInfo ?? (result.type === "direct" ? result.search ?? null : null);
+                    return s ? <div className="mt-4"><SearchSources info={s} /></div> : null;
+                  })()}
                   {/* Factual questions have one right answer, so we skip the
                       full multi-model comparison. A prominent, witty callout
                       explains why — turns "why only one answer?" into a
@@ -2631,10 +2645,11 @@ function Home() {
                 <>
                   {/* AGG-39: if we grounded this ask on live search, show the
                       sources — and NOT the "no live access" caveat, which is now
-                      false. The recency caveat only shows when the models really
-                      did answer from training data alone (no search this ask). */}
-                  {searchInfo ? (
-                    <SearchSources info={searchInfo} />
+                      false. Prefer the live searchInfo; fall back to result.search
+                      so a RESTORED/revisited grounded ask still shows its sources
+                      (the live event is gone on reload) instead of the false caveat. */}
+                  {(searchInfo ?? result.search) ? (
+                    <SearchSources info={(searchInfo ?? result.search)!} />
                   ) : result.recencyWarning && (
                     <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-200/90 flex items-start gap-2">
                       <span aria-hidden="true" className="mt-px">⏳</span>
