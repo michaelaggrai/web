@@ -453,6 +453,89 @@ function SummaryPanel({
   );
 }
 
+// THE per-model raw answers — every caller, so a follow-up's raw answers are the
+// same collapsible cards, masonry, "Expand all", runtime/token metadata and
+// Truncated chips as the first ask's. They had diverged into compact always-open
+// cards on follow-ups; this is the same drift SummaryPanel fixed, one level down.
+// Owns its own open/closed set so callers don't thread it through.
+function RawAnswers({ answers, streamedText }: {
+  answers: Answer[];
+  // model -> partial text while a turn is still streaming; answers[] with empty
+  // `answer` fall back to it, so a follow-up shows text before the result lands.
+  streamedText?: Record<string, string>;
+}) {
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const multi = answers.length > 1;
+  const allOpen = multi && open.size === answers.length;
+  const toggle = (m: string) => setOpen(prev => {
+    const next = new Set(prev);
+    if (next.has(m)) next.delete(m); else next.add(m);
+    return next;
+  });
+  // Single answer: no collapse affordance, just show it.
+  const isOpen = (m: string) => !multi || open.has(m);
+
+  const renderCard = (a: Answer) => {
+    const shown = isOpen(a.model);
+    const text = a.answer || streamedText?.[a.model] || "";
+    return (
+      <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => multi && toggle(a.model)}
+          aria-expanded={shown}
+          className={`w-full flex items-center justify-between gap-2 p-5 text-left transition-colors ${multi ? "hover:bg-white/[0.02]" : "cursor-default"}`}
+        >
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
+            <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{modelLabel(a.model)}</span>
+            {a.truncated && (
+              <span
+                title="The provider hit our token cap and the answer was cut off mid-response. Aggr-Score below reflects what was returned, not what the model intended."
+                className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
+              >
+                Truncated
+              </span>
+            )}
+          </span>
+          <div className="flex items-center gap-3 text-xs text-white/40 shrink-0">
+            {a.runtime_ms > 0 && <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>}
+            {a.tokens > 0 && <span>{a.tokens} tok</span>}
+            {multi && <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${shown ? "rotate-180" : ""}`} aria-hidden="true" />}
+          </div>
+        </button>
+        {shown && text && (
+          <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+            [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
+            [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_img]:max-w-full [&_code]:break-words">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-white/40">Raw answers</p>
+        {multi && (
+          <button
+            type="button"
+            onClick={() => setOpen(allOpen ? new Set() : new Set(answers.map(a => a.model)))}
+            className="text-xs text-white/50 hover:text-white/80 transition-colors"
+          >
+            {allOpen ? "Collapse all" : "Expand all"}
+          </button>
+        )}
+      </div>
+      {/* Masonry packs by MEASURED card height so a long answer fills the
+          genuinely-shorter column. layoutKey re-measures on every open/close. */}
+      <AnswerMasonry answers={answers} renderCard={renderCard} layoutKey={[...open].sort().join("|")} />
+    </>
+  );
+}
+
 // AGG-7 v2: Accuracy first (it's the most consequential dimension),
 // Insight last (lowest weight, the "nice to have"). Order here is
 // also the order they render in the 5-segment breakdown bar.
@@ -2360,11 +2443,10 @@ function Home() {
                             <p className="text-sm text-amber-300">{f.error}</p>
                           ) : f.mode === "compare" ? (
                             // A compare follow-up IS a comparison, so it renders
-                            // through the SAME SummaryPanel as the first ask — the
-                            // synthesis, contributions and Aggr-Score rail, all
-                            // identical. Only the per-model answers differ: a turn
-                            // uses compact fixed cards rather than the main page's
-                            // collapsible ones, which is deliberate, not drift.
+                            // through the SAME SummaryPanel and RawAnswers as the
+                            // first ask — synthesis, Aggr-Score rail, and the raw
+                            // per-model cards all identical. Nothing here is a
+                            // turn-only variant any more.
                             <div className="space-y-4">
                               <SummaryPanel
                                 result={f.result}
@@ -2374,29 +2456,16 @@ function Home() {
                                 partialAnswers={f.partialAnswers}
                                 gradientId={`fu-${f.id}`}
                               />
-                              {/* Each model's own answer — live while streaming, canonical after. */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-                                {(f.result?.type === "compare" ? f.result.answers.map(a => a.model) : f.models).map(m => {
-                                  const finalA = f.result?.type === "compare" ? f.result.answers.find(x => x.model === m) : undefined;
-                                  const text = finalA?.answer ?? f.partialAnswers[m] ?? "";
-                                  if (!text) return <ModelLoadingBlock key={m} modelId={m} />;
-                                  return (
-                                    <div key={m} className="rounded-xl border border-white/10 bg-white/[0.03] p-3 min-w-0 overflow-hidden">
-                                      <div className="flex items-center gap-1.5 text-xs font-semibold text-white/80 mb-2">
-                                        <ProviderLogo provider={providerOf(m)} className="w-3 h-3 shrink-0" />
-                                        <span className="truncate">{modelLabel(m)}</span>
-                                        {finalA?.scores
-                                          ? <span className="text-white/40 font-normal">· {overallScore(finalA.scores).toFixed(1)}</span>
-                                          : <span className="text-white/30 font-normal">· typing…</span>}
-                                      </div>
-                                      <div className="prose prose-sm prose-invert max-w-none prose-p:my-1.5 max-h-64 overflow-y-auto
-                                        [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                              {/* Before the result lands there are no Answer rows yet, so
+                                  synthesise placeholders from the models + streamed text;
+                                  RawAnswers hides the 0s runtime/token metadata until real
+                                  numbers arrive with `result`. */}
+                              <RawAnswers
+                                answers={f.result?.type === "compare"
+                                  ? f.result.answers
+                                  : f.models.map(m => ({ model: m, answer: f.partialAnswers[m] ?? "", runtime_ms: 0, tokens: 0, cost_usd: null }))}
+                                streamedText={f.partialAnswers}
+                              />
                             </div>
                           ) : (
                             <>
@@ -2520,77 +2589,10 @@ function Home() {
                     />
                   )}
 
-                  {/* Per-model answers — full width if only one */}
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-white/40">Raw answers</p>
-                    {result.answers.length > 1 && (() => {
-                      const allOpen = expandedAnswers.size === result.answers.length;
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => setExpandedAnswers(allOpen ? new Set() : new Set(result.answers.map(a => a.model)))}
-                          className="text-xs text-white/50 hover:text-white/80 transition-colors"
-                        >
-                          {allOpen ? "Collapse all" : "Expand all"}
-                        </button>
-                      );
-                    })()}
-                  </div>
-                  {/* Two-column masonry packed by MEASURED card height (see
-                      AnswerMasonry) so a long answer fills the genuinely-
-                      shorter column instead of piling onto another tall one. */}
-                  {(() => {
-                    const renderCard = (a: Answer) => {
-                      const isOpen = expandedAnswers.has(a.model);
-                      return (
-                        <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
-                          <button
-                            type="button"
-                            onClick={() => toggleAnswer(a.model)}
-                            aria-expanded={isOpen}
-                            className="w-full flex items-center justify-between gap-2 p-5 text-left hover:bg-white/[0.02] transition-colors"
-                          >
-                            <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
-                              <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">{modelLabel(a.model)}</span>
-                              {a.truncated && (
-                                <span
-                                  title="The provider hit our token cap and the answer was cut off mid-response. Aggr-Score below reflects what was returned, not what the model intended."
-                                  className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
-                                >
-                                  Truncated
-                                </span>
-                              )}
-                            </span>
-                            <div className="flex items-center gap-3 text-xs text-white/40 shrink-0">
-                              <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>
-                              <span>{a.tokens} tok</span>
-                              <ChevronDown
-                                className={`w-4 h-4 text-white/50 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                                aria-hidden="true"
-                              />
-                            </div>
-                          </button>
-                          {isOpen && (
-                            <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
-                              [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
-                              [&_pre]:overflow-x-auto [&_pre]:max-w-full
-                              [&_img]:max-w-full [&_code]:break-words">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{a.answer}</ReactMarkdown>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <AnswerMasonry
-                        answers={result.answers}
-                        renderCard={renderCard}
-                        layoutKey={[...expandedAnswers].sort().join("|")}
-                      />
-                    );
-                  })()}
+                  {/* Per-model answers — the same component a follow-up renders,
+                      so raw answers look identical whether it's the first ask or
+                      a later turn. */}
+                  <RawAnswers answers={result.answers} />
 
                   {/* Failed models */}
                   {result.failed && result.failed.length > 0 && (
