@@ -1216,28 +1216,36 @@ function Home() {
     return () => { alive = false; };
   }, [signedIn]);
 
-  // Deep link: opening /app/c/{id} on a device where it isn't in sessionStorage
-  // (a different browser) — pull the saved comparison from Supabase. The
-  // question is empty on a fresh cross-device load, so auto-submit won't fire;
-  // setting the result here just renders the stored answer.
+  // Restoring /app/c/{id} on load. Two things live in two places: the ORIGINAL
+  // comparison (turns 0-1) is cached in sessionStorage AND in Supabase; the
+  // FOLLOW-UP turns (2+) live only in Supabase. So sessionStorage having the
+  // comparison must not skip the thread fetch — that was the refresh bug: the
+  // original rendered from storage while every follow-up silently vanished,
+  // yet clicking the same conversation in Recents (which always fetches) showed
+  // them. Fetch the comparison only when it ISN'T cached; fetch the thread
+  // always.
   useEffect(() => {
-    if (!signedIn || !urlConvId || convFromStorage) return;
+    if (!signedIn || !urlConvId) return;
     let alive = true;
-    loadConversation(urlConvId).then(conv => {
-      if (!alive || !conv) return;
-      setQuestion(conv.question);
-      if (conv.models.length) { setSelected(new Set(conv.models)); userOwnsSelection.current = true; }
-      if (conv.result) setResult(conv.result as Result);
-      setActiveRecentId(urlConvId);
-      // Restore the follow-up thread (Phase 5a) so a reload shows all turns.
-      setActiveConvId(urlConvId);
-      listThread(urlConvId).then(msgs => {
-        if (!alive) return;
-        const f = toFollowups(msgs);
-        setFollowups(f);
-        setExpandedFollowups(new Set(f.length ? [f[f.length - 1].id] : []));
-        setComparisonExpanded(f.length === 0);
+    if (!convFromStorage) {
+      loadConversation(urlConvId).then(conv => {
+        if (!alive || !conv) return;
+        setQuestion(conv.question);
+        if (conv.models.length) { setSelected(new Set(conv.models)); userOwnsSelection.current = true; }
+        if (conv.result) setResult(conv.result as Result);
       });
+    }
+    // The thread is Supabase-only, so always fetch it — cached comparison or not.
+    // Marking this the active conversation/recent rides in the thread callback so
+    // the state writes stay inside the async path (same shape as selectDbRecent).
+    listThread(urlConvId).then(msgs => {
+      if (!alive) return;
+      setActiveConvId(urlConvId);
+      setActiveRecentId(urlConvId);
+      const f = toFollowups(msgs);
+      setFollowups(f);
+      setExpandedFollowups(new Set(f.length ? [f[f.length - 1].id] : []));
+      setComparisonExpanded(f.length === 0);
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
