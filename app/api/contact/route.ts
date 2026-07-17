@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/server-admin";
+import { rateLimitOk, clientIpKey } from "@/lib/rate-limit";
 
 // Allowed topic values must match the client picker.
 const VALID_TOPICS = ["general", "bug", "feature", "partnership", "press"] as const;
@@ -17,6 +18,15 @@ const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const SLACK_WEBHOOK = process.env.CONTACT_SLACK_WEBHOOK_URL;
 
 export async function POST(req: NextRequest) {
+  // P7 (AGG-48): a public unauthenticated write — cap it at 5/hour per IP so it
+  // can't be used to flood the inbox / DB. Fails open on a Supabase blip.
+  if (!(await rateLimitOk(`contact:${clientIpKey(req)}`, 5, 3600))) {
+    return NextResponse.json(
+      { error: "Too many messages. Please try again later." },
+      { status: 429 },
+    );
+  }
+
   // 1. Parse + validate
   const body = await req.json().catch(() => ({}));
   const topic = body?.topic as Topic | undefined;

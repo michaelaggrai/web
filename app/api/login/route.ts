@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimitOk, clientIpKey } from "@/lib/rate-limit";
 
 // Two-layer auth model: this endpoint guards the V0/V1 beta password wall
 // (a sitewide cookie called `auth`, set when the user enters the shared
@@ -22,6 +23,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Site password not configured" },
       { status: 500 },
+    );
+  }
+  // P7 (AGG-48): throttle brute-force against the shared beta password — 10
+  // attempts / 10 min per IP. A legit user's typos stay well under; a bot can't
+  // grind. Fails open on a Supabase blip so real users are never locked out.
+  if (!(await rateLimitOk(`login:${clientIpKey(req)}`, 10, 600))) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please wait a few minutes and try again." },
+      { status: 429 },
     );
   }
   const { password } = await req.json();

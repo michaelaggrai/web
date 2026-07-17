@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/server-admin";
 import { CONSENT_COOKIE } from "@/lib/consent";
+import { rateLimitOk, clientIpKey } from "@/lib/rate-limit";
 
 // AGG-21/AGG-27: first-party event collector.
 //
@@ -92,6 +93,13 @@ export async function POST(req: NextRequest) {
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
+    return new NextResponse(null, { status: 204 });
+  }
+
+  // P7 (AGG-48): cap beacon volume per IP — a public unauthenticated write, so a
+  // flood is a storage-abuse vector. 120/min is generous for real browsing; a
+  // beacon is fire-and-forget, so an over-limit one is silently dropped (204).
+  if (!(await rateLimitOk(`events:${clientIpKey(req)}`, 120, 60))) {
     return new NextResponse(null, { status: 204 });
   }
 
