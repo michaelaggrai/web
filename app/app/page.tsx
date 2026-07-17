@@ -2320,43 +2320,48 @@ function Home() {
                             // chips, which reads as a single answer wearing
                             // badges and hides the very thing the user asked for.
                             <div className="space-y-4">
-                              <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4 items-start">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <Layers className="w-3.5 h-3.5 text-teal-300" />
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
-                                    {f.streaming && !f.result && <span className="text-[10px] text-white/30">· writing…</span>}
+                              {/* Until there's prose, the status card IS the summary slot — standing
+                                  alone at full width, as it does on /ask. Wrapping it in the Summary
+                                  card framed a card inside a card inside the turn, and the two-column
+                                  grid reserved a rail for scores that don't exist yet, squeezing
+                                  everything into 3/4 width against an empty column. */}
+                              {!f.result && !f.partialSummary.trim() ? (
+                                <ThinkingStatus
+                                  modelIds={f.models}
+                                  done={f.doneModels}
+                                  typing={f.models.filter(m => f.partialAnswers[m] != null)}
+                                  gradientId={`fu-${f.id}`}
+                                />
+                              ) : (
+                                <div className={f.result?.type === "compare"
+                                  ? "grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4 items-start"
+                                  : ""}>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <Layers className="w-3.5 h-3.5 text-teal-300" />
+                                      <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+                                      {!f.result && <span className="text-[10px] normal-case tracking-normal text-white/30">· writing…</span>}
+                                    </div>
+                                    {f.result?.type === "compare" && f.result.contributions && f.result.contributions.length > 0 && (
+                                      <ContributionsTop contributions={f.result.contributions} />
+                                    )}
+                                    <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                                      prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white
+                                      [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
+                                      {/* Streamed prose until the result lands, then the canonical
+                                          summary replaces it — same handover as the main page. */}
+                                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {f.result?.type === "compare"
+                                          ? (splitSummary(f.result.summary).best || f.result.summary)
+                                          : (splitSummary(f.partialSummary).best || f.partialSummary)}
+                                      </ReactMarkdown>
+                                    </div>
                                   </div>
-                                  {f.result?.type === "compare" && f.result.contributions && f.result.contributions.length > 0 && (
-                                    <ContributionsTop contributions={f.result.contributions} />
-                                  )}
-                                  <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
-                                    prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white
-                                    [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
-                                    {(() => {
-                                      // Streamed prose until the result lands, then the canonical
-                                      // summary replaces it — same handover as the main page.
-                                      const text = f.result?.type === "compare"
-                                        ? (splitSummary(f.result.summary).best || f.result.summary)
-                                        : (splitSummary(f.partialSummary).best || f.partialSummary);
-                                      return text
-                                        ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-                                        : null;
-                                    })()}
-                                  </div>
-                                  {!f.result && !f.partialSummary.trim() && (
-                                    <ThinkingStatus
-                                      modelIds={f.models}
-                                      done={f.doneModels}
-                                      typing={f.models.filter(m => f.partialAnswers[m] != null)}
-                                      gradientId={`fu-${f.id}`}
-                                    />
+                                  {f.result?.type === "compare" && (
+                                    <div className="min-w-0"><ScoresAndMetrics answers={f.result.answers} /></div>
                                   )}
                                 </div>
-                                {f.result?.type === "compare" && (
-                                  <div className="min-w-0"><ScoresAndMetrics answers={f.result.answers} /></div>
-                                )}
-                              </div>
+                              )}
                               {/* Each model's own answer — live while streaming, canonical after. */}
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                                 {(f.result?.type === "compare" ? f.result.answers.map(a => a.model) : f.models).map(m => {
