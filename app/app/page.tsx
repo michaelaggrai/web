@@ -980,6 +980,17 @@ function Home() {
     result: Result | null; // compare mode: the full comparison Result
     streaming: boolean;
     error: string | null;
+    // Compare mode, while streaming. The backend has always emitted per-model
+    // answer-chunks here (and summary-chunks since the P3d split), but this
+    // handler discarded every one of them and waited for `result` — which is why
+    // a compare follow-up sat on a static "Comparing models…" for its whole run
+    // while the main /ask page, fed by the identical events, showed live
+    // progress. Nobody caught it because compare follow-ups 400'd at the proxy
+    // and never once reached this code.
+    models: string[];                      // who was asked (known before any reply)
+    partialAnswers: Record<string, string>; // model -> text so far
+    doneModels: string[];                   // finished, in completion order
+    partialSummary: string;                 // the rewrite, streaming
   };
   const [activeConvId, setActiveConvId] = useState<string | null>(urlConvId);
   const [followups, setFollowups] = useState<Followup[]>([]);
@@ -1606,18 +1617,25 @@ function Home() {
       if (m.turn < 2) continue;
       if (m.role === "user") { pendingUser = { turn: m.turn, content: m.content ?? "" }; continue; }
       if (!pendingUser) continue;
+      // Rebuilt from storage, so nothing is in flight: the streaming fields are
+      // empty and `models` comes from the stored result, which the render reads
+      // in preference to them anyway.
+      const settled = { partialAnswers: {}, doneModels: [], partialSummary: "" };
       if (m.role === "assistant_single") {
         out.push({
           id: `t${m.turn}`, userTurn: pendingUser.turn, asstTurn: m.turn,
           question: pendingUser.content, mode: "single", modelId: m.model_id ?? "",
           answer: m.content ?? "", result: null, streaming: false, error: null,
+          models: m.model_id ? [m.model_id] : [], ...settled,
         });
         pendingUser = null;
       } else if (m.role === "assistant_comparison") {
+        const stored = (m.result as Result) ?? null;
         out.push({
           id: `t${m.turn}`, userTurn: pendingUser.turn, asstTurn: m.turn,
           question: pendingUser.content, mode: "compare", modelId: "",
-          answer: "", result: (m.result as Result) ?? null, streaming: false, error: null,
+          answer: "", result: stored, streaming: false, error: null,
+          models: stored?.type === "compare" ? stored.answers.map(a => a.model) : [], ...settled,
         });
         pendingUser = null;
       }
@@ -1639,7 +1657,12 @@ function Home() {
     const userTurn = maxTurn + 1;
     const asstTurn = maxTurn + 2;
     const id = `t${asstTurn}`;
-    setFollowups(prev => [...prev, { id, userTurn, asstTurn, question: q.trim(), mode: compare ? "compare" : "single", modelId, answer: "", result: null, streaming: true, error: null }]);
+    setFollowups(prev => [...prev, {
+      id, userTurn, asstTurn, question: q.trim(), mode: compare ? "compare" : "single", modelId,
+      answer: "", result: null, streaming: true, error: null,
+      models: compare ? (opts.models ?? []) : [modelId],
+      partialAnswers: {}, doneModels: [], partialSummary: "",
+    }]);
     setExpandedFollowups(new Set([id]));  // collapse older turns; keep the new one open
     setComparisonExpanded(false);          // collapse the original comparison — it's history now
     setFollowupInput("");
@@ -1683,9 +1706,30 @@ function Home() {
           let evt: { stage?: string; delta?: string; answer?: string; questionId?: string; runtime_ms?: number; cost_usd?: number | null; error?: string; [k: string]: unknown };
           try { evt = JSON.parse(line); } catch { continue; }
           if (evt.stage === "answer-chunk") {
-            if (!compare) { answerText += String(evt.delta ?? ""); patch({ answer: answerText }); }
+            if (compare) {
+              // Per-model deltas — the same events /ask renders live. Merge into
+              // this turn's partials so the follow-up shows the models typing
+              // instead of a frozen placeholder.
+              const m = String(evt.model ?? "");
+              const d = String(evt.delta ?? "");
+              if (m && d) setFollowups(prev => prev.map(f => f.id === id
+                ? { ...f, partialAnswers: { ...f.partialAnswers, [m]: (f.partialAnswers[m] ?? "") + d } }
+                : f));
+            } else { answerText += String(evt.delta ?? ""); patch({ answer: answerText }); }
+          } else if (evt.stage === "summary-chunk") {
+            // P3d: the rewrite streams ahead of the scores. reset means a keystone
+            // fallback restarted it and what we have is dead text.
+            if (evt.reset) patch({ partialSummary: "" });
+            else setFollowups(prev => prev.map(f => f.id === id
+              ? { ...f, partialSummary: f.partialSummary + String(evt.delta ?? "") } : f));
           } else if (evt.stage === "answer") {
-            if (!compare) {
+            if (compare) {
+              const m = String(evt.model ?? "");
+              if (m) setFollowups(prev => prev.map(f => f.id === id
+                ? { ...f, doneModels: f.doneModels.includes(m) ? f.doneModels : [...f.doneModels, m],
+                    partialAnswers: { ...f.partialAnswers, [m]: String(evt.answer ?? f.partialAnswers[m] ?? "") } }
+                : f));
+            } else {
               answerText = String(evt.answer ?? answerText);
               latency = Number(evt.runtime_ms ?? 0);
               cost = typeof evt.cost_usd === "number" ? evt.cost_usd : null;
@@ -2269,26 +2313,74 @@ function Home() {
                           {f.error ? (
                             <p className="text-sm text-amber-300">{f.error}</p>
                           ) : f.mode === "compare" ? (
-                            f.result && f.result.type === "compare" ? (
-                              <div className="space-y-4">
-                                <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
-                                  [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
-                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{splitSummary(f.result.summary).best || f.result.summary}</ReactMarkdown>
+                            // A compare follow-up IS a comparison — it gets the
+                            // same treatment as the original: the synthesis, the
+                            // Aggr-Score rail, and each model's own answer. It
+                            // used to render the rewrite plus a row of score
+                            // chips, which reads as a single answer wearing
+                            // badges and hides the very thing the user asked for.
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4 items-start">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <Layers className="w-3.5 h-3.5 text-teal-300" />
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+                                    {f.streaming && !f.result && <span className="text-[10px] text-white/30">· writing…</span>}
+                                  </div>
+                                  {f.result?.type === "compare" && f.result.contributions && f.result.contributions.length > 0 && (
+                                    <ContributionsTop contributions={f.result.contributions} />
+                                  )}
+                                  <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                                    prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white
+                                    [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
+                                    {(() => {
+                                      // Streamed prose until the result lands, then the canonical
+                                      // summary replaces it — same handover as the main page.
+                                      const text = f.result?.type === "compare"
+                                        ? (splitSummary(f.result.summary).best || f.result.summary)
+                                        : (splitSummary(f.partialSummary).best || f.partialSummary);
+                                      return text
+                                        ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+                                        : null;
+                                    })()}
+                                  </div>
+                                  {!f.result && !f.partialSummary.trim() && (
+                                    <ThinkingStatus
+                                      modelIds={f.models}
+                                      done={f.doneModels}
+                                      typing={f.models.filter(m => f.partialAnswers[m] != null)}
+                                      gradientId={`fu-${f.id}`}
+                                    />
+                                  )}
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {[...f.result.answers].sort((a, b) => (b.scores ? overallScore(b.scores) : 0) - (a.scores ? overallScore(a.scores) : 0)).map((a, i) => (
-                                    <span key={a.model} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${i === 0 ? "border-teal-300/30 bg-teal-300/10 text-teal-100" : "border-white/10 bg-white/[0.03] text-white/60"}`}>
-                                      {i === 0 && <Trophy className="w-3 h-3 text-amber-300" aria-hidden="true" />}
-                                      <ProviderLogo provider={providerOf(a.model)} className="w-3 h-3" />
-                                      {modelLabel(a.model)}
-                                      {a.scores && <span className="text-white/40">· {overallScore(a.scores).toFixed(1)}</span>}
-                                    </span>
-                                  ))}
-                                </div>
+                                {f.result?.type === "compare" && (
+                                  <div className="min-w-0"><ScoresAndMetrics answers={f.result.answers} /></div>
+                                )}
                               </div>
-                            ) : (
-                              <p className="text-sm text-white/40">Comparing models…</p>
-                            )
+                              {/* Each model's own answer — live while streaming, canonical after. */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                                {(f.result?.type === "compare" ? f.result.answers.map(a => a.model) : f.models).map(m => {
+                                  const finalA = f.result?.type === "compare" ? f.result.answers.find(x => x.model === m) : undefined;
+                                  const text = finalA?.answer ?? f.partialAnswers[m] ?? "";
+                                  if (!text) return <ModelLoadingBlock key={m} modelId={m} />;
+                                  return (
+                                    <div key={m} className="rounded-xl border border-white/10 bg-white/[0.03] p-3 min-w-0 overflow-hidden">
+                                      <div className="flex items-center gap-1.5 text-xs font-semibold text-white/80 mb-2">
+                                        <ProviderLogo provider={providerOf(m)} className="w-3 h-3 shrink-0" />
+                                        <span className="truncate">{modelLabel(m)}</span>
+                                        {finalA?.scores
+                                          ? <span className="text-white/40 font-normal">· {overallScore(finalA.scores).toFixed(1)}</span>
+                                          : <span className="text-white/30 font-normal">· typing…</span>}
+                                      </div>
+                                      <div className="prose prose-sm prose-invert max-w-none prose-p:my-1.5 max-h-64 overflow-y-auto
+                                        [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           ) : (
                             <>
                               <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
