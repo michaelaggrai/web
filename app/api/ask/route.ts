@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { proxyAuthHeaders } from "@/lib/proxy-auth";
 
 // Edge runtime supports streaming response bodies (ReadableStream pass-through),
 // which the default Node serverless runtime does not.
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...proxyAuthHeaders(),   // AGG-48: authenticate the proxy hop so the backend trusts the x-aggrai-* below
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...(country ? { "x-aggrai-country": country } : {}),
         ...(anonId ? { "x-aggrai-anon-id": anonId } : {}),

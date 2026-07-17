@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { proxyAuthHeaders } from "@/lib/proxy-auth";
 
 // Edge runtime for streaming pass-through (see app/api/ask/route.ts).
 export const runtime = "edge";
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...proxyAuthHeaders(),   // AGG-48: authenticate the proxy hop
         Authorization: `Bearer ${accessToken}`,
         ...(country ? { "x-aggrai-country": country } : {}),
         ...(sessionId ? { "x-aggrai-session-id": sessionId } : {}),
