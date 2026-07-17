@@ -365,35 +365,90 @@ function ThinkingStatus({
   );
 }
 
-// The Best answer typing in live, replacing ThinkingStatus the moment the
-// summariser's first prose lands. Mirrors the final result's Summary card
-// (same shell, same prose classes) so when `result` arrives the swap reads as
-// the text finishing rather than the layout jumping. Contributions and the
-// score rail can't appear here — they only exist once the whole JSON envelope
-// has parsed, which is the very wait this is covering.
-function StreamingSummary({ text }: { text: string }) {
+// THE comparison summary — every phase of it, for every caller. The first ask and
+// a follow-up ask are the same thing happening twice, so they render through this
+// one component rather than two lookalikes that drift apart. They already drifted:
+// the follow-up copy never got streaming, the score rail, contributions, or the
+// "Aggrai's answer" label, because each was added to the original and not to it.
+//
+// Three phases, one shell, so nothing jumps as they advance:
+//   nothing yet          -> ThinkingStatus (per-model checklist)
+//   prose arriving       -> the Summary card, typing in (P3d: from ~1s)
+//   result landed        -> + contributions, attribution chips, Aggr-Score rail
+function SummaryPanel({
+  result, partialSummary, models, doneModels, partialAnswers, gradientId,
+}: {
+  result: Result | null;
+  partialSummary: string;
+  models: string[];
+  doneModels: string[];
+  partialAnswers: Record<string, string>;
+  gradientId: string;
+}) {
+  const settled = result?.type === "compare" ? result : null;
+  // The prompt asks the summariser for a "## Best answer" heading and it doesn't
+  // emit one, so splitSummary returns best=null on real traffic and the whole
+  // summary IS the body. Gating on `best` alone would render nothing, ever.
+  const text = settled
+    ? (splitSummary(settled.summary).best || settled.summary)
+    : (splitSummary(partialSummary).best || partialSummary);
+
+  if (!settled && !text.trim()) {
+    return (
+      <ThinkingStatus
+        modelIds={models}
+        done={doneModels}
+        typing={models.filter(m => partialAnswers[m] != null)}
+        gradientId={gradientId}
+      />
+    );
+  }
+
+  // Attribution chips need the finished prose AND the judgement, so they only
+  // exist once the result lands; until then plain markdown, no visual change.
+  const attrs = settled?.section_attributions ?? [];
+  const knownIds = new Set(settled?.answers.map(a => a.model) ?? []);
+  const components = attrs.length > 0 ? makeAggraiAnswerComponents(attrs, knownIds) : MARKDOWN_COMPONENTS;
+
   return (
-    <div
-      role="status"
-      aria-label="Writing the summary"
-      className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0"
-    >
-      <div className="flex items-center gap-2 mb-4">
-        <Layers className="w-3.5 h-3.5 text-teal-300" />
-        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+    // 75/25 — the Aggr-Score rail only needs a compact radar + 5 axis labels; the
+    // rewrite wants the width. No rail while streaming, so no grid either: an
+    // empty second column just squeezes the prose against dead space.
+    <div className={settled ? "grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4 items-start" : ""}>
+      <div
+        role={settled ? undefined : "status"}
+        aria-label={settled ? undefined : "Writing the summary"}
+        className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <Layers className="w-3.5 h-3.5 text-teal-300" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+        </div>
+        {/* Contributions FIRST — where the rewrite's content came from, before
+            the rewrite itself. */}
+        {settled?.contributions && settled.contributions.length > 0 && (
+          <ContributionsTop contributions={settled.contributions} />
+        )}
+        <div className="prose prose-sm sm:prose-base prose-invert max-w-none
+          prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
+          prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
+          prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2 not-prose">
+            Aggrai&apos;s answer
+            <span className="ml-1.5 normal-case tracking-normal text-white/30 font-medium">
+              {/* NOT "weighted by score". The rewrite is a separate call that never
+                  sees the scores (P3d) — and even before the split it was told to
+                  prefer whoever "scored highest for the relevant point", a score
+                  that has never existed: accuracy is scored once per ANSWER. It has
+                  always judged each point by reading. "Combined from all models" is
+                  what actually happens. */}
+              {settled ? "· combined from all models" : "· writing…"}
+            </span>
+          </p>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{text}</ReactMarkdown>
+        </div>
       </div>
-      <div className="prose prose-sm sm:prose-base prose-invert max-w-none
-        prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
-        prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
-        prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2 not-prose">
-          Aggrai&apos;s answer
-          <span className="ml-1.5 normal-case tracking-normal text-white/30 font-medium">
-            · writing…
-          </span>
-        </p>
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-      </div>
+      {settled && <div className="min-w-0"><ScoresAndMetrics answers={settled.answers} /></div>}
     </div>
   );
 }
@@ -2155,34 +2210,17 @@ function Home() {
               )}
               {intentHint === "compare" && selected.size > 1 ? (
               <div className="space-y-4">
-                {/* Live orchestration status for the Summary + Aggr-Score area:
-                    a phase-aware headline + per-model checklist that ticks green
-                    as each answer lands, then flips to "scoring" once all are in.
-                    The per-model answer cards stream in below it. */}
-                {/* Once the summariser's prose starts arriving it takes over
-                    this slot from the status card — every answer is already in
-                    by then, so ThinkingStatus has nothing left to report and the
-                    user has ~26s of reading to get on with instead.
-                    `best || partialSummary` mirrors the final result's render
-                    below: the prompt asks for a "## Best answer" heading but the
-                    summariser doesn't actually emit one, so splitSummary returns
-                    best=null on real traffic and the whole summary IS the body.
-                    Gating on `best` alone would render nothing, ever. */}
-                {(() => {
-                  const streamedSummary = partialSummary.trim()
-                    ? (splitSummary(partialSummary).best || partialSummary)
-                    : "";
-                  return streamedSummary ? (
-                    <StreamingSummary text={streamedSummary} />
-                  ) : (
-                    <ThinkingStatus
-                      modelIds={[...selected]}
-                      done={streamingAnswers.map(a => a.model)}
-                      typing={[...selected].filter(id => partialAnswers[id] != null)}
-                      gradientId="ld-summary"
-                    />
-                  );
-                })()}
+                {/* Same panel a follow-up renders, and the same one this becomes
+                    once `result` lands — so the phases advance in place instead of
+                    swapping between three different-looking things. */}
+                <SummaryPanel
+                  result={null}
+                  partialSummary={partialSummary}
+                  models={[...selected]}
+                  doneModels={streamingAnswers.map(a => a.model)}
+                  partialAnswers={partialAnswers}
+                  gradientId="ld-summary"
+                />
                 {/* Two-column grid with items-start. We tried CSS `columns`
                     masonry here, but it reorders cards column-major (model 3
                     jumps above model 2) and re-balances column heights every
@@ -2313,55 +2351,21 @@ function Home() {
                           {f.error ? (
                             <p className="text-sm text-amber-300">{f.error}</p>
                           ) : f.mode === "compare" ? (
-                            // A compare follow-up IS a comparison — it gets the
-                            // same treatment as the original: the synthesis, the
-                            // Aggr-Score rail, and each model's own answer. It
-                            // used to render the rewrite plus a row of score
-                            // chips, which reads as a single answer wearing
-                            // badges and hides the very thing the user asked for.
+                            // A compare follow-up IS a comparison, so it renders
+                            // through the SAME SummaryPanel as the first ask — the
+                            // synthesis, contributions and Aggr-Score rail, all
+                            // identical. Only the per-model answers differ: a turn
+                            // uses compact fixed cards rather than the main page's
+                            // collapsible ones, which is deliberate, not drift.
                             <div className="space-y-4">
-                              {/* Until there's prose, the status card IS the summary slot — standing
-                                  alone at full width, as it does on /ask. Wrapping it in the Summary
-                                  card framed a card inside a card inside the turn, and the two-column
-                                  grid reserved a rail for scores that don't exist yet, squeezing
-                                  everything into 3/4 width against an empty column. */}
-                              {!f.result && !f.partialSummary.trim() ? (
-                                <ThinkingStatus
-                                  modelIds={f.models}
-                                  done={f.doneModels}
-                                  typing={f.models.filter(m => f.partialAnswers[m] != null)}
-                                  gradientId={`fu-${f.id}`}
-                                />
-                              ) : (
-                                <div className={f.result?.type === "compare"
-                                  ? "grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4 items-start"
-                                  : ""}>
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-2 mb-3">
-                                      <Layers className="w-3.5 h-3.5 text-teal-300" />
-                                      <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
-                                      {!f.result && <span className="text-[10px] normal-case tracking-normal text-white/30">· writing…</span>}
-                                    </div>
-                                    {f.result?.type === "compare" && f.result.contributions && f.result.contributions.length > 0 && (
-                                      <ContributionsTop contributions={f.result.contributions} />
-                                    )}
-                                    <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
-                                      prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white
-                                      [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
-                                      {/* Streamed prose until the result lands, then the canonical
-                                          summary replaces it — same handover as the main page. */}
-                                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                        {f.result?.type === "compare"
-                                          ? (splitSummary(f.result.summary).best || f.result.summary)
-                                          : (splitSummary(f.partialSummary).best || f.partialSummary)}
-                                      </ReactMarkdown>
-                                    </div>
-                                  </div>
-                                  {f.result?.type === "compare" && (
-                                    <div className="min-w-0"><ScoresAndMetrics answers={f.result.answers} /></div>
-                                  )}
-                                </div>
-                              )}
+                              <SummaryPanel
+                                result={f.result}
+                                partialSummary={f.partialSummary}
+                                models={f.models}
+                                doneModels={f.doneModels}
+                                partialAnswers={f.partialAnswers}
+                                gradientId={`fu-${f.id}`}
+                              />
                               {/* Each model's own answer — live while streaming, canonical after. */}
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                                 {(f.result?.type === "compare" ? f.result.answers.map(a => a.model) : f.models).map(m => {
@@ -2493,71 +2497,20 @@ function Home() {
                          - LEFT: Summary card = Contributions (where it came
                            from) on top, then Best Answer (the rewrite).
                          - RIGHT: Quality scores. */}
-                  {result.answers.length > 1 && (() => {
-                    const { best } = splitSummary(result.summary);
-                    return (
-                      <>
-                        {/* 75/25 split — Aggr-Score only needs room for a
-                            compact radar + 5 axis labels + a centred 0-10.
-                            Everything else (long-form Best Answer rewrite,
-                            contributions bars, structured sub-headings) wants
-                            the wider column. Progression: 5fr_3fr → 7fr_3fr →
-                            3fr_1fr as we kept slimming the score rail. */}
-                        <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4 items-start">
-                          <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0">
-                            <div className="flex items-center gap-2 mb-4">
-                              <Layers className="w-3.5 h-3.5 text-teal-300" />
-                              <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">
-                                Summary
-                              </p>
-                            </div>
-
-                            {/* Contributions FIRST — explains where the
-                                rewritten Best answer's content came from
-                                before the user reads the rewrite itself. */}
-                            {result.contributions && result.contributions.length > 0 && (
-                              <ContributionsTop contributions={result.contributions} />
-                            )}
-
-                            {/* Best answer — the rewritten synthesis, the
-                                hero content of this card. */}
-                            <div className="prose prose-sm sm:prose-base prose-invert max-w-none
-                              prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
-                              prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
-                              prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2 not-prose">
-                                Aggrai&apos;s answer
-                                <span className="ml-1.5 normal-case tracking-normal text-white/30 font-medium">
-                                  · combined from all models, weighted by score
-                                </span>
-                              </p>
-                              {(() => {
-                                // If we have section attributions, use the
-                                // attribution-aware components factory so each
-                                // section heading gets a "via X" chip.
-                                // Otherwise fall back to plain markdown — no
-                                // visual difference for users on legacy cached
-                                // responses without attributions.
-                                const attrs = result.section_attributions ?? [];
-                                const knownIds = new Set(result.answers.map(a => a.model));
-                                const components = attrs.length > 0
-                                  ? makeAggraiAnswerComponents(attrs, knownIds)
-                                  : MARKDOWN_COMPONENTS;
-                                return (
-                                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-                                    {best || result.summary}
-                                  </ReactMarkdown>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                          <div className="min-w-0">
-                            <ScoresAndMetrics answers={result.answers} />
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
+                  {/* Multi-model results. The Summary + Aggr-Score rail is the
+                      SAME panel the loading state above renders and the same one
+                      a follow-up turn renders — one component, three callers, so
+                      it cannot drift between them again. */}
+                  {result.answers.length > 1 && (
+                    <SummaryPanel
+                      result={result}
+                      partialSummary=""
+                      models={result.answers.map(a => a.model)}
+                      doneModels={result.answers.map(a => a.model)}
+                      partialAnswers={{}}
+                      gradientId="res-summary"
+                    />
+                  )}
 
                   {/* Per-model answers — full width if only one */}
                   <div className="flex items-center justify-between gap-2">
