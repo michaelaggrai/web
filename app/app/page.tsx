@@ -14,7 +14,7 @@ import { appendMessage, bumpConversation, type ConvMessage } from "@/lib/message
 import { listThread } from "@/lib/thread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -449,6 +449,39 @@ function SummaryPanel({
         </div>
       </div>
       {settled && <div className="min-w-0"><ScoresAndMetrics answers={settled.answers} /></div>}
+    </div>
+  );
+}
+
+// AGG-39: the "Searched the web" badge + its sources. Shown when an ask was
+// grounded on live results — turns the invisible backend grounding into the
+// visible "comparison + research" signal, and gives the models' [1][2] citation
+// markers something to point at.
+function SearchSources({ info }: { info: { ok: boolean; sources: { title: string; url: string }[] } }) {
+  const host = (u: string) => { try { return new URL(u).host.replace(/^www\./, ""); } catch { return u; } };
+  return (
+    <div className="rounded-xl border border-teal-300/20 bg-teal-300/[0.05] px-4 py-3">
+      <div className="flex items-center gap-2 text-xs font-semibold text-teal-200">
+        <Globe className="w-3.5 h-3.5" aria-hidden="true" />
+        {info.ok && info.sources.length > 0
+          ? `Searched the web · ${info.sources.length} source${info.sources.length === 1 ? "" : "s"}`
+          : "Searched the web"}
+      </div>
+      {info.sources.length > 0 && (
+        <ol className="mt-2 space-y-1 text-xs">
+          {info.sources.map((s, i) => (
+            <li key={s.url + i} className="flex gap-2 min-w-0">
+              <span className="shrink-0 text-white/30 tabular-nums">[{i + 1}]</span>
+              <a href={s.url} target="_blank" rel="noopener noreferrer nofollow"
+                className="min-w-0 truncate text-white/60 hover:text-teal-200 transition-colors"
+                title={s.title}>
+                <span className="text-white/80">{host(s.url)}</span>
+                <span className="text-white/40"> — {s.title}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
@@ -1240,6 +1273,11 @@ function Home() {
   // the envelope and this partial is dead text. Replaced by the canonical
   // summary when `result` lands.
   const [partialSummary, setPartialSummary] = useState<string>("");
+  // AGG-39 web search: the sources this ask was grounded on. Set from the
+  // backend's stage:'search' event (fires before the answers when the classifier
+  // flagged a recency question). null = no search this ask. Live-only for now —
+  // not persisted in the stored result, so it shows on a fresh ask, not a reload.
+  const [searchInfo, setSearchInfo] = useState<{ ok: boolean; sources: { title: string; url: string }[] } | null>(null);
   // When the final result lands we collapse all per-model blocks so the
   // user's eye goes straight to the summary. The streaming-answer
   // handler below re-expands individual blocks as their answers arrive.
@@ -1484,6 +1522,7 @@ function Home() {
     setStreamingAnswers([]);
     setPartialAnswers({});
     setPartialSummary("");
+    setSearchInfo(null);
     setError("");
     setIntentHint(null);
     setQuestion("");
@@ -1540,7 +1579,11 @@ function Home() {
           let evt: { stage?: string; intent?: string; error?: string; [k: string]: unknown };
           try { evt = JSON.parse(line); } catch { continue; }
 
-          if (evt.stage === "intent" && (evt.intent === "compare" || evt.intent === "product" || evt.intent === "direct")) {
+          if (evt.stage === "search") {
+            // AGG-39: the ask was grounded on live web results — capture the
+            // sources so the result can show a "Searched the web" badge.
+            setSearchInfo({ ok: evt.ok !== false, sources: Array.isArray(evt.sources) ? evt.sources as { title: string; url: string }[] : [] });
+          } else if (evt.stage === "intent" && (evt.intent === "compare" || evt.intent === "product" || evt.intent === "direct")) {
             setIntentHint(evt.intent);
           } else if (evt.stage === "summary-chunk") {
             if (evt.reset) setPartialSummary("");
@@ -2530,6 +2573,9 @@ function Home() {
                   <div className="prose prose-sm prose-invert max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
                   </div>
+                  {/* AGG-39: a grounded direct answer (e.g. "who's the president")
+                      shows its sources — the [1][2] markers in the text point here. */}
+                  {searchInfo && <div className="mt-4"><SearchSources info={searchInfo} /></div>}
                   {/* Factual questions have one right answer, so we skip the
                       full multi-model comparison. A prominent, witty callout
                       explains why — turns "why only one answer?" into a
@@ -2555,12 +2601,13 @@ function Home() {
                 </div>
               ) : (
                 <>
-                  {/* Recency caveat — shown when the question likely needs
-                      information newer than the models' training cutoff. The
-                      models answer from training data with no live access, so
-                      we flag time-sensitive answers rather than let users
-                      trust them blindly. */}
-                  {result.recencyWarning && (
+                  {/* AGG-39: if we grounded this ask on live search, show the
+                      sources — and NOT the "no live access" caveat, which is now
+                      false. The recency caveat only shows when the models really
+                      did answer from training data alone (no search this ask). */}
+                  {searchInfo ? (
+                    <SearchSources info={searchInfo} />
+                  ) : result.recencyWarning && (
                     <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-200/90 flex items-start gap-2">
                       <span aria-hidden="true" className="mt-px">⏳</span>
                       <span>
