@@ -150,7 +150,7 @@ export function AnalyticsDashboard() {
 
 function OverviewTab({ overview, range }: { overview: Overview; range: Range }) {
   const o = overview;
-  const cards: { label: string; value: string; sub?: string }[] = [
+  const cards: { label: string; value: string; sub?: string; small?: boolean }[] = [
     { label: "Conversations", value: fmt(o.conversations) },
     { label: "Questions", value: fmt(o.questions) },
     { label: "Total tokens", value: compact(o.totalTokens) },
@@ -158,7 +158,7 @@ function OverviewTab({ overview, range }: { overview: Overview; range: Range }) 
     { label: "Current streak", value: `${o.currentStreak}d` },
     { label: "Longest streak", value: `${o.longestStreak}d` },
     { label: "Peak hour", value: o.peakHour ?? "—", sub: o.peakHour ? "UTC" : undefined },
-    { label: "Top model", value: o.topModel ? modelLabel(o.topModel) : "—", sub: o.modelsTried ? `${o.modelsTried} tried` : undefined },
+    { label: "Top model", value: o.topModel ? modelLabel(o.topModel) : "—", sub: o.modelsTried ? `${o.modelsTried} tried` : undefined, small: true },
   ];
   return (
     <div className="space-y-5">
@@ -176,18 +176,24 @@ function OverviewTab({ overview, range }: { overview: Overview; range: Range }) 
   );
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+// `small` is for text values (e.g. a model name) that would otherwise truncate
+// at the numeric 18px size.
+function StatCard({ label, value, sub, small }: { label: string; value: string; sub?: string; small?: boolean }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
       <div className="text-[11px] uppercase tracking-wider text-white/40">{label}</div>
-      <div className="mt-1 truncate text-lg font-semibold text-white" title={value}>{value}</div>
+      <div className={`truncate font-semibold text-white ${small ? "mt-1.5 text-sm" : "mt-1 text-lg"}`} title={value}>{value}</div>
       {sub && <div className="truncate text-[11px] text-white/40">{sub}</div>}
     </div>
   );
 }
 
-// GitHub-style calendar heatmap. Cells are UTC days; columns are weeks (Sun→Sat).
-// The window follows the selected range; "all" is capped at ~26 weeks of display.
+// GitHub-style calendar heatmap. Cells are UTC days; columns are weeks (Sun→Sat),
+// with a month axis across the top and weekday labels down the left so the grid
+// is actually readable as dates. Window follows the range; "all" caps at ~26 weeks.
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DOW_LABEL = ["", "Mon", "", "Wed", "", "Fri", ""]; // index = UTC day (0=Sun)
+
 function Heatmap({ data, range }: { data: { date: string; count: number }[]; range: Range }) {
   const MS = 86_400_000;
   const counts = new Map(data.map((d) => [d.date, d.count]));
@@ -204,31 +210,58 @@ function Heatmap({ data, range }: { data: { date: string; count: number }[]; ran
   }
   const gridStart = startMs - new Date(startMs).getUTCDay() * MS; // snap back to Sunday
 
-  const weeks: { key: string; count: number; inRange: boolean }[][] = [];
+  // Each column is a week; `label` carries the month name when a new month's
+  // first in-range day falls in that column (so the axis reads Jun → Jul …).
+  const weeks: { cells: { key: string; count: number; inRange: boolean }[]; label: string }[] = [];
+  let lastMonth = -1;
   for (let ms = gridStart; ms <= todayUTC; ms += MS) {
     const d = new Date(ms);
-    if (d.getUTCDay() === 0) weeks.push([]);
+    if (d.getUTCDay() === 0) weeks.push({ cells: [], label: "" });
+    const w = weeks[weeks.length - 1];
     const key = d.toISOString().slice(0, 10);
-    weeks[weeks.length - 1].push({ key, count: counts.get(key) ?? 0, inRange: ms >= startMs });
+    const inRange = ms >= startMs;
+    w.cells.push({ key, count: counts.get(key) ?? 0, inRange });
+    if (inRange && d.getUTCMonth() !== lastMonth && !w.label) {
+      w.label = MONTHS[d.getUTCMonth()];
+      lastMonth = d.getUTCMonth();
+    }
   }
 
   const bucket = (c: number) => (c <= 0 ? 0 : c / max > 0.66 ? 3 : c / max > 0.33 ? 2 : 1);
   const shade = ["bg-white/[0.05]", "bg-teal-400/25", "bg-teal-400/55", "bg-teal-400/90"];
+  const fmtDay = (key: string) => {
+    const d = new Date(key + "T00:00:00Z");
+    return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+  };
 
   return (
     <div className="overflow-x-auto pb-1">
-      <div className="flex gap-1">
-        {weeks.map((week, wi) => (
-          <div key={wi} className="flex flex-col gap-1">
-            {week.map((cell) => (
-              <div
-                key={cell.key}
-                title={cell.inRange ? `${cell.key}: ${cell.count} question${cell.count === 1 ? "" : "s"}` : undefined}
-                className={`h-3.5 w-3.5 rounded-sm ${cell.inRange ? shade[bucket(cell.count)] : "bg-transparent"}`}
-              />
+      <div className="inline-block">
+        {/* Month axis — labels sit above the week column where the month starts. */}
+        <div className="mb-1 flex gap-1 pl-8">
+          {weeks.map((w, wi) => (
+            <div key={wi} className="w-3.5 whitespace-nowrap text-[9px] leading-none text-white/35">{w.label}</div>
+          ))}
+        </div>
+        <div className="flex gap-1">
+          {/* Weekday axis */}
+          <div className="flex w-7 flex-col gap-1">
+            {DOW_LABEL.map((lbl, i) => (
+              <div key={i} className="h-3.5 text-right text-[9px] leading-[14px] text-white/35">{lbl}</div>
             ))}
           </div>
-        ))}
+          {weeks.map((w, wi) => (
+            <div key={wi} className="flex flex-col gap-1">
+              {w.cells.map((cell) => (
+                <div
+                  key={cell.key}
+                  title={cell.inRange ? `${fmtDay(cell.key)}: ${cell.count} question${cell.count === 1 ? "" : "s"}` : undefined}
+                  className={`h-3.5 w-3.5 rounded-sm ${cell.inRange ? shade[bucket(cell.count)] : "bg-transparent"}`}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
