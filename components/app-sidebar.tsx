@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import Link from "next/link";
-import { Plus, X, Settings } from "lucide-react";
+import { Plus, X, Settings, BarChart3 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { AccountMenu } from "@/components/account-menu";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -214,6 +214,15 @@ export function AppSidebar({
                   Upgrade plan
                 </Link>
               )}
+              {/* AGG-27: analytics needs a first-class entry point — it was only
+                  reachable via a Settings section, which nobody would find. */}
+              <Link
+                href="/settings/analytics"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 transition hover:bg-white/5 hover:text-white"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                Analytics
+              </Link>
               <Link
                 href="/settings"
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 transition hover:bg-white/5 hover:text-white"
