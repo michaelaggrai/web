@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles, Zap, Crown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { getAnonId } from "@/lib/anon-id";
 import { Logo } from "@/components/logo";
 
 // Compact plan picker shown only in signup mode. After successful signup, a
@@ -103,7 +104,17 @@ function SignIn() {
     const supabase = createClient();
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        // AGG-21: carry this browser's anon_id into the signup metadata so
+        // handle_new_user() can stamp it onto profiles → profile_events. That's
+        // what stitches the funnel: events.anon_id → questions.anon_id →
+        // profile_events.anon_id, i.e. "this visitor landed, asked, then
+        // converted". Null without analytics consent (getAnonId returns null),
+        // and the trigger validates + ignores anything malformed.
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { anon_id: getAnonId() } },
+        });
         if (error) throw error;
         if (!data.session) {
           // Email confirmation is enabled — no session until they confirm.
