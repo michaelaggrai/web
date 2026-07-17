@@ -984,11 +984,11 @@ function Home() {
   const [activeConvId, setActiveConvId] = useState<string | null>(urlConvId);
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [followupModel, setFollowupModel] = useState<string | null>(null);  // null → winner
-  // "Ask all again" is a TARGET, picked the same way a model chip is — not an
-  // action. It used to fire the request on click, which meant the chip row had
-  // one button that behaved unlike its neighbours: select, select, select, send.
-  // Now every chip only chooses where the follow-up goes; the arrow sends it.
-  const [followupAll, setFollowupAll] = useState(false);
+  // Which models a follow-up goes to. Empty = "not chosen yet", which resolves to
+  // the winner (see selectedFollowupModels) — so the default costs no effect and
+  // no seeding. The backend has always accepted an arbitrary models[] subset;
+  // "1 or all" was a frontend limitation, never a product one.
+  const [followupModels, setFollowupModels] = useState<Set<string>>(new Set());
   const [followupInput, setFollowupInput] = useState("");
   const [followupLoading, setFollowupLoading] = useState(false);
   // Which follow-up turns are expanded. Older turns collapse to a one-line
@@ -1108,17 +1108,6 @@ function Home() {
   // abort the next one.
   const abortRef = useRef<AbortController | null>(null);
 
-  // "Continue with X" (Phase 5a) — set the follow-up target model + focus the
-  // continuation composer. The comparison stays on screen; the next follow-up
-  // streams from /api/converse into the thread below it (no restart-from-scratch).
-  function handleContinueWith(modelId: string) {
-    setFollowupModel(modelId);
-    setFollowupAll(false);   // picking a model deselects "all"
-    setTimeout(() => {
-      followupInputRef.current?.focus();
-      followupInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 50);
-  }
   const toggleAnswer = (modelId: string) => {
     setExpandedAnswers(prev => {
       const next = new Set(prev);
@@ -1566,6 +1555,48 @@ function Home() {
     return bestAccessibleModel();
   }
 
+  // Follow-up targets a user can pick from: this comparison's models, minus any
+  // now above their tier (a downgraded account opening an old Premium thread).
+  function followupCandidates(): string[] {
+    if (result?.type !== "compare") return [];
+    return result.answers.map(a => a.model).filter(m => !lockedIds.has(m));
+  }
+  // Multi-model follow-ups are Pro+; the backend rejects compare for free
+  // outright, so offering the click would just buy an error.
+  const canPickMultiple = tier === "pro" || tier === "premium";
+
+  // The resolved selection. An untouched selection resolves to the winner, which
+  // keeps the old one-click "continue with the best model" behaviour intact
+  // without an effect to seed it. Stale picks (tier changed under a stored
+  // thread) are filtered out rather than sent and rejected.
+  function selectedFollowupModels(): string[] {
+    const avail = followupCandidates();
+    const picked = avail.filter(m => followupModels.has(m));
+    if (picked.length > 0) return picked;
+    const t = continueTarget();
+    return t && avail.includes(t) ? [t] : avail.slice(0, 1);
+  }
+
+  // Chips are toggles now. Two invariants: never empty (an empty selection has
+  // nothing to send, and a dead arrow button explains nothing), and never over
+  // the tier's cap — free collapses to single-select rather than silently
+  // refusing the second click.
+  function toggleFollowupModel(modelId: string) {
+    const cur = selectedFollowupModels();
+    const has = cur.includes(modelId);
+    if (has && cur.length === 1) return;                      // keep at least one
+    if (!has && !canPickMultiple) {                           // free: replace, don't add
+      setFollowupModels(new Set([modelId]));
+      setFollowupModel(modelId);
+      return;
+    }
+    if (!has && cur.length >= maxModels) return;              // at the tier cap
+    const next = has ? cur.filter(m => m !== modelId) : [...cur, modelId];
+    setFollowupModels(new Set(next));
+    if (next.length === 1) setFollowupModel(next[0]);
+    followupInputRef.current?.focus();   // picking a target means you're about to type
+  }
+
   // Rebuild the follow-up thread from stored message rows (turns ≥ 2; turns 0/1
   // are the initial comparison, already rendered from `result`).
   function toFollowups(msgs: ConvMessage[]): Followup[] {
@@ -1692,24 +1723,17 @@ function Home() {
     }
   }
 
-  // The single send path — arrow button and Enter both land here. Which target is
-  // selected decides the mode; nothing else in the composer submits.
+  // The single send path — arrow button and Enter both land here. The SIZE of the
+  // selection picks the mode: one model is a continuation of its own thread, more
+  // than one is a fresh comparison. No separate "ask all" concept survives.
   function handleFollowupSubmit(e?: React.FormEvent) {
     e?.preventDefault();
-    if (followupAll) { handleAskAllAgain(); return; }
-    const model = continueTarget();
-    if (model) void submitContinuation(followupInput, { modelId: model });
-  }
-
-  // "Ask all again" — re-run the original comparison's models on the follow-up.
-  function handleAskAllAgain() {
-    if (result?.type !== "compare") return;
-    const models = result.answers.map(a => a.model);
-    // Never re-run models the current tier can't use (e.g. a Premium thread
-    // opened by a downgraded Pro account). The chip is disabled for this too;
-    // this is the belt-and-braces guard. The backend rejects regardless.
-    if (models.some(m => lockedIds.has(m)) || models.length > maxModels) return;
-    void submitContinuation(followupInput, { models });
+    const sel = selectedFollowupModels();
+    if (sel.length === 0) return;
+    if (sel.length === 1) { void submitContinuation(followupInput, { modelId: sel[0] }); return; }
+    // Belt-and-braces; the chips enforce both already and the backend re-checks.
+    if (!canPickMultiple || sel.length > maxModels) return;
+    void submitContinuation(followupInput, { models: sel });
   }
 
   // Reset to a blank comparison ("New comparison" in the sidebar, or
@@ -1902,14 +1926,22 @@ function Home() {
               </p>
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 {result.answers.filter(a => !lockedIds.has(a.model)).map(a => {
-                  const isActive = !followupAll && continueTarget() === a.model;
+                  const sel = selectedFollowupModels();
+                  const isActive = sel.includes(a.model);
                   const isWinner = winnerModel() === a.model;
+                  // Greyed only when adding this one would break a rule: at the
+                  // tier cap, or free (where a second pick replaces rather than
+                  // adds, so it stays clickable).
+                  const atCap = !isActive && canPickMultiple && sel.length >= maxModels;
                   return (
                     <button
                       key={a.model}
                       type="button"
-                      onClick={() => handleContinueWith(a.model)}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      aria-pressed={isActive}
+                      disabled={followupLoading || atCap}
+                      title={atCap ? `Your ${tier} plan compares up to ${maxModels} models` : undefined}
+                      onClick={() => toggleFollowupModel(a.model)}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                         isActive
                           ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
                           : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
@@ -1922,38 +1954,42 @@ function Home() {
                   );
                 })}
                 {(() => {
-                  // Tier gating (Phase 5b + downgrade fix): Free can't re-run all
-                  // models. Pro/Premium can — UNLESS this stored comparison uses
-                  // models above the current plan (e.g. a 5-premium thread opened
-                  // by a downgraded Pro account): then re-running them is blocked,
-                  // not merely capped. The backend enforces the same.
-                  const paidTier = tier === "pro" || tier === "premium";
-                  const askAllModels = result.answers.map(a => a.model);
-                  const tierBlocksAll = askAllModels.some(m => lockedIds.has(m)) || askAllModels.length > maxModels;
-                  const allowed = paidTier && !tierBlocksAll;
+                  // A shortcut, not a mode. Its pressed state is DERIVED from the
+                  // selection rather than stored beside it, so "All" and the chips
+                  // can never disagree about what's selected — which is what the
+                  // old separate followupAll flag risked.
+                  const avail = followupCandidates();
+                  const sel = selectedFollowupModels();
+                  const allOn = avail.length > 1 && sel.length === avail.length;
+                  // Blocked (not merely capped) when this stored comparison is
+                  // bigger than the current plan allows — e.g. a 5-model Premium
+                  // thread opened by a downgraded Pro account.
+                  const overCap = avail.length > maxModels;
+                  const allowed = canPickMultiple && !overCap && avail.length > 1;
                   const reason = tier === "free"
-                    ? "Upgrade to Pro to re-run every model on your follow-up"
-                    : tierBlocksAll
-                      ? "This comparison used models above your current plan — upgrade to re-run them all"
-                      : "Re-run all models on your follow-up";
+                    ? "Upgrade to Pro to ask more than one model"
+                    : overCap
+                      ? `This comparison has ${avail.length} models — your ${tier} plan compares up to ${maxModels}`
+                      : allOn ? "Back to just the winner" : "Select every model";
                   return (
                     <button
                       type="button"
-                      aria-pressed={followupAll}
+                      aria-pressed={allOn}
                       onClick={() => {
                         if (!allowed) return;
-                        setFollowupAll(true);
+                        const t = continueTarget();
+                        setFollowupModels(new Set(allOn ? [t && avail.includes(t) ? t : avail[0]] : avail));
                         followupInputRef.current?.focus();
                       }}
                       disabled={!allowed || followupLoading}
                       title={reason}
                       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                        followupAll
+                        allOn
                           ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
                           : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
                       }`}
                     >
-                      <Layers className="w-3 h-3" aria-hidden="true" /> Ask all again{tier === "free" ? " · Pro" : tierBlocksAll ? " · Premium" : ""}
+                      <Layers className="w-3 h-3" aria-hidden="true" /> All{tier === "free" ? " · Pro" : overCap ? " · Premium" : ""}
                     </button>
                   );
                 })()}
@@ -1970,9 +2006,13 @@ function Home() {
                     }
                   }}
                   rows={2}
-                  placeholder={followupAll
-                    ? `Ask all ${result.answers.filter(a => !lockedIds.has(a.model)).length} models a follow-up…`
-                    : `Ask ${modelLabel(continueTarget() ?? "")} a follow-up…`}
+                  placeholder={(() => {
+                    const sel = selectedFollowupModels();
+                    if (sel.length === 1) return `Ask ${modelLabel(sel[0])} a follow-up…`;
+                    return sel.length === followupCandidates().length
+                      ? `Ask all ${sel.length} models a follow-up…`
+                      : `Ask ${sel.length} models a follow-up…`;
+                  })()}
                   className="flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-white placeholder-white/30 focus:outline-none focus:border-teal-300/40"
                   disabled={followupLoading}
                 />
