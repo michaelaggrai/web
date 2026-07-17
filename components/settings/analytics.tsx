@@ -153,7 +153,6 @@ function OverviewTab({ overview, range }: { overview: Overview; range: Range }) 
   const cards: { label: string; value: string; sub?: string; small?: boolean }[] = [
     { label: "Conversations", value: fmt(o.conversations) },
     { label: "Questions", value: fmt(o.questions) },
-    { label: "Total tokens", value: compact(o.totalTokens) },
     { label: "Active days", value: fmt(o.activeDays) },
     { label: "Current streak", value: `${o.currentStreak}d` },
     { label: "Longest streak", value: `${o.longestStreak}d` },
