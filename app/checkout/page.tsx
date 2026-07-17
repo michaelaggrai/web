@@ -8,6 +8,8 @@ import { HomeLink } from "@/components/home-link";
 import { useTier } from "@/lib/use-tier";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { startDemoBilling } from "@/lib/billing-demo";
+import { BILLING_LIVE } from "@/lib/billing";
+import { StripePayment } from "@/components/checkout/stripe-payment";
 import {
   planByKey, priceFor, isTier, isCycle, TIER_RANK, gbp, type Cycle, type Tier,
 } from "@/lib/plans";
@@ -214,6 +216,20 @@ function Checkout() {
               <h2 className="text-sm font-semibold text-white">Payment details</h2>
             </div>
 
+            {BILLING_LIVE ? (
+              /* Real Stripe Payment Element — collects + confirms the first
+                 payment against the incomplete subscription; the webhook grants
+                 the tier once payment succeeds. */
+              <StripePayment
+                key={`${planKey}-${cycle}`}
+                planKey={planKey as "pro" | "premium"}
+                cycle={cycle}
+                email={email}
+                accent={accent}
+                payLabel={`Pay ${price.amountLabel}${price.isFree ? "" : cycle === "annual" ? " / year" : " / month"}`}
+              />
+            ) : (
+              <>
             {/* Honest demo banner */}
             <div className="mb-5 rounded-xl border border-amber-400/25 bg-amber-400/[0.08] px-3.5 py-2.5 text-xs text-amber-100/90 leading-relaxed">
               <strong className="text-amber-200">Demo checkout.</strong> Payments aren&apos;t live yet — no card is charged and nothing is stored. This is where Stripe&apos;s secure payment form will appear.
@@ -282,6 +298,8 @@ function Checkout() {
               <ShieldCheck className="w-3 h-3" aria-hidden="true" />
               <span>Cancel anytime</span>
             </div>
+              </>
+            )}
           </section>
         </div>
 
