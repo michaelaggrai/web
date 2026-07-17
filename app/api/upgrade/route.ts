@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/server-admin";
+import { BILLING_LIVE } from "@/lib/billing";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -18,6 +19,22 @@ export async function POST(req: NextRequest) {
 
   if (!tier || !VALID_TIERS.includes(tier)) {
     return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
+  }
+
+  // SECURITY (AGG-48): paid entitlement is granted ONLY by the signature-verified
+  // Stripe webhook (app/api/billing/webhook) — NEVER by this client-callable
+  // route, or any signed-in user could POST {tier:"premium"} and self-grant a
+  // paid plan for free. Once billing is live, this route may only set `free`
+  // (a cancellation/downgrade); real upgrades go through checkout → Stripe.
+  // While BILLING_LIVE is false the app is a password-gated demo with no real
+  // payments, so it still simulates upgrades here for testers.
+  // INVARIANT: BILLING_LIVE MUST be true before the beta gate is dropped, or this
+  // reopens as a public "free Premium" faucet.
+  if (BILLING_LIVE && tier !== "free") {
+    return NextResponse.json(
+      { error: "Paid plans are activated through checkout." },
+      { status: 403 },
+    );
   }
 
   // Verify caller is signed in.
