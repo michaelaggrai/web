@@ -984,6 +984,11 @@ function Home() {
   const [activeConvId, setActiveConvId] = useState<string | null>(urlConvId);
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [followupModel, setFollowupModel] = useState<string | null>(null);  // null → winner
+  // "Ask all again" is a TARGET, picked the same way a model chip is — not an
+  // action. It used to fire the request on click, which meant the chip row had
+  // one button that behaved unlike its neighbours: select, select, select, send.
+  // Now every chip only chooses where the follow-up goes; the arrow sends it.
+  const [followupAll, setFollowupAll] = useState(false);
   const [followupInput, setFollowupInput] = useState("");
   const [followupLoading, setFollowupLoading] = useState(false);
   // Which follow-up turns are expanded. Older turns collapse to a one-line
@@ -1108,6 +1113,7 @@ function Home() {
   // streams from /api/converse into the thread below it (no restart-from-scratch).
   function handleContinueWith(modelId: string) {
     setFollowupModel(modelId);
+    setFollowupAll(false);   // picking a model deselects "all"
     setTimeout(() => {
       followupInputRef.current?.focus();
       followupInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1686,8 +1692,11 @@ function Home() {
     }
   }
 
-  function handleFollowupSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // The single send path — arrow button and Enter both land here. Which target is
+  // selected decides the mode; nothing else in the composer submits.
+  function handleFollowupSubmit(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (followupAll) { handleAskAllAgain(); return; }
     const model = continueTarget();
     if (model) void submitContinuation(followupInput, { modelId: model });
   }
@@ -1893,7 +1902,7 @@ function Home() {
               </p>
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 {result.answers.filter(a => !lockedIds.has(a.model)).map(a => {
-                  const isActive = continueTarget() === a.model;
+                  const isActive = !followupAll && continueTarget() === a.model;
                   const isWinner = winnerModel() === a.model;
                   return (
                     <button
@@ -1930,14 +1939,19 @@ function Home() {
                   return (
                     <button
                       type="button"
+                      aria-pressed={followupAll}
                       onClick={() => {
                         if (!allowed) return;
-                        if (!followupInput.trim()) { followupInputRef.current?.focus(); return; }
-                        handleAskAllAgain();
+                        setFollowupAll(true);
+                        followupInputRef.current?.focus();
                       }}
                       disabled={!allowed || followupLoading}
                       title={reason}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed"
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                        followupAll
+                          ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
+                          : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
+                      }`}
                     >
                       <Layers className="w-3 h-3" aria-hidden="true" /> Ask all again{tier === "free" ? " · Pro" : tierBlocksAll ? " · Premium" : ""}
                     </button>
@@ -1952,12 +1966,13 @@ function Home() {
                   onKeyDown={e => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      const m = continueTarget();
-                      if (m) void submitContinuation(followupInput, { modelId: m });
+                      handleFollowupSubmit();   // honours the selected target, incl. "all"
                     }
                   }}
                   rows={2}
-                  placeholder={`Ask ${modelLabel(continueTarget() ?? "")} a follow-up…`}
+                  placeholder={followupAll
+                    ? `Ask all ${result.answers.filter(a => !lockedIds.has(a.model)).length} models a follow-up…`
+                    : `Ask ${modelLabel(continueTarget() ?? "")} a follow-up…`}
                   className="flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-white placeholder-white/30 focus:outline-none focus:border-teal-300/40"
                   disabled={followupLoading}
                 />

@@ -15,13 +15,23 @@ const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 // required for the backend to resolve the account + its history.
 export async function POST(req: NextRequest) {
   const body = await req.text();
-  let parsed: { question?: string; conversationId?: string; modelId?: string } = {};
+  let parsed: { question?: string; conversationId?: string; modelId?: string; models?: string[] } = {};
   try { parsed = JSON.parse(body); } catch { /* fall through */ }
   if (!parsed?.question) {
     return NextResponse.json({ error: "question is required" }, { status: 400 });
   }
-  if (!parsed?.conversationId || !parsed?.modelId) {
-    return NextResponse.json({ error: "conversationId and modelId are required" }, { status: 400 });
+  if (!parsed?.conversationId) {
+    return NextResponse.json({ error: "conversationId is required" }, { status: 400 });
+  }
+  // Two modes, mirroring the backend: single-model continuation (modelId) or
+  // "Ask all again" — a compare follow-up (models[]). This check was written for
+  // P5a, when modelId was the only mode, and never updated when P5b added
+  // compare — so every "Ask all again" was rejected here, with the backend that
+  // handles it perfectly well sitting untouched behind the 400. Validate the
+  // shape the backend actually accepts, and let IT reject anything else: model
+  // validity and tier gating are its job, not the proxy's.
+  if (!parsed?.modelId && !(Array.isArray(parsed?.models) && parsed.models.length > 0)) {
+    return NextResponse.json({ error: "modelId or models[] is required" }, { status: 400 });
   }
 
   let accessToken: string | null = null;
