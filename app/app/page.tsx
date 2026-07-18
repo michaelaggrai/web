@@ -521,13 +521,18 @@ function RawAnswers({ answers, streamedText }: {
   const renderCard = (a: Answer) => {
     const shown = isOpen(a.model);
     const text = a.answer || streamedText?.[a.model] || "";
+    // A SETTLED result (not mid-stream) with empty text = the model returned
+    // nothing. The backend retries once on an empty stream; a persistent blank
+    // lands here, so surface it as a model hiccup instead of a silent empty card.
+    const noResponse = streamedText === undefined && !text.trim();
+    const expandable = multi && !noResponse;
     return (
       <div key={a.model} className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl min-w-0 overflow-hidden">
         <button
           type="button"
-          onClick={() => multi && toggle(a.model)}
+          onClick={() => expandable && toggle(a.model)}
           aria-expanded={shown}
-          className={`w-full flex items-center justify-between gap-2 p-5 text-left transition-colors ${multi ? "hover:bg-surface-1" : "cursor-default"}`}
+          className={`w-full flex items-center justify-between gap-2 p-5 text-left transition-colors ${expandable ? "hover:bg-surface-1" : "cursor-default"}`}
         >
           <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
             <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
@@ -540,20 +545,32 @@ function RawAnswers({ answers, streamedText }: {
                 Truncated
               </span>
             )}
+            {noResponse && (
+              <span
+                title="This model streamed back an empty response — usually a transient provider issue. We retried once; it still returned nothing. The other models are unaffected."
+                className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-200"
+              >
+                No response
+              </span>
+            )}
           </span>
           <div className="flex items-center gap-3 text-xs text-white/55 shrink-0">
             {a.runtime_ms > 0 && <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>}
             {a.tokens > 0 && <span>{a.tokens} tok</span>}
-            {multi && <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${shown ? "rotate-180" : ""}`} aria-hidden="true" />}
+            {expandable && <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${shown ? "rotate-180" : ""}`} aria-hidden="true" />}
           </div>
         </button>
-        {shown && text && (
+        {noResponse ? (
+          <div className="px-5 pb-5 text-xs leading-relaxed text-white/50">
+            {modelLabel(a.model)} didn&apos;t return a response this time — a transient provider hiccup. Try again to include it.
+          </div>
+        ) : shown && text ? (
           <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
             [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
             [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_img]:max-w-full [&_code]:break-words">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
           </div>
-        )}
+        ) : null}
       </div>
     );
   };
