@@ -62,6 +62,8 @@ export async function POST(req: NextRequest) {
   const clientIp = (xff.split(",")[0] ?? "").trim();
   const ua = req.headers.get("user-agent") ?? "";
   const consent = req.cookies.get("aggrai_consent_v1")?.value ?? "";
+  // AGG-44: arrival attribution (aggrai_ref cookie) forwarded to the backend.
+  const ref = req.cookies.get("aggrai_ref")?.value ?? "";
 
   let upstream: Response;
   try {
@@ -76,6 +78,7 @@ export async function POST(req: NextRequest) {
         ...(clientIp && consent === "accepted" ? { "x-aggrai-ip": clientIp } : {}),
         ...(ua && consent === "accepted" ? { "x-aggrai-ua": ua } : {}),
         ...(consent === "accepted" || consent === "rejected" ? { "x-aggrai-consent": consent } : {}),
+        ...(ref ? { "x-aggrai-ref": ref } : {}),
       },
       body,
       signal: req.signal,

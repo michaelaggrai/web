@@ -29,6 +29,9 @@ export async function proxy(req: NextRequest) {
   // a privacy policy or terms you must log in to read defeats the purpose, and the
   // cookie-consent banner links to /privacy (GDPR / AGG-30).
   if (pathname === "/privacy" || pathname === "/terms") return NextResponse.next();
+  // AGG-44: shared conversation snapshots are public by design — the whole point
+  // is that anyone can open a /share/{id} link without the beta password.
+  if (pathname.startsWith("/share/")) return NextResponse.next();
   if (req.cookies.get("auth")?.value !== PASSWORD) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";

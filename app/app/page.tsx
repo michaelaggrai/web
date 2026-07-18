@@ -14,7 +14,7 @@ import { appendMessage, bumpConversation, type ConvMessage } from "@/lib/message
 import { listThread } from "@/lib/thread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, Link2 } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -25,6 +25,7 @@ import { useTier } from "@/lib/use-tier";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parseModelsParam, type ModelEntry, type Tier } from "@/lib/models";
+import type { ShareSnapshot, ShareTurn, ShareAnswer } from "@/lib/share";
 
 // AGG-7 v2 (2026-05-25): switched from 4-dim (comprehension /
 // thought_provoking / nuance / clarity) to research-backed 5-dim.
@@ -1177,6 +1178,9 @@ function Home() {
   };
   const [activeConvId, setActiveConvId] = useState<string | null>(urlConvId);
   const [followups, setFollowups] = useState<Followup[]>([]);
+  // AGG-44: share-link state — the created public URL + an in-flight flag.
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
   const [followupModel, setFollowupModel] = useState<string | null>(null);  // null → winner
   // Which models a follow-up goes to. Empty = "not chosen yet", which resolves to
   // the winner (see selectedFollowupModels) — so the default costs no effect and
@@ -1801,6 +1805,53 @@ function Home() {
     if (!c) return [];
     return c.answers.map(a => a.model).filter(m => !lockedIds.has(m));
   }
+
+  // AGG-44: freeze the current conversation into a public snapshot. Internal
+  // fields (runtime/tokens/cost) are stripped; per-model scores collapse to the
+  // computed overall — the shared view shows the headline number, not the rail.
+  function buildShareSnapshot(): ShareSnapshot | null {
+    if (!result) return null;
+    const strip = (a: Answer): ShareAnswer => ({
+      model: a.model, answer: a.answer, truncated: a.truncated,
+      scores: a.scores ? { overall: overallScore(a.scores) } : null,
+    });
+    const compareTurn = (r: Extract<Result, { type: "compare" }>, question: string): ShareTurn => ({
+      kind: "compare", question, summary: r.summary,
+      contributions: r.contributions ?? null,
+      answers: r.answers.map(strip),
+      sources: r.search?.sources ?? null,
+    });
+    const turns: ShareTurn[] = [];
+    if (result.type === "compare") turns.push(compareTurn(result, result.question));
+    else if (result.type === "direct" || result.type === "product") turns.push({ kind: "direct", question: result.question, answer: result.answer });
+    for (const f of followups) {
+      if (f.mode === "compare" && f.result?.type === "compare") turns.push(compareTurn(f.result, f.question));
+      else if (f.mode === "single" && f.answer) turns.push({ kind: "single", question: f.question, model: f.modelId, answer: f.answer });
+    }
+    if (!turns.length) return null;
+    const models = result.type === "compare" ? result.answers.map(a => a.model) : [];
+    return { v: 1, createdAt: new Date().toISOString(), models, turns };
+  }
+
+  async function handleShare() {
+    if (sharing) return;
+    const snapshot = buildShareSnapshot();
+    if (!snapshot) return;
+    setSharing(true);
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ snapshot, conversationId: activeConvId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        setShareUrl(data.url);
+        try { await navigator.clipboard?.writeText(data.url); } catch { /* clipboard blocked — link still shown */ }
+      }
+    } catch { /* network — button stays ready to retry */ } finally {
+      setSharing(false);
+    }
+  }
   // Multi-model follow-ups are Pro+; the backend rejects compare for free
   // outright, so offering the click would just buy an error.
   const canPickMultiple = tier === "pro" || tier === "premium";
@@ -2175,6 +2226,28 @@ function Home() {
                 className="text-teal-300/60 hover:text-teal-200 text-xs"
               >
                 Dismiss
+              </button>
+            </div>
+          )}
+
+          {/* AGG-44: share the conversation. Any settled result, anon or signed-in,
+              all result types — the API + /share page support them all. */}
+          {result && !loading && !followupLoading && (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {shareUrl && (
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300/25 bg-teal-300/[0.06] px-3 py-1.5 text-xs">
+                  <Link2 className="w-3 h-3 shrink-0 text-teal-300" aria-hidden="true" />
+                  <span className="max-w-[220px] truncate text-teal-100/90">{shareUrl}</span>
+                  <button type="button" onClick={() => { navigator.clipboard?.writeText(shareUrl).catch(() => {}); }} className="shrink-0 font-medium text-teal-300 hover:text-teal-200">Copy</button>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleShare}
+                disabled={sharing}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-surface-1 px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-surface-2 hover:text-white transition disabled:opacity-50"
+              >
+                <Share2 className="w-3.5 h-3.5" aria-hidden="true" /> {sharing ? "Sharing…" : shareUrl ? "Shared" : "Share"}
               </button>
             </div>
           )}

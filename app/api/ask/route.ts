@@ -61,6 +61,9 @@ export async function POST(req: NextRequest) {
   // aggrai_consent_v1 cookie, sent automatically. Forwarded so the backend can
   // stamp it on the tracking row (and, in 4b enforcement, honour it).
   const consent = req.cookies.get("aggrai_consent_v1")?.value ?? "";
+  // AGG-44: arrival attribution — the aggrai_ref cookie set on /share (e.g.
+  // "share:<id>"). Forwarded so the backend can stamp questions.referrer.
+  const ref = req.cookies.get("aggrai_ref")?.value ?? "";
 
   let upstream: Response;
   try {
@@ -77,6 +80,7 @@ export async function POST(req: NextRequest) {
         ...(clientIp && consent === "accepted" ? { "x-aggrai-ip": clientIp } : {}),
         ...(ua && consent === "accepted" ? { "x-aggrai-ua": ua } : {}),
         ...(consent === "accepted" || consent === "rejected" ? { "x-aggrai-consent": consent } : {}),
+        ...(ref ? { "x-aggrai-ref": ref } : {}),
       },
       body,
       // Forward the client's abort: if the user clicks Stop / navigates away,
