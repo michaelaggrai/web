@@ -119,7 +119,8 @@ export function SharedScores({ answers }: { answers: ShareAnswer[] }) {
         <span className="text-[11px] text-white/55">judged by Haiku · all scores 0–10</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2 items-start">
+      {/* 1-up in the narrow lg rail (beside the summary), 2-up when full-width on md. */}
+      <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2 lg:grid-cols-1 items-start">
         {ranked.map((a, i) => {
           const color = PALETTE[i % PALETTE.length];
           const isWinner = a.overall === maxOverall;

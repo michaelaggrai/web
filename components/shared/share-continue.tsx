@@ -84,15 +84,25 @@ export function ShareContinue({
       router.push(handoffHref);
       return;
     }
+
+    setBusy(true);
+    // Guest continuation: account-less viewers get an anonymous Supabase session
+    // so they can own + continue a fork WITHOUT signing up. Requires "anonymous
+    // sign-ins" enabled on the project; if it's off, signInAnonymously errors and
+    // we fall back to free signup (?next auto-forks on return — no dead-end).
+    if (!authed && isSupabaseConfigured) {
+      try {
+        const { data, error } = await createClient().auth.signInAnonymously();
+        if (!error && data?.user) authed = true;
+      } catch {
+        /* anonymous sign-ins disabled — fall through to signup */
+      }
+    }
     if (!authed) {
-      // Anon viewers can't own a fork — send them through free signup, then the
-      // app auto-forks this share on return (the ?fork= handler in /app). Makes
-      // "anyone with the link can continue" real without a blank-app dead-end.
       router.push(`/signin?next=${encodeURIComponent(`/app?fork=${id}`)}`);
       return;
     }
 
-    setBusy(true);
     try {
       const res = await fetch(`/api/share/${encodeURIComponent(id)}/fork`, { method: "POST" });
       const data = await res.json().catch(() => ({}));

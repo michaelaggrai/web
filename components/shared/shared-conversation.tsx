@@ -92,20 +92,26 @@ function Turn({ turn }: { turn: ShareTurn }) {
       {turn.kind === "compare" && (
         <div className="space-y-4">
           {turn.sources && turn.sources.length > 0 && <Sources sources={turn.sources} />}
-          {/* Summary */}
-          <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 shadow-xl">
-            <div className="flex items-center gap-2 mb-4">
-              <Layers className="w-3.5 h-3.5 text-teal-300" />
-              <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+          {/* Summary + Aggr-Score rail — mirrors the app's SummaryPanel: the radar
+              sits BESIDE the summary on large screens, stacks below on narrow. The
+              grid only appears when there are scores (else the summary would be
+              squeezed against an empty column). */}
+          <div className={turn.answers.some((a) => a.scores) ? "grid gap-4 items-start lg:grid-cols-[2fr_1fr]" : ""}>
+            <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 shadow-xl min-w-0">
+              <div className="flex items-center gap-2 mb-4">
+                <Layers className="w-3.5 h-3.5 text-teal-300" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+              </div>
+              {turn.contributions && turn.contributions.length > 0 && <ContributionsBar contributions={turn.contributions} />}
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2">
+                aggrai&apos;s answer <span className="ml-1 normal-case tracking-normal text-white/55 font-medium">· combined from all models</span>
+              </p>
+              <Md>{turn.summary}</Md>
             </div>
-            {turn.contributions && turn.contributions.length > 0 && <ContributionsBar contributions={turn.contributions} />}
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2">
-              aggrai&apos;s answer <span className="ml-1 normal-case tracking-normal text-white/55 font-medium">· combined from all models</span>
-            </p>
-            <Md>{turn.summary}</Md>
+            {turn.answers.some((a) => a.scores) && (
+              <div className="min-w-0"><SharedScores answers={turn.answers} /></div>
+            )}
           </div>
-          {/* Aggr-Score — same radar + dimensions + strengths/weaknesses as the app */}
-          {turn.answers.some((a) => a.scores) && <SharedScores answers={turn.answers} />}
           {/* Raw answers — folded, collapsible cards like the app */}
           <SharedAnswers answers={turn.answers} />
         </div>
