@@ -15,7 +15,7 @@ import { appendMessage, bumpConversation, type ConvMessage } from "@/lib/message
 import { listThread } from "@/lib/thread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, Link2 } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2 } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -1181,6 +1181,8 @@ function Home() {
   const [followups, setFollowups] = useState<Followup[]>([]);
   // AGG-44: share-link state — the created public URL + an in-flight flag.
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  // Brief "Copied!" flash when the share link is (re-)copied.
+  const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [followupModel, setFollowupModel] = useState<string | null>(null);  // null → winner
   // Which models a follow-up goes to. Empty = "not chosen yet", which resolves to
@@ -1897,6 +1899,16 @@ function Home() {
       setSharing(false);
     }
   }
+  // Re-copy the share link on demand, with a brief "Copied!" flash so the click
+  // clearly registers (the link is already auto-copied on Share).
+  async function copyShareLink() {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard?.writeText(shareUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch { /* clipboard blocked — the full URL is in the title tooltip */ }
+  }
   // Multi-model follow-ups are Pro+; the backend rejects compare for free
   // outright, so offering the click would just buy an error.
   const canPickMultiple = tier === "pro" || tier === "premium";
@@ -2279,21 +2291,27 @@ function Home() {
               all result types — the API + /share page support them all. */}
           {result && !loading && !followupLoading && (
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {shareUrl && (
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300/25 bg-teal-300/[0.06] px-3 py-1.5 text-xs">
-                  <Link2 className="w-3 h-3 shrink-0 text-teal-300" aria-hidden="true" />
-                  <span className="max-w-[220px] truncate text-teal-100/90">{shareUrl}</span>
-                  <button type="button" onClick={() => { navigator.clipboard?.writeText(shareUrl).catch(() => {}); }} className="shrink-0 font-medium text-teal-300 hover:text-teal-200">Copy</button>
-                </span>
+              {shareUrl ? (
+                <button
+                  type="button"
+                  onClick={copyShareLink}
+                  title={shareUrl}
+                  aria-label="Copy the share link"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300/25 bg-teal-300/[0.06] px-3 py-1.5 text-xs font-medium text-teal-200 hover:bg-teal-300/10 transition"
+                >
+                  <Check className="w-3.5 h-3.5 shrink-0 text-teal-300" aria-hidden="true" />
+                  {copied ? "Copied!" : "Shared link copied"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  disabled={sharing}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-surface-1 px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-surface-2 hover:text-white transition disabled:opacity-50"
+                >
+                  <Share2 className="w-3.5 h-3.5" aria-hidden="true" /> {sharing ? "Sharing…" : "Share"}
+                </button>
               )}
-              <button
-                type="button"
-                onClick={handleShare}
-                disabled={sharing}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-surface-1 px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-surface-2 hover:text-white transition disabled:opacity-50"
-              >
-                <Share2 className="w-3.5 h-3.5" aria-hidden="true" /> {sharing ? "Sharing…" : shareUrl ? "Shared" : "Share"}
-              </button>
             </div>
           )}
 
