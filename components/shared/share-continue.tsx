@@ -61,10 +61,12 @@ export function ShareContinue({
   async function onContinue() {
     if (busy) return;
     const root = snapshot.turns[0];
+    // Only a comparison root forks into a continuable thread (a direct answer has
+    // no models to continue with).
+    const forkable = !!root && root.kind === "compare" && models.length > 0;
 
     // Resolve auth authoritatively at click time — the effect may not have
-    // resolved yet, and we don't want a fast click to mis-route a signed-in
-    // viewer to the anon handoff.
+    // resolved yet, and we don't want a fast click to mis-route a signed-in viewer.
     let authed = signedIn;
     if (authed === null) {
       if (!isSupabaseConfigured) authed = false;
@@ -78,10 +80,15 @@ export function ShareContinue({
       }
     }
 
-    // Only a comparison root can be forked into a continuable thread (a direct
-    // answer has no models to continue with). Anon / anything else → the handoff.
-    if (!authed || !root || root.kind !== "compare" || models.length === 0) {
+    if (!forkable) {
       router.push(handoffHref);
+      return;
+    }
+    if (!authed) {
+      // Anon viewers can't own a fork — send them through free signup, then the
+      // app auto-forks this share on return (the ?fork= handler in /app). Makes
+      // "anyone with the link can continue" real without a blank-app dead-end.
+      router.push(`/signin?next=${encodeURIComponent(`/app?fork=${id}`)}`);
       return;
     }
 
@@ -91,8 +98,10 @@ export function ShareContinue({
       const data = await res.json().catch(() => ({}));
       if (res.ok && typeof data.conversationId === "string") {
         router.push(`/app/c/${data.conversationId}`);
+      } else if (res.status === 401) {
+        // Session lapsed between the client check and the server → sign in first.
+        router.push(`/signin?next=${encodeURIComponent(`/app?fork=${id}`)}`);
       } else {
-        // Not signed in server-side / not forkable / error → never dead-end.
         router.push(handoffHref);
       }
     } catch {

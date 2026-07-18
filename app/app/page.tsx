@@ -1359,6 +1359,29 @@ function Home() {
     return () => { alive = false; };
   }, [signedIn]);
 
+  // Share fork on arrival: a signed-out viewer who clicked "Continue" on a
+  // /share link was routed through signup with ?fork=<shareId>. Now that they're
+  // signed in, fork that share into their own thread and jump to it (runs once).
+  const forkHandled = useRef(false);
+  useEffect(() => {
+    if (!signedIn || forkHandled.current) return;
+    const forkId = searchParams.get("fork");
+    if (!forkId) return;
+    forkHandled.current = true;
+    fetch(`/api/share/${encodeURIComponent(forkId)}/fork`, { method: "POST" })
+      .then(r => r.json())
+      .then(d => {
+        if (d?.conversationId && typeof window !== "undefined") {
+          window.location.replace(`/app/c/${d.conversationId}`);
+        } else if (typeof window !== "undefined") {
+          window.history.replaceState(null, "", "/app");   // clear ?fork= on failure
+        }
+      })
+      .catch(() => {
+        if (typeof window !== "undefined") window.history.replaceState(null, "", "/app");
+      });
+  }, [signedIn, searchParams]);
+
   // Restoring /app/c/{id} on load. Two things live in two places: the ORIGINAL
   // comparison (turns 0-1) is cached in sessionStorage AND in Supabase; the
   // FOLLOW-UP turns (2+) live only in Supabase. So sessionStorage having the
