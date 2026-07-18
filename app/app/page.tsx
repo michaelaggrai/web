@@ -7,6 +7,7 @@ import { generateConvId, storeConv, loadConv } from "@/lib/conv-id";
 import { getAnonId } from "@/lib/anon-id";
 import { getSessionId } from "@/lib/session-id";
 import { saveConversation, listConversations, loadConversation, type ConvRow } from "@/lib/history";
+import { claimAnonRecents } from "@/lib/claim-recents";
 import { appendMessage, bumpConversation, type ConvMessage } from "@/lib/messages";
 // P6b Phase 4: read threads from the raw source-of-truth tables (questions +
 // model_runs) instead of the messages table. Same ConvMessage[] shape → toFollowups
@@ -1349,7 +1350,12 @@ function Home() {
   useEffect(() => {
     if (!signedIn) return;
     let alive = true;
-    listConversations(30).then(rows => { if (alive) setDbRecents(rows); });
+    // R2 #9: fold this browser's anonymous recents (sessionStorage) into the
+    // account on sign-in, THEN load history so the just-claimed convs show up
+    // immediately. Best-effort + idempotent (upsert by conv id).
+    claimAnonRecents()
+      .then(() => listConversations(30))
+      .then(rows => { if (alive) setDbRecents(rows); });
     return () => { alive = false; };
   }, [signedIn]);
 
@@ -2308,7 +2314,7 @@ function Home() {
                       disabled={followupLoading || atCap}
                       title={atCap ? `Your ${tier} plan compares up to ${maxModels} models` : undefined}
                       onClick={() => toggleFollowupModel(a.model)}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/70 disabled:opacity-30 disabled:cursor-not-allowed ${
                         isActive
                           ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
                           : "border-white/10 bg-surface-1 text-white/60 hover:bg-surface-2"
@@ -2350,7 +2356,7 @@ function Home() {
                       }}
                       disabled={!allowed || followupLoading}
                       title={reason}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/70 disabled:opacity-40 disabled:cursor-not-allowed ${
                         allOn
                           ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
                           : "border-white/10 bg-surface-1 text-white/60 hover:bg-surface-2"

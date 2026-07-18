@@ -196,7 +196,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
             onClick={() => remove(m.id)}
             disabled={selected.size <= 1}
             aria-label={`Remove ${m.label}`}
-            className="inline-flex items-center justify-center min-w-[28px] min-h-[28px] rounded-full p-1.5 hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center justify-center min-w-[28px] min-h-[28px] rounded-full p-1.5 hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/70"
           >
             <X className="w-3 h-3" />
           </button>
@@ -207,7 +207,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-white/15 bg-white/5 text-white/70 hover:text-white hover:border-white/30 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-white/15 bg-white/5 text-white/70 hover:text-white hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/70"
           >
             <Plus className="w-3 h-3" />
             {limitReached ? `Change models (${selected.size}/${max})` : "Add model"}
@@ -246,7 +246,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                   type="button"
                   onClick={() => setGroupBy(mode)}
                   aria-pressed={isActive}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wider transition-colors ${
+                  className={`px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/70 ${
                     isActive
                       ? "bg-white/10 text-white"
                       : "text-white/55 hover:text-white/70"
@@ -267,7 +267,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                 type="button"
                 onClick={g.onSelect}
                 aria-pressed={g.active}
-                className={`shrink-0 px-3 py-2.5 text-[11px] font-medium rounded-t-md transition-colors border-b-2 min-h-[36px] ${
+                className={`shrink-0 px-3 py-2.5 text-[11px] font-medium rounded-t-md transition-colors border-b-2 min-h-[36px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-400/70 ${
                   g.active
                     ? "border-teal-400 text-white bg-surface-1"
                     : "border-transparent text-white/50 hover:text-white/80"
@@ -298,7 +298,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                       type="button"
                       onClick={() => toggle(m.id)}
                       disabled={disabled}
-                      className={`w-full flex items-center gap-2 rounded-md px-2 py-2.5 text-xs text-left transition-colors min-h-[36px] ${
+                      className={`w-full flex items-center gap-2 rounded-md px-2 py-2.5 text-xs text-left transition-colors min-h-[36px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-400/70 ${
                         isSelected
                           ? "bg-teal-400/15 text-teal-100"
                           : disabled
