@@ -116,7 +116,7 @@ export function SharedScores({ answers }: { answers: ShareAnswer[] }) {
       <div className="mb-5 flex items-center gap-x-2 gap-y-1 flex-wrap">
         <BarChart3 className="w-3.5 h-3.5 text-teal-300 shrink-0" />
         <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80 whitespace-nowrap">Aggr-Score</p>
-        <span className="text-[11px] text-white/55">judged by Haiku · all scores 0–10</span>
+        <span className="text-[11px] text-white/55">judged by Haiku · all scores 0–10 · <a href="/methodology" target="_blank" rel="noopener" className="text-teal-300/80 hover:text-teal-200 no-underline hover:underline">how it works</a></span>
       </div>
 
       {/* 1-up in the narrow lg rail (beside the summary), 2-up when full-width on md. */}

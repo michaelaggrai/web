@@ -10,9 +10,10 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
     { label: "Try it",    href: "/app"     },
   ],
   Resources: [
-    { label: "Docs",   href: "/docs"   },
-    { label: "Help",   href: "/help"   },
-    { label: "Status", href: "/status" },
+    { label: "Docs",        href: "/docs"        },
+    { label: "Aggr-Score",  href: "/methodology" },
+    { label: "Help",        href: "/help"        },
+    { label: "Status",      href: "/status"      },
   ],
   Company: [
     { label: "About",   href: "/about" },
