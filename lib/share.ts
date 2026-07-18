@@ -9,12 +9,18 @@
 import { FALLBACK_MODELS, type Tier } from "@/lib/models";
 
 export type ShareScores = {
-  overall: number;
+  // Legacy v1 snapshots carried ONLY this headline (dims were stripped); new
+  // snapshots carry the full rubric so the shared view renders the SAME radar +
+  // strengths/weaknesses as the live app. `overall` stays optional so old links
+  // keep rendering (headline-only) without a version bump.
+  overall?: number;
   accuracy?: number;
   completeness?: number;
   calibration?: number;
   clarity?: number;
   insight?: number;
+  strengths?: string[];
+  weaknesses?: string[];
 };
 
 export type ShareAnswer = {
@@ -22,6 +28,10 @@ export type ShareAnswer = {
   answer: string;
   scores?: ShareScores | null;
   truncated?: boolean;
+  // Kept for render parity with the app's raw-answer cards (harmless metadata —
+  // cost + user identity are still stripped).
+  runtime_ms?: number;
+  tokens?: number;
 };
 
 export type ShareSource = { title: string; url: string };

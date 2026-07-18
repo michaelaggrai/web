@@ -35,7 +35,10 @@ export function Hero() {
   // picks a new subset from `pool`. We keep both so Shuffle is instant —
   // no network roundtrip per click.
   const [pool, setPool] = useState<string[]>(FALLBACK_POOL)
-  const [examples, setExamples] = useState<string[]>(() => pickN(FALLBACK_POOL, VISIBLE_COUNT))
+  // Deterministic first render (no Math.random on the SSR/hydration path — that
+  // desynced server vs client and threw a hydration mismatch). The random pick
+  // happens client-side once the pool loads (below) and on every Shuffle.
+  const [examples, setExamples] = useState<string[]>(FALLBACK_POOL.slice(0, VISIBLE_COUNT))
   // D8: current-events tier — a small set of "ask the news, compared live"
   // questions, refreshed + web-search-grounded daily by the backend. Empty until
   // /api/prompts loads; empty stays hidden (best-effort, so a landing with no
@@ -121,7 +124,7 @@ export function Hero() {
       {/* One standard teal glow for light relief on the flat navy (P3 #15) */}
       <div className="absolute top-24 left-1/2 -translate-x-1/2 w-[640px] h-[560px] bg-teal-500/20 rounded-full blur-[130px]" />
       
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20 w-full">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 w-full">
         <div className="text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-8">

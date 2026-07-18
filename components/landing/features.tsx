@@ -2,7 +2,7 @@ import { Trophy, Layers, BarChart3 } from "lucide-react"
 import { AnthropicIcon, OpenAIIcon, GoogleIcon } from "@/components/brand-icons"
 
 // Mockup of the headline results UI shown in /app — a Summary card with
-// contributions + Aggrai's answer, then the Aggr-Score block (winner marked
+// contributions + aggrai's answer, then the Aggr-Score block (winner marked
 // with a trophy). Static content; matches the real product shape so the
 // marketing visual stays honest as the product evolves.
 function ResultsMockup() {
@@ -28,9 +28,9 @@ function ResultsMockup() {
           <ContribRow Icon={OpenAIIcon}    label="GPT-4o"             pct={20} />
         </div>
 
-        {/* Aggrai's answer */}
+        {/* aggrai's answer */}
         <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1">
-          Aggrai&apos;s answer
+          aggrai&apos;s answer
         </p>
         <p className="text-[11px] text-white/70 leading-relaxed">
           Recessions hurt the poor more fundamentally because poverty itself is a state of economic fragility—one without buffers, options, or recovery assets…
@@ -97,7 +97,7 @@ function FeaturesExplanation() {
           </span>
         </h3>
         <p className="mt-4 text-white/60 text-base sm:text-lg leading-relaxed">
-          Aggrai sends your question to multiple AI models in parallel, scores each answer,
+          aggrai sends your question to multiple AI models in parallel, scores each answer,
           and synthesises a single best answer using the strongest content from each.
         </p>
       </div>
@@ -105,7 +105,7 @@ function FeaturesExplanation() {
       <div className="space-y-4">
         <FeatureRow
           Icon={Layers}
-          title="Aggrai's answer"
+          title="aggrai's answer"
           body="A rewritten answer drawn from all the models, weighted by how well each one performed. Read this and skip the noise."
         />
         <FeatureRow

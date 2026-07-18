@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/server-admin";
 import { SharedConversation } from "@/components/shared/shared-conversation";
 import { ShareRef } from "@/components/shared/share-ref";
+import { ShareContinue } from "@/components/shared/share-continue";
 import { Logo } from "@/components/logo";
 import type { ShareSnapshot } from "@/lib/share";
 
@@ -45,7 +46,6 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
 
   const snapshot = share.snapshot;
   const models = share.models ?? snapshot.models ?? [];
-  const continueHref = models.length ? `/app?models=${encodeURIComponent(models.join(","))}` : "/app";
 
   return (
     <div className="relative min-h-dvh bg-navy">
@@ -55,12 +55,12 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
       <header className="relative z-10 border-b border-white/10">
         <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-4">
           <Logo height={26} />
-          <Link
-            href="/app"
-            className="rounded-lg bg-gradient-to-r from-teal-500 to-teal-400 px-3.5 py-1.5 text-sm font-semibold text-navy hover:from-teal-400 hover:to-teal-400 transition"
-          >
-            Try aggrai
-          </Link>
+          <ShareContinue
+            models={models}
+            snapshot={snapshot}
+            label="Continue the conversation"
+            className="rounded-lg bg-gradient-to-r from-teal-500 to-teal-400 px-3.5 py-1.5 text-sm font-semibold text-navy hover:from-teal-400 hover:to-teal-400 transition disabled:opacity-70"
+          />
         </div>
       </header>
 
@@ -76,13 +76,8 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
             models their tier allows, matching how follow-ups already gate). */}
         <div className="mt-12 rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
           <p className="text-white font-medium">Want to dig deeper with these models?</p>
-          <p className="mt-1 text-sm text-white/55">Continue in aggrai — ask your own follow-up and compare live. You can continue with the models your plan includes.</p>
-          <Link
-            href={continueHref}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-5 py-2.5 text-sm font-semibold text-navy hover:from-teal-400 hover:to-teal-400 transition shadow-lg shadow-teal-500/20"
-          >
-            Continue in aggrai →
-          </Link>
+          <p className="mt-1 text-sm text-white/55">Continue in aggrai — pick up this conversation and ask your own follow-up. You can continue with the models your plan includes.</p>
+          <ShareContinue models={models} snapshot={snapshot} />
         </div>
 
         <p className="mt-8 text-center text-xs text-white/40">

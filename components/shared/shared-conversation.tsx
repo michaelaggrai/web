@@ -1,15 +1,16 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Layers, BarChart3, Trophy, Globe } from "lucide-react";
+import { Layers, Globe } from "lucide-react";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import { FALLBACK_MODELS } from "@/lib/models";
-import type { ShareSnapshot, ShareTurn, ShareAnswer } from "@/lib/share";
+import type { ShareSnapshot, ShareTurn } from "@/lib/share";
+import { SharedScores, SharedAnswers } from "@/components/shared/shared-comparison-detail";
 
-// AGG-44: read-only render of a shared conversation snapshot. Deliberately a
-// self-contained, non-interactive view (no composer, no streaming, no expand) —
-// it mirrors the app's look via the same surface/teal tokens, but doesn't reuse
-// the app's interactive render components (SummaryPanel/RawAnswers), which are
-// wired to page-local state. Server-renderable.
+// AGG-44: read-only render of a shared conversation snapshot. Non-interactive
+// (no composer, no streaming), but it renders the SAME Aggr-Score radar +
+// dimensions + folded raw answers as the live app via SharedScores/SharedAnswers
+// (client), so a shared link looks like the original conversation. The summary /
+// sources / contributions here are server-rendered.
 
 const LABELS: Record<string, string> = Object.fromEntries(FALLBACK_MODELS.map((m) => [m.id, m.label]));
 const label = (id: string) => LABELS[id] ?? id.split("/").pop() ?? id;
@@ -34,21 +35,6 @@ function ModelName({ id }: { id: string }) {
       <ProviderLogo provider={providerOf(id)} className="w-3.5 h-3.5 shrink-0" />
       <span className="truncate">{label(id)}</span>
     </span>
-  );
-}
-
-function ScoreCard({ a, winner }: { a: ShareAnswer; winner: boolean }) {
-  const s = a.scores;
-  return (
-    <div className={`flex items-center justify-between gap-2 rounded-xl border p-3 ${winner ? "border-teal-400/40 bg-teal-400/[0.06]" : "border-white/10 bg-surface-2"}`}>
-      <div className="flex items-center gap-1.5 min-w-0">
-        {winner && <Trophy className="w-3 h-3 text-teal-300 shrink-0" aria-label="Winner" />}
-        <ModelName id={a.model} />
-      </div>
-      {s && (
-        <span className="shrink-0 tabular-nums text-lg font-semibold text-teal-300">{s.overall.toFixed(1)}</span>
-      )}
-    </div>
   );
 }
 
@@ -103,47 +89,27 @@ function Turn({ turn }: { turn: ShareTurn }) {
         <p className="text-white font-medium">{turn.question}</p>
       </div>
 
-      {turn.kind === "compare" && (() => {
-        const winner = [...turn.answers].filter((a) => a.scores).sort((a, b) => (b.scores!.overall) - (a.scores!.overall))[0]?.model;
-        return (
-          <div className="space-y-4">
-            {turn.sources && turn.sources.length > 0 && <Sources sources={turn.sources} />}
-            {/* Summary */}
-            <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 shadow-xl">
-              <div className="flex items-center gap-2 mb-4">
-                <Layers className="w-3.5 h-3.5 text-teal-300" />
-                <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
-              </div>
-              {turn.contributions && turn.contributions.length > 0 && <ContributionsBar contributions={turn.contributions} />}
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2">
-                Aggrai&apos;s answer <span className="ml-1 normal-case tracking-normal text-white/55 font-medium">· combined from all models</span>
-              </p>
-              <Md>{turn.summary}</Md>
+      {turn.kind === "compare" && (
+        <div className="space-y-4">
+          {turn.sources && turn.sources.length > 0 && <Sources sources={turn.sources} />}
+          {/* Summary */}
+          <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 shadow-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <Layers className="w-3.5 h-3.5 text-teal-300" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
             </div>
-            {/* Aggr-Score */}
-            {turn.answers.some((a) => a.scores) && (
-              <div className="rounded-2xl border border-white/10 bg-surface-1 p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <BarChart3 className="w-3.5 h-3.5 text-teal-300" />
-                  <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Aggr-Score</p>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {turn.answers.map((a) => <ScoreCard key={a.model} a={a} winner={a.model === winner} />)}
-                </div>
-              </div>
-            )}
-            {/* Raw answers */}
-            <div className="space-y-3">
-              {turn.answers.map((a) => (
-                <div key={a.model} className="rounded-2xl border border-white/10 bg-surface-1 p-5">
-                  <div className="mb-2"><ModelName id={a.model} /></div>
-                  <Md>{a.answer}</Md>
-                </div>
-              ))}
-            </div>
+            {turn.contributions && turn.contributions.length > 0 && <ContributionsBar contributions={turn.contributions} />}
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2">
+              aggrai&apos;s answer <span className="ml-1 normal-case tracking-normal text-white/55 font-medium">· combined from all models</span>
+            </p>
+            <Md>{turn.summary}</Md>
           </div>
-        );
-      })()}
+          {/* Aggr-Score — same radar + dimensions + strengths/weaknesses as the app */}
+          {turn.answers.some((a) => a.scores) && <SharedScores answers={turn.answers} />}
+          {/* Raw answers — folded, collapsible cards like the app */}
+          <SharedAnswers answers={turn.answers} />
+        </div>
+      )}
 
       {turn.kind === "single" && (
         <div className="rounded-2xl border border-white/10 bg-surface-1 p-5">

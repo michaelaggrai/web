@@ -45,7 +45,7 @@ export const PLANS: Plan[] = [
       "8 basic models",
       "Up to 3 models per comparison",
       "Quality scores & metrics",
-      "Aggrai's combined answer",
+      "aggrai's combined answer",
     ],
     icon: Sparkles,
     iconColor: "text-white/55",

@@ -191,7 +191,7 @@ function AttributionChip(_props: {
 
 // Factory: returns ReactMarkdown components that inject attribution chips
 // after each heading-like element (h2 or bold-only paragraph) when a
-// matching section_attribution exists. Used only for the Aggrai's answer
+// matching section_attribution exists. Used only for the aggrai's answer
 // render — the default MARKDOWN_COMPONENTS handles everything else.
 function makeAggraiAnswerComponents(
   attributions: SectionAttribution[],
@@ -378,7 +378,7 @@ function ThinkingStatus({
 // a follow-up ask are the same thing happening twice, so they render through this
 // one component rather than two lookalikes that drift apart. They already drifted:
 // the follow-up copy never got streaming, the score rail, contributions, or the
-// "Aggrai's answer" label, because each was added to the original and not to it.
+// "aggrai's answer" label, because each was added to the original and not to it.
 //
 // Three phases, one shell, so nothing jumps as they advance:
 //   nothing yet          -> ThinkingStatus (per-model checklist)
@@ -443,7 +443,7 @@ function SummaryPanel({
           prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
           prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2 not-prose">
-            Aggrai&apos;s answer
+            aggrai&apos;s answer
             <span className="ml-1.5 normal-case tracking-normal text-white/55 font-medium">
               {/* NOT "weighted by score". The rewrite is a separate call that never
                   sees the scores (P3d) — and even before the split it was told to
@@ -1813,7 +1813,18 @@ function Home() {
     if (!result) return null;
     const strip = (a: Answer): ShareAnswer => ({
       model: a.model, answer: a.answer, truncated: a.truncated,
-      scores: a.scores ? { overall: overallScore(a.scores) } : null,
+      runtime_ms: a.runtime_ms, tokens: a.tokens,
+      // Carry the FULL rubric (not just the headline) so /share + a fork render
+      // the same Aggr-Score radar + strengths/weaknesses as the live app.
+      scores: a.scores ? {
+        accuracy: a.scores.accuracy,
+        completeness: a.scores.completeness,
+        calibration: a.scores.calibration,
+        clarity: a.scores.clarity,
+        insight: a.scores.insight,
+        ...(a.scores.strengths?.length ? { strengths: a.scores.strengths } : {}),
+        ...(a.scores.weaknesses?.length ? { weaknesses: a.scores.weaknesses } : {}),
+      } : null,
     });
     const compareTurn = (r: Extract<Result, { type: "compare" }>, question: string): ShareTurn => ({
       kind: "compare", question, summary: r.summary,

@@ -19,11 +19,11 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aggrai.com";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Aggrai — Ask every AI at once",
+    default: "aggrai — Ask every AI at once",
     template: "%s",
   },
   description: "Compare answers from multiple AI models side by side, with a unified summary.",
-  applicationName: "Aggrai",
+  applicationName: "aggrai",
   keywords: [
     "AI comparison",
     "LLM comparison",
@@ -33,20 +33,20 @@ export const metadata: Metadata = {
     "Gemini",
     "multi-model AI",
   ],
-  authors: [{ name: "Aggrai" }],
+  authors: [{ name: "aggrai" }],
   // openGraph + twitter make link previews in Slack / WhatsApp / Twitter
   // / iMessage actually look like a product instead of a bare URL.
   openGraph: {
     type: "website",
-    siteName: "Aggrai",
-    title: "Aggrai — Ask every AI at once",
+    siteName: "aggrai",
+    title: "aggrai — Ask every AI at once",
     description: "Compare answers from multiple AI models side by side, with a unified summary.",
     url: "/",
     locale: "en_GB",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Aggrai — Ask every AI at once",
+    title: "aggrai — Ask every AI at once",
     description: "Compare answers from multiple AI models side by side, with a unified summary.",
     creator: "@aggrai",
   },

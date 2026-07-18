@@ -25,7 +25,7 @@ export default function DocsPage() {
           <li>Open <Link href="/app">the app</Link>.</li>
           <li>Type a question.</li>
           <li>Pick the models you want to compare (we&apos;ve picked sensible defaults).</li>
-          <li>Hit submit. Each model streams its answer in parallel; once they&apos;re in, you get a single rewritten &ldquo;Aggrai&apos;s answer,&rdquo; a per-model Aggr-Score radar, and a bar showing which models shaped the summary.</li>
+          <li>Hit submit. Each model streams its answer in parallel; once they&apos;re in, you get a single rewritten &ldquo;aggrai&apos;s answer,&rdquo; a per-model Aggr-Score radar, and a bar showing which models shaped the summary.</li>
         </ol>
         <p>That&apos;s it. The rest of this page is just background.</p>
 
@@ -38,7 +38,7 @@ export default function DocsPage() {
           which was most verbose.
         </p>
 
-        <h3>Aggrai&apos;s answer</h3>
+        <h3>aggrai&apos;s answer</h3>
         <p>
           When you select more than one model, we run a summariser pass
           (Claude Haiku) that synthesises a single rewritten answer drawn from

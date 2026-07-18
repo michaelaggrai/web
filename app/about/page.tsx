@@ -34,7 +34,7 @@ export default function AboutPage() {
         <p>
           aggrai sends your question to several leading models at once, shows
           you their answers side-by-side, and synthesises a single
-          rewritten &ldquo;Aggrai&apos;s answer&rdquo; from the strongest content across
+          rewritten &ldquo;aggrai&apos;s answer&rdquo; from the strongest content across
           all of them. Each answer gets a quality score out of 10 so you can
           see at a glance which model handled the question best. You stop
           guessing which model to use and start comparing what they
@@ -60,7 +60,7 @@ export default function AboutPage() {
           models you&apos;ve selected. A summariser pass
           (Claude Haiku) then scores each answer on five dimensions
           &mdash; accuracy, completeness, calibration, clarity and insight
-          &mdash; and rewrites a single &ldquo;Aggrai&apos;s answer&rdquo; that
+          &mdash; and rewrites a single &ldquo;aggrai&apos;s answer&rdquo; that
           draws the strongest content from each model, weighted by those
           scores. Per-section attribution chips name the model behind each
           part of the rewrite. Common example questions are cached so they
