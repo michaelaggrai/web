@@ -31,7 +31,9 @@ export async function claimAnonRecents(): Promise<number> {
     if (!conv || !conv.question.trim()) continue;
     // saveConversation is a no-op for anon / unconfigured Supabase and RLS-scoped
     // to the caller, so it only writes once the user is actually signed in.
-    await saveConversation(id, { question: conv.question, models: conv.models, result: conv.result });
+    // insert-only: claiming a conversation the user already owns must NOT bump
+    // its last_message_at (that scrambled the recents order).
+    await saveConversation(id, { question: conv.question, models: conv.models, result: conv.result }, { ignoreDuplicates: true });
     claimed++;
   }
   return claimed;

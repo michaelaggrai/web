@@ -51,6 +51,10 @@ async function uid(): Promise<string | null> {
 export async function saveConversation(
   id: string,
   data: { question: string; models: string[]; result?: unknown },
+  // `ignoreDuplicates` = insert-only: don't touch a row that already exists. Used
+  // by the anon-recents claim so re-claiming an already-owned conversation on
+  // sign-in doesn't bump its last_message_at and scramble the recents order.
+  opts?: { ignoreDuplicates?: boolean },
 ): Promise<void> {
   if (!isSupabaseConfigured || !id) return;
   try {
@@ -69,7 +73,7 @@ export async function saveConversation(
       last_message_at: new Date().toISOString(),
     };
     if (data.result !== undefined) row.result = data.result;
-    await createClient().from("conversations").upsert(row, { onConflict: "id" });
+    await createClient().from("conversations").upsert(row, { onConflict: "id", ignoreDuplicates: opts?.ignoreDuplicates ?? false });
   } catch {
     /* history is non-critical — never surface */
   }
