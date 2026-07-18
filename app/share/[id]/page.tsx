@@ -56,6 +56,7 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
         <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-4">
           <Logo height={26} />
           <ShareContinue
+            id={id}
             models={models}
             snapshot={snapshot}
             label="Continue the conversation"
@@ -77,7 +78,7 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
         <div className="mt-12 rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
           <p className="text-white font-medium">Want to dig deeper with these models?</p>
           <p className="mt-1 text-sm text-white/55">Continue in aggrai — pick up this conversation and ask your own follow-up. You can continue with the models your plan includes.</p>
-          <ShareContinue models={models} snapshot={snapshot} />
+          <ShareContinue id={id} models={models} snapshot={snapshot} />
         </div>
 
         <p className="mt-8 text-center text-xs text-white/40">
