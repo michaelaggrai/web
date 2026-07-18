@@ -75,7 +75,7 @@ export function StripePayment({ planKey, cycle, email, payLabel, accent }: Props
   }
   if (!clientSecret) {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-white/50">
+      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-surface-1 px-4 py-6 text-sm text-white/50">
         <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
         Preparing secure payment…
       </div>
@@ -99,7 +99,7 @@ function PayForm({ planKey, cycle, email, payLabel, accent }: Props) {
   const payBtn =
     accent === "amber"
       ? "bg-gradient-to-r from-amber-400 to-amber-300 text-navy hover:from-amber-300 hover:to-amber-200 shadow-lg shadow-amber-500/20"
-      : "bg-gradient-to-r from-teal-500 to-teal-400 text-white hover:from-teal-400 hover:to-teal-400 shadow-lg shadow-teal-500/20";
+      : "bg-gradient-to-r from-teal-500 to-teal-400 text-navy hover:from-teal-400 hover:to-teal-400 shadow-lg shadow-teal-500/20";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -137,7 +137,7 @@ function PayForm({ planKey, cycle, email, payLabel, accent }: Props) {
         {processing ? "Processing…" : payLabel}
       </button>
 
-      <div className="flex items-center justify-center gap-1.5 text-[11px] text-white/35">
+      <div className="flex items-center justify-center gap-1.5 text-[11px] text-white/55">
         <Lock className="w-3 h-3" aria-hidden="true" />
         <span>Secured by</span>
         <span className="font-semibold text-white/55">Stripe</span>

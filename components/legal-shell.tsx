@@ -20,7 +20,7 @@ type Props = {
  */
 export function LegalShell({ title, subtitle, children }: Props) {
   return (
-    <div className="relative min-h-dvh flex flex-col bg-gradient-to-b from-navy via-navy to-[#252547]">
+    <div className="relative min-h-dvh flex flex-col bg-navy">
       <Navbar />
       <div className="relative flex-1 px-4 pt-24 pb-16 overflow-hidden">
         <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />

@@ -219,12 +219,12 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
           className="w-[340px] bg-navy/95 backdrop-blur-xl border-white/10 text-white p-0"
         >
           {/* Header: selection count + Premium upsell */}
-          <div className="flex items-center justify-between px-3 pt-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-white/40">
+          <div className="flex items-center justify-between px-3 pt-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-white/55">
             <span>Models</span>
-            <span className={selected.size >= max ? "text-teal-300" : "text-white/40"}>
+            <span className={selected.size >= max ? "text-teal-300" : "text-white/55"}>
               {selected.size}/{max}
               {max < PREMIUM_MAX && (
-                <span className="ml-1 text-white/25 normal-case tracking-normal font-medium">
+                <span className="ml-1 text-white/55 normal-case tracking-normal font-medium">
                   · {PREMIUM_MAX} w/ Premium
                 </span>
               )}
@@ -237,7 +237,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
               tiers (Free / Pro / Premium). The choice persists in
               localStorage. */}
           <div className="flex items-center gap-1 px-3 pb-2 -mt-1">
-            <span className="text-[10px] uppercase tracking-wider text-white/30 mr-1.5">Group by</span>
+            <span className="text-[11px] uppercase tracking-wider text-white/55 mr-1.5">Group by</span>
             {(["category", "provider", "tier"] as const).map(mode => {
               const isActive = groupBy === mode
               return (
@@ -246,10 +246,10 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                   type="button"
                   onClick={() => setGroupBy(mode)}
                   aria-pressed={isActive}
-                  className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                  className={`px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wider transition-colors ${
                     isActive
                       ? "bg-white/10 text-white"
-                      : "text-white/40 hover:text-white/70"
+                      : "text-white/55 hover:text-white/70"
                   }`}
                 >
                   {GROUP_BY_LABELS[mode]}
@@ -269,18 +269,18 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                 aria-pressed={g.active}
                 className={`shrink-0 px-3 py-2.5 text-[11px] font-medium rounded-t-md transition-colors border-b-2 min-h-[36px] ${
                   g.active
-                    ? "border-teal-400 text-white bg-white/[0.04]"
+                    ? "border-teal-400 text-white bg-surface-1"
                     : "border-transparent text-white/50 hover:text-white/80"
                 }`}
               >
                 {g.label}
-                <span className="ml-1 text-[10px] text-white/30">{g.count}</span>
+                <span className="ml-1 text-[11px] text-white/55">{g.count}</span>
               </button>
             ))}
           </div>
 
           {/* Description of the active group (category or provider). */}
-          <p className="px-3 py-2 text-[10px] leading-snug text-white/40 border-b border-white/5">
+          <p className="px-3 py-2 text-[11px] leading-snug text-white/55 border-b border-white/5">
             {activeGroup?.description}
           </p>
 
@@ -302,13 +302,13 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                         isSelected
                           ? "bg-teal-400/15 text-teal-100"
                           : disabled
-                            ? "text-white/30 cursor-not-allowed"
+                            ? "text-white/55 cursor-not-allowed"
                             : "text-white/80 hover:bg-white/5"
                       }`}
                     >
                       <ProviderLogo provider={m.provider} className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate flex-1">{m.label}</span>
-                      <span className="text-[10px] text-white/30 shrink-0">{m.provider}</span>
+                      <span className="text-[11px] text-white/55 shrink-0">{m.provider}</span>
                       {/* Tier tag — shown for EVERY non-basic model regardless
                           of the current user's tier, so Pro/Premium users
                           still see at a glance which tier each model belongs
@@ -317,11 +317,11 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                           viewing a flagship/premium model). Premium-class →
                           Premium badge; flagship → Pro badge. */}
                       {m.class === "premium" ? (
-                        <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-amber-300/15 text-amber-200/90 border border-amber-300/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                        <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-amber-300/15 text-amber-200/90 border border-amber-300/30 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
                           {isLocked && <Lock className="w-2.5 h-2.5" />}Premium
                         </span>
                       ) : m.class === "flagship" ? (
-                        <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-teal-400/15 text-teal-200/90 border border-teal-400/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                        <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-teal-400/15 text-teal-200/90 border border-teal-400/30 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
                           {isLocked && <Lock className="w-2.5 h-2.5" />}Pro
                         </span>
                       ) : null}
@@ -333,7 +333,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                 )
               })}
               {activeList.length === 0 && (
-                <li className="px-2 py-3 text-xs text-white/40 text-center">
+                <li className="px-2 py-3 text-xs text-white/55 text-center">
                   No models in this group yet.
                 </li>
               )}
@@ -343,18 +343,18 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
           {/* Footer hints + swap notice */}
           <div className="px-2 pb-2 space-y-1.5">
             {locked.size > 0 && (
-              <div className="px-2 py-1.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-[10px] text-amber-200 flex items-center justify-between gap-2">
+              <div className="px-2 py-1.5 rounded-md bg-surface-1 border border-white/10 text-[11px] text-white/70 flex items-center justify-between gap-2">
                 <span>Flagship models need a Pro plan.</span>
                 <Link
                   href="/upgrade"
-                  className="shrink-0 font-semibold underline underline-offset-2 hover:text-amber-100"
+                  className="shrink-0 font-semibold underline underline-offset-2 text-teal-300 hover:text-teal-200"
                 >
                   Upgrade
                 </Link>
               </div>
             )}
             {max < PREMIUM_MAX && (
-              <div className="px-2 py-1.5 rounded-md bg-teal-400/10 border border-teal-400/20 text-[10px] text-teal-200 flex items-center justify-between gap-2">
+              <div className="px-2 py-1.5 rounded-md bg-teal-400/10 border border-teal-400/20 text-[11px] text-teal-200 flex items-center justify-between gap-2">
                 <span>Compare up to {PREMIUM_MAX} models with Premium.</span>
                 <Link
                   href="/upgrade"
@@ -365,12 +365,12 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
               </div>
             )}
             {limitReached && !swapNotice && (
-              <div className="px-2 py-1.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-white/60">
+              <div className="px-2 py-1.5 rounded-md bg-white/5 border border-white/10 text-[11px] text-white/60">
                 At {max} models. Tap another to swap automatically.
               </div>
             )}
             {swapNotice && (
-              <div className="px-2 py-1.5 rounded-md bg-teal-400/10 border border-teal-400/20 text-[10px] text-teal-200">
+              <div className="px-2 py-1.5 rounded-md bg-teal-400/10 border border-teal-400/20 text-[11px] text-teal-200">
                 {swapNotice}
               </div>
             )}

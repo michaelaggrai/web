@@ -262,19 +262,19 @@ function LoadingBlock({ title, gradientId, className = "" }: { title: string; gr
     <div
       role="status"
       aria-label={`Loading ${title}`}
-      className={`rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4 ${className}`}
+      className={`rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4 ${className}`}
     >
       <Logo height={LOADING_AGGRAI_SIZE} spinning symbolOnly gradientId={gradientId} />
-      <p className="text-xs text-white/40">{title}</p>
+      <p className="text-xs text-white/55">{title}</p>
     </div>
   );
 }
 
 function ModelLoadingBlock({ modelId }: { modelId: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4">
+    <div className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4">
       <ModelLoader modelId={modelId} size={LOADING_BRAND_SIZE} label={modelLabel(modelId)} />
-      <p className="text-xs text-white/40">{modelLabel(modelId)}</p>
+      <p className="text-xs text-white/55">{modelLabel(modelId)}</p>
     </div>
   );
 }
@@ -337,11 +337,11 @@ function ThinkingStatus({
     <div
       role="status"
       aria-label="Comparing models"
-      className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4"
+      className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4"
     >
       <Logo height={LOADING_AGGRAI_SIZE} spinning symbolOnly gradientId={gradientId} />
       <p className="text-sm font-medium text-white/80 text-center" aria-live="polite">{headline}</p>
-      <p className="text-xs text-white/35 text-center">{flavor}…</p>
+      <p className="text-xs text-white/55 text-center">{flavor}…</p>
       <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
         {modelIds.map((id) => {
           const isDone = done.includes(id);
@@ -350,12 +350,12 @@ function ThinkingStatus({
             <span
               key={id}
               title={modelLabel(id)}
-              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${
                 isDone
                   ? "border-teal-300/40 bg-teal-300/10 text-teal-200"
                   : isTyping
-                    ? "border-white/15 bg-white/[0.05] text-white/70"
-                    : "border-white/10 text-white/30"
+                    ? "border-white/15 bg-surface-2 text-white/70"
+                    : "border-white/10 text-white/55"
               }`}
             >
               <ProviderLogo provider={providerOf(id)} className="w-2.5 h-2.5 shrink-0" />
@@ -426,7 +426,7 @@ function SummaryPanel({
       <div
         role={settled ? undefined : "status"}
         aria-label={settled ? undefined : "Writing the summary"}
-        className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl min-w-0"
+        className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl min-w-0"
       >
         <div className="flex items-center gap-2 mb-4">
           <Layers className="w-3.5 h-3.5 text-teal-300" />
@@ -441,9 +441,9 @@ function SummaryPanel({
           prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
           prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
           prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2 not-prose">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2 not-prose">
             Aggrai&apos;s answer
-            <span className="ml-1.5 normal-case tracking-normal text-white/30 font-medium">
+            <span className="ml-1.5 normal-case tracking-normal text-white/55 font-medium">
               {/* NOT "weighted by score". The rewrite is a separate call that never
                   sees the scores (P3d) — and even before the split it was told to
                   prefer whoever "scored highest for the relevant point", a score
@@ -479,12 +479,12 @@ function SearchSources({ info }: { info: { ok: boolean; sources: { title: string
         <ol className="mt-2 space-y-1 text-xs">
           {info.sources.map((s, i) => (
             <li key={s.url + i} className="flex gap-2 min-w-0">
-              <span className="shrink-0 text-white/30 tabular-nums">[{i + 1}]</span>
+              <span className="shrink-0 text-white/55 tabular-nums">[{i + 1}]</span>
               <a href={s.url} target="_blank" rel="noopener noreferrer nofollow"
                 className="min-w-0 truncate text-white/60 hover:text-teal-200 transition-colors"
                 title={s.title}>
                 <span className="text-white/80">{host(s.url)}</span>
-                <span className="text-white/40"> — {s.title}</span>
+                <span className="text-white/55"> — {s.title}</span>
               </a>
             </li>
           ))}
@@ -520,12 +520,12 @@ function RawAnswers({ answers, streamedText }: {
     const shown = isOpen(a.model);
     const text = a.answer || streamedText?.[a.model] || "";
     return (
-      <div key={a.model} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
+      <div key={a.model} className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl min-w-0 overflow-hidden">
         <button
           type="button"
           onClick={() => multi && toggle(a.model)}
           aria-expanded={shown}
-          className={`w-full flex items-center justify-between gap-2 p-5 text-left transition-colors ${multi ? "hover:bg-white/[0.02]" : "cursor-default"}`}
+          className={`w-full flex items-center justify-between gap-2 p-5 text-left transition-colors ${multi ? "hover:bg-surface-1" : "cursor-default"}`}
         >
           <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
             <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
@@ -533,13 +533,13 @@ function RawAnswers({ answers, streamedText }: {
             {a.truncated && (
               <span
                 title="The provider hit our token cap and the answer was cut off mid-response. Aggr-Score below reflects what was returned, not what the model intended."
-                className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
+                className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-200"
               >
                 Truncated
               </span>
             )}
           </span>
-          <div className="flex items-center gap-3 text-xs text-white/40 shrink-0">
+          <div className="flex items-center gap-3 text-xs text-white/55 shrink-0">
             {a.runtime_ms > 0 && <span>{(a.runtime_ms / 1000).toFixed(1)}s</span>}
             {a.tokens > 0 && <span>{a.tokens} tok</span>}
             {multi && <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${shown ? "rotate-180" : ""}`} aria-hidden="true" />}
@@ -559,7 +559,7 @@ function RawAnswers({ answers, streamedText }: {
   return (
     <>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-white/40">Raw answers</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-white/55">Raw answers</p>
         {multi && (
           <button
             type="button"
@@ -701,7 +701,7 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
   const PALETTE = ["#5eead4", "#60a5fa", "#c084fc", "#fbbf24", "#f472b6"];
   return (
     <div className="mb-5 pb-4 border-b border-white/10">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55 mb-3">
         Where the summary came from
       </p>
       {/* Proportional stacked bar (segments sum to 100%). On wider screens each
@@ -722,10 +722,10 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
                 sm the bar is a plain slim colour band and the legend below
                 carries every name + %. */}
             <ProviderLogo provider={providerOf(model)} className="hidden h-3.5 w-3.5 shrink-0 sm:block" />
-            <span className="hidden truncate text-[10px] font-semibold text-slate-900/85 sm:block">
+            <span className="hidden truncate text-[11px] font-semibold text-slate-900/85 sm:block">
               {modelLabel(model)}
             </span>
-            <span className="ml-auto hidden shrink-0 text-[10px] font-semibold tabular-nums text-slate-900/70 sm:block">
+            <span className="ml-auto hidden shrink-0 text-[11px] font-semibold tabular-nums text-slate-900/70 sm:block">
               {pct}%
             </span>
           </div>
@@ -743,7 +743,7 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
             />
             <ProviderLogo provider={providerOf(model)} className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate text-white/70">{modelLabel(model)}</span>
-            <span className="shrink-0 tabular-nums text-white/45">{pct}%</span>
+            <span className="shrink-0 tabular-nums text-white/55">{pct}%</span>
           </div>
         ))}
       </div>
@@ -801,13 +801,13 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
+    <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl">
       <div className="mb-5 flex items-center gap-x-2 gap-y-1 flex-wrap">
         <BarChart3 className="w-3.5 h-3.5 text-teal-300 shrink-0" />
         <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80 whitespace-nowrap">
           Aggr-Score
         </p>
-        <span className="text-[10px] text-white/30">judged by Haiku · all scores 0–10</span>
+        <span className="text-[11px] text-white/55">judged by Haiku · all scores 0–10</span>
       </div>
 
       {/* Radars: a 2-up grid when this block spans full width (tablet, md–lg),
@@ -884,13 +884,13 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                 />
                 <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
                 {isWinner && (
-                  <Trophy className="w-3.5 h-3.5 text-amber-300 shrink-0" aria-label="Winner — highest overall score" />
+                  <Trophy className="w-3.5 h-3.5 text-teal-300 shrink-0" aria-label="Winner — highest overall score" />
                 )}
                 <span className="font-medium text-white/90 flex-1 truncate">{modelLabel(a.model)}</span>
                 {isAccuracyCapped(a.scores) && (
                   <span
                     title="Score limited — contains factual errors. Accuracy ≤ 1.0 caps the overall quality at 40."
-                    className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
+                    className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-200"
                   >
                     Limited
                   </span>
@@ -919,7 +919,7 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                   mirroring the +/− button. pointer-events-none on the centre
                   overlay lets clicks fall through to this wrapper. */}
               <div
-                className={`relative ${hasDetail ? "cursor-pointer rounded-xl hover:bg-white/[0.02] transition-colors" : ""}`}
+                className={`relative ${hasDetail ? "cursor-pointer rounded-xl hover:bg-surface-1 transition-colors" : ""}`}
                 role={hasDetail ? "button" : undefined}
                 tabIndex={hasDetail ? 0 : undefined}
                 aria-expanded={hasDetail ? detailOpen : undefined}
@@ -957,10 +957,10 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
               {/* Expanded detail — the answer's pros and cons, judged by the
                   summariser. Strengths in teal, weaknesses in amber. */}
               {openDetail.has(a.model) && (
-                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 space-y-2.5 text-xs">
+                <div className="rounded-lg border border-white/10 bg-surface-1 p-3 space-y-2.5 text-xs">
                   {(a.scores.strengths?.length ?? 0) > 0 && (
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1.5">Strengths</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1.5">Strengths</p>
                       <ul className="space-y-1">
                         {a.scores.strengths!.map((s, j) => (
                           <li key={j} className="flex gap-1.5 text-white/70 leading-snug">
@@ -973,7 +973,7 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                   )}
                   {(a.scores.weaknesses?.length ?? 0) > 0 && (
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-300/80 mb-1.5">Weaknesses</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-300/80 mb-1.5">Weaknesses</p>
                       <ul className="space-y-1">
                         {a.scores.weaknesses!.map((w, j) => (
                           <li key={j} className="flex gap-1.5 text-white/70 leading-snug">
@@ -1756,6 +1756,15 @@ function Home() {
     return result?.type === "compare" ? result : null;
   }
 
+  // The model set for the WHOLE conversation = the ROOT question's comparison.
+  // The candidate chips + "All" key off this so the number of models the user
+  // started with stays constant across the thread — a subset "ask all" turn (or
+  // whichever model won) never permanently drops a model. winnerModel()/scores
+  // still track latestComparison() so the trophy reflects the current winner.
+  function rootComparison(): Extract<Result, { type: "compare" }> | null {
+    return result?.type === "compare" ? result : latestComparison();
+  }
+
   // The winner = the highest Aggr-Score answer of the latest comparison; the
   // default "Continue with X".
   function winnerModel(): string | null {
@@ -1784,10 +1793,11 @@ function Home() {
     return bestAccessibleModel();
   }
 
-  // Follow-up targets a user can pick from: the latest comparison's models, minus
-  // any now above their tier (a downgraded account opening an old Premium thread).
+  // Follow-up targets a user can pick from: the ROOT comparison's models (the
+  // count the user started with), minus any now above their tier (a downgraded
+  // account opening an old Premium thread).
   function followupCandidates(): string[] {
-    const c = latestComparison();
+    const c = rootComparison();
     if (!c) return [];
     return c.answers.map(a => a.model).filter(m => !lockedIds.has(m));
   }
@@ -2052,7 +2062,7 @@ function Home() {
     // `lg:ml-64` to clear it. Header is `sticky top-0` with a
     // backdrop so it stays visible while the body scrolls under it.
     // Gradient orbs are `fixed` so they don't scroll out of view.
-    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547]">
+    <div className="relative min-h-dvh bg-navy">
       {/* Soft gradient orbs — fixed so they stay anchored to the
           viewport while the body scrolls. */}
       <div className="pointer-events-none fixed top-20 left-1/3 w-[500px] h-[500px] bg-teal-500/12 rounded-full blur-[120px]" />
@@ -2179,7 +2189,7 @@ function Home() {
                  (e.g. a 5-model Premium thread after a downgrade to Pro). It
                  can't be continued — nudge to upgrade or start fresh. */
               <div className="bg-amber-300/[0.05] backdrop-blur-xl rounded-2xl border border-amber-300/25 p-4 sm:p-5 shadow-2xl shadow-black/20">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-300/80 mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-300/80 mb-2">
                   Continue the conversation
                 </p>
                 <p className="text-sm text-white/70 leading-relaxed">
@@ -2191,13 +2201,14 @@ function Home() {
               </div>
             ) : (
             <div className="bg-teal-300/[0.05] backdrop-blur-xl rounded-2xl border border-teal-300/25 p-4 sm:p-5 shadow-2xl shadow-black/20">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80 mb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-3">
                 Continue the conversation
               </p>
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                {/* Models + winner reflect the LATEST comparison turn (an "ask all
-                    again" follow-up re-scores them), not turn 1. */}
-                {(latestComparison() ?? result).answers.filter(a => !lockedIds.has(a.model)).map(a => {
+                {/* Chips = the ROOT question's models (constant across the thread,
+                    regardless of which model won); the winner trophy still tracks
+                    the latest turn's re-scored winner via winnerModel(). */}
+                {(rootComparison() ?? result).answers.filter(a => !lockedIds.has(a.model)).map(a => {
                   const sel = selectedFollowupModels();
                   const isActive = sel.includes(a.model);
                   const isWinner = winnerModel() === a.model;
@@ -2216,10 +2227,10 @@ function Home() {
                       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                         isActive
                           ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
-                          : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
+                          : "border-white/10 bg-surface-1 text-white/60 hover:bg-surface-2"
                       }`}
                     >
-                      {isWinner && <Trophy className="w-3 h-3 text-amber-300" aria-hidden="true" />}
+                      {isWinner && <Trophy className="w-3 h-3 text-teal-300" aria-hidden="true" />}
                       <ProviderLogo provider={providerOf(a.model)} className="w-3 h-3" />
                       {modelLabel(a.model)}
                     </button>
@@ -2258,7 +2269,7 @@ function Home() {
                       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                         allOn
                           ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
-                          : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
+                          : "border-white/10 bg-surface-1 text-white/60 hover:bg-surface-2"
                       }`}
                     >
                       <Layers className="w-3 h-3" aria-hidden="true" /> All{tier === "free" ? " · Pro" : overCap ? " · Premium" : ""}
@@ -2285,14 +2296,14 @@ function Home() {
                       ? `Ask all ${sel.length} models a follow-up…`
                       : `Ask ${sel.length} models a follow-up…`;
                   })()}
-                  className="flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-white placeholder-white/30 focus:outline-none focus:border-teal-300/40"
+                  className="flex-1 resize-none rounded-xl border border-white/10 bg-surface-1 px-4 py-3 text-base text-white placeholder:text-white/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 focus:border-transparent"
                   disabled={followupLoading}
                 />
                 <button
                   type="submit"
                   disabled={followupLoading || !followupInput.trim()}
                   aria-label="Send follow-up"
-                  className="shrink-0 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="shrink-0 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-navy p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ArrowRight className="w-5 h-5" />
                 </button>
@@ -2301,7 +2312,7 @@ function Home() {
             )
           ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center bg-white/[0.08] backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 transition-colors shadow-2xl shadow-black/20">
+            <div className="flex items-center bg-surface-2 backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 focus-within:ring-2 focus-within:ring-teal-400/60 focus-within:border-transparent transition-colors shadow-2xl shadow-black/20">
               <textarea
                 ref={questionInputRef}
                 value={question}
@@ -2311,7 +2322,7 @@ function Home() {
                 aria-label="Ask a question"
                 aria-describedby="ask-hint"
                 rows={2}
-                className="flex-1 resize-none bg-transparent text-white placeholder:text-white/30 px-6 py-4 text-base focus:outline-none rounded-2xl"
+                className="flex-1 resize-none bg-transparent text-white placeholder:text-white/45 px-6 py-4 text-base focus:outline-none rounded-2xl"
               />
               {loading ? (
                 // While a request is in flight, the submit arrow becomes
@@ -2322,7 +2333,7 @@ function Home() {
                 <button
                   type="button"
                   onClick={stopGeneration}
-                  className="m-2 bg-gradient-to-r from-rose-500/90 to-rose-400/90 hover:from-rose-400 hover:to-rose-400 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-rose-500/25"
+                  className="m-2 bg-gradient-to-r from-red-500/90 to-red-400/90 hover:from-red-400 hover:to-red-400 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-red-500/25"
                   aria-label="Stop generating"
                   title="Stop generating"
                 >
@@ -2332,7 +2343,7 @@ function Home() {
                 <button
                   type="submit"
                   disabled={!question.trim()}
-                  className="m-2 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="m-2 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-navy p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Submit"
                 >
                   <ArrowRight className="w-5 h-5" />
@@ -2343,7 +2354,7 @@ function Home() {
             {/* Small kbd hint so users know Enter submits and Shift+Enter is
                 the escape hatch for a newline (referenced via the textarea's
                 aria-describedby above). */}
-            <p id="ask-hint" className="text-[11px] text-white/30 text-right -mt-2 px-1">
+            <p id="ask-hint" className="text-[11px] text-white/55 text-right -mt-2 px-1">
               <kbd className="font-mono">Enter</kbd> to send ·{" "}
               <kbd className="font-mono">Shift+Enter</kbd> for new line
             </p>
@@ -2377,7 +2388,7 @@ function Home() {
                   can see their question while the comparison streams in. */}
               {pendingQuestion && (
                 <div className="flex items-center gap-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[11px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
                   <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{pendingQuestion}</p>
                 </div>
               )}
@@ -2426,12 +2437,12 @@ function Home() {
                     // either way — re-expanding shows the latest.
                     const isOpen = expandedAnswers.has(id);
                     return (
-                      <div key={id} className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl min-w-0 overflow-hidden">
+                      <div key={id} className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl min-w-0 overflow-hidden">
                         <button
                           type="button"
                           onClick={() => toggleAnswer(id)}
                           aria-expanded={isOpen}
-                          className="w-full flex items-center justify-between gap-2 p-5 text-left hover:bg-white/[0.02] transition-colors"
+                          className="w-full flex items-center justify-between gap-2 p-5 text-left hover:bg-surface-1 transition-colors"
                         >
                           <span className="flex items-center gap-1.5 text-xs font-semibold text-white/90 min-w-0">
                             <ProviderLogo provider={providerOf(id)} className="w-3.5 h-3.5 shrink-0" />
@@ -2439,13 +2450,13 @@ function Home() {
                             {streamed?.truncated && (
                               <span
                                 title="The provider hit our token cap and the answer was cut off mid-response."
-                                className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-200"
+                                className="shrink-0 inline-flex items-center rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-200"
                               >
                                 Truncated
                               </span>
                             )}
                           </span>
-                          <div className="flex items-center gap-3 text-xs text-white/40 shrink-0">
+                          <div className="flex items-center gap-3 text-xs text-white/55 shrink-0">
                             <span>{runtimeLabel}</span>
                             <span>{tokenLabel}</span>
                             <ChevronDown
@@ -2487,7 +2498,7 @@ function Home() {
               {result.type === "compare" && (
                 <div className="space-y-6">
                   {!signedIn && (
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/50">
+                    <div className="rounded-2xl border border-white/10 bg-surface-1 p-4 text-sm text-white/50">
                       <a href="/login" className="text-teal-300 hover:text-teal-200 font-medium">Sign in</a>{" "}
                       to continue this conversation with a follow-up.
                     </div>
@@ -2504,10 +2515,10 @@ function Home() {
                         aria-expanded={isExpanded}
                         className="group flex w-full items-center gap-3 text-left"
                       >
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[11px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
                         <p className={`min-w-0 flex-1 break-words ${isExpanded ? "text-[15px] leading-relaxed font-medium text-white/90" : "truncate text-sm text-white/60 group-hover:text-white/80"}`}>{f.question}</p>
                         {!isExpanded && (
-                          <span className="hidden sm:flex items-center gap-1.5 text-xs text-white/40 shrink-0">
+                          <span className="hidden sm:flex items-center gap-1.5 text-xs text-white/55 shrink-0">
                             {f.mode === "compare" ? (
                               <><Layers className="w-3 h-3" aria-hidden="true" /> {f.result?.type === "compare" ? `${f.result.answers.length} models` : "comparison"}</>
                             ) : (
@@ -2516,11 +2527,11 @@ function Home() {
                           </span>
                         )}
                         {!f.streaming && (
-                          <ChevronDown className={`w-4 h-4 shrink-0 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
+                          <ChevronDown className={`w-4 h-4 shrink-0 text-white/55 transition-transform ${isExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
                         )}
                       </button>
                       {isExpanded && (
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 min-w-0 overflow-hidden">
+                        <div className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl p-5 min-w-0 overflow-hidden">
                           {f.error ? (
                             <p className="text-sm text-amber-300">{f.error}</p>
                           ) : f.mode === "compare" ? (
@@ -2565,7 +2576,7 @@ function Home() {
                               <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
                                 <ProviderLogo provider={providerOf(f.modelId)} className="w-3.5 h-3.5 shrink-0" />
                                 <span className="truncate">{modelLabel(f.modelId)}</span>
-                                {f.streaming && <span className="text-white/40 font-normal">· thinking…</span>}
+                                {f.streaming && <span className="text-white/55 font-normal">· thinking…</span>}
                               </div>
                               {f.answer ? (
                                 <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
@@ -2573,7 +2584,7 @@ function Home() {
                                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
                                 </div>
                               ) : (
-                                <p className="text-sm text-white/30">…</p>
+                                <p className="text-sm text-white/55">…</p>
                               )}
                               {/* AGG-39 D-converse: a grounded single follow-up shows
                                   its sources — the [1][2] markers in the text point here. */}
@@ -2598,20 +2609,20 @@ function Home() {
                   aria-expanded={followups.length === 0 || comparisonExpanded}
                   className="group flex w-full items-center gap-3 text-left"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[11px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
                   <p className={`min-w-0 flex-1 break-words ${(followups.length === 0 || comparisonExpanded) ? "text-[15px] leading-relaxed font-medium text-white/90" : "truncate text-sm text-white/60 group-hover:text-white/80"}`}>{result.question}</p>
                   {followups.length > 0 && !comparisonExpanded && (
-                    <span className="hidden sm:flex items-center gap-1.5 text-xs text-white/40 shrink-0">
+                    <span className="hidden sm:flex items-center gap-1.5 text-xs text-white/55 shrink-0">
                       <Layers className="w-3 h-3" /> {result.answers.length} models
                     </span>
                   )}
                   {followups.length > 0 && (
-                    <ChevronDown className={`w-4 h-4 shrink-0 text-white/40 transition-transform ${comparisonExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
+                    <ChevronDown className={`w-4 h-4 shrink-0 text-white/55 transition-transform ${comparisonExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
                   )}
                 </button>
               ) : (
                 <div className="flex items-center gap-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[11px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
                   <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{result.question}</p>
                 </div>
               )}
@@ -2619,7 +2630,7 @@ function Home() {
               {(followups.length === 0 || comparisonExpanded) && (
               <>
               {result.type === "product" || result.type === "direct" ? (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-xl">
+                <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl">
                   <div className="mb-3">
                     <Logo height={28} symbolOnly gradientId="product-g" />
                   </div>

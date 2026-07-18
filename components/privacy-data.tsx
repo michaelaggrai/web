@@ -23,10 +23,10 @@ export function ConsentControl() {
       <p className="text-sm text-white/50">
         Essential cookies (keeping you signed in) are always on. Error-monitoring is optional.
       </p>
-      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-surface-1 px-4 py-3">
         <div>
           <div className="text-sm font-medium text-white/85">Error monitoring</div>
-          <div className="text-xs text-white/40">
+          <div className="text-xs text-white/55">
             {value === "accepted" ? "On — helps us catch crashes" : value === "rejected" ? "Off" : "Not set"}
           </div>
         </div>
@@ -132,7 +132,7 @@ export function DeleteAccount() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="you@example.com"
-              className="mt-4 w-full rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
+              className="mt-4 w-full rounded-lg border border-white/15 bg-surface-1 px-3 py-2 text-sm text-white placeholder:text-white/45 focus:border-white/30 focus:outline-none"
             />
             {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
             <div className="mt-5 flex justify-end gap-2">

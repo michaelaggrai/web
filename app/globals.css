@@ -15,7 +15,12 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-navy: #16224A;
-  --color-teal: #14B8A6;
+  --color-teal: #00BAA7;
+  /* Solid elevated surfaces (P1 #7) — replace the bg-white/[0.02–0.08] alpha
+     stack so cards separate from the navy without leaning on borders, and
+     backdrop-blur can be dropped. surface-1 = cards, surface-2 = nested/inputs. */
+  --color-surface-1: #1B2854;
+  --color-surface-2: #22305F;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -26,7 +31,7 @@
    ============================================================ */
 .aggrai-logo {
   --aggrai-navy: #ffffff;
-  --aggrai-teal: #14B8A6;
+  --aggrai-teal: var(--color-teal-500); /* unified with the UI teal (was #14B8A6) */
   --aggrai-size: 30px;
   display: inline-flex;
   align-items: center;
@@ -39,7 +44,7 @@
 }
 .aggrai-icon {
   --aggrai-navy: #ffffff;
-  --aggrai-teal: #14B8A6;
+  --aggrai-teal: var(--color-teal-500); /* unified with the UI teal (was #14B8A6) */
   /* Icon sized relative to the wordmark font. Bumped 1.16em → 1.5em so the
      pentagon reads a bit larger next to the wordmark — the viewBox padding
      (-12 -12 124 124, for the idle mesh scale) shrinks the *visible* art to
@@ -214,75 +219,71 @@
 .aggrai-logo.is-assembling .aggrai-word b:nth-child(6) { animation-delay: 1.30s; }
 @keyframes aggrai-rise { to { opacity: 1; transform: translateY(0); } }
 
-/* Loading spinner — apply .is-loading to a stand-alone .aggrai-icon.
-   Layered animation:
-   - Whole icon "breathes" (gentle scale pulse) so the spinner feels alive
-     even before you focus on the inner detail.
-   - Mesh rotates slowly.
-   - Spokes' dashes flow inward toward the core — signals "gathering /
-     synthesising" rather than "broadcasting outward". (Reversed sign on
-     stroke-dashoffset vs. the original outward flow.)
-   - Core beats.
-   - Water flow: a bright comet sweeps clockwise around the pentagon
-     perimeter (the edges between dots), and each dot swells gently as the
-     flow reaches it — synced so the dot pulse and the comet arrival line
-     up. Reads as water/energy flowing from one dot to the next. Layered ON
-     TOP of the four animations above — none of them change. */
-.aggrai-icon.is-loading {
-  animation: aggrai-breathe 2.4s ease-in-out infinite;
-  transform-origin: center;
+/* Loading spinner -- apply .is-loading to a stand-alone .aggrai-icon.
+   "Thinking" loop (variant C): the mesh (edges + spokes + comet) drops away;
+   the five provider dots inhale outward, gather to the centre and merge into
+   the single teal core (the aggregation), then spring back out with a faint
+   teal ripple radiating as the answer leaves the core. 1.6s loop. The
+   assemble / hover / collapse animations above are untouched. */
+.aggrai-icon.is-loading .aggrai-edge,
+.aggrai-icon.is-loading .aggrai-edge-flow,
+.aggrai-icon.is-loading .aggrai-spoke {
+  opacity: 0;
+  transition: opacity .18s ease;
 }
-.aggrai-icon.is-loading .aggrai-mesh { transform: scale(1); animation: aggrai-rot 5.5s linear infinite; }
-.aggrai-icon.is-loading .aggrai-spoke { animation: aggrai-flow 0.85s linear infinite; }
-.aggrai-icon.is-loading .aggrai-core { animation: aggrai-beat 2.2s ease-in-out infinite; }
-/* Comet of light sweeping clockwise around the perimeter. 18%-of-perimeter
-   bright dash (pathLength=100) travelling one full loop per 1.8s cycle —
-   same cycle as the dot sequence so the flow arrives at each dot as it
-   pulses. The path is drawn clockwise from the top dot, so a negative
-   dashoffset moves the dash in the draw direction (clockwise). */
-.aggrai-icon.is-loading .aggrai-edge-flow {
-  opacity: 1;
-  stroke-dasharray: 18 82;
-  animation: aggrai-edge-flow-anim 1.8s linear infinite;
+
+/* Each dot's --dx/--dy is the vector from its resting cx/cy to the centre
+   (50,50); transform-origin is that same cx/cy so the scale compresses the
+   dot in place while the translate carries it to the core. Explicit
+   user-space origin (not transform-box:fill-box, which iOS Safari
+   mis-animates on SVG <circle>). */
+.aggrai-icon.is-loading .aggrai-node           { animation: aggrai-gather 1.6s infinite; }
+.aggrai-icon.is-loading .aggrai-node-anthropic { --dx:   0px; --dy:  30px; transform-origin: 50px 20px; }
+.aggrai-icon.is-loading .aggrai-node-openai    { --dx: -28px; --dy:   9px; transform-origin: 78px 41px; }
+.aggrai-icon.is-loading .aggrai-node-google    { --dx: -18px; --dy: -24px; transform-origin: 68px 74px; }
+.aggrai-icon.is-loading .aggrai-node-meta      { --dx:  18px; --dy: -24px; transform-origin: 32px 74px; }
+.aggrai-icon.is-loading .aggrai-node-mistral   { --dx:  28px; --dy:   9px; transform-origin: 22px 41px; }
+
+.aggrai-icon.is-loading .aggrai-core { animation: aggrai-core-pulse 1.6s infinite; }
+
+.aggrai-icon .aggrai-ripple { opacity: 0; }
+.aggrai-icon.is-loading .aggrai-ripple {
+  fill: none;
+  stroke: var(--aggrai-teal);
+  stroke-width: 1.5;
+  transform-origin: 50px 50px;
+  opacity: 0;
+  animation: aggrai-ripple 1.6s infinite;
 }
-/* Clockwise dot sequence. Each dot scales about its OWN centre, given as an
-   explicit user-space transform-origin (its cx/cy) — the same robust pattern
-   the core uses (transform-origin: 50px 50px). We deliberately avoid
-   `transform-box: fill-box` here: iOS Safari/WebKit has long-standing bugs
-   animating SVG <circle> transforms with fill-box, which silently broke the
-   dot pulse on mobile. Delays are cycle/5 apart in clockwise DOM order:
-   anthropic(top) → openai → google → meta → mistral. */
-.aggrai-icon.is-loading .aggrai-node {
-  animation: aggrai-node-seq 1.8s ease-in-out infinite;
-}
-.aggrai-icon.is-loading .aggrai-node-anthropic { animation-delay: 0s;    transform-origin: 50px 20px; }
-.aggrai-icon.is-loading .aggrai-node-openai    { animation-delay: 0.36s; transform-origin: 78px 41px; }
-.aggrai-icon.is-loading .aggrai-node-google    { animation-delay: 0.72s; transform-origin: 68px 74px; }
-.aggrai-icon.is-loading .aggrai-node-meta      { animation-delay: 1.08s; transform-origin: 32px 74px; }
-.aggrai-icon.is-loading .aggrai-node-mistral   { animation-delay: 1.44s; transform-origin: 22px 41px; }
 
 /* Positive offset = dashes shift opposite to stroke direction.
    Spokes are drawn center→node, so positive offset = dashes flow
    from node back toward the center (visually: inward). */
 @keyframes aggrai-flow { to { stroke-dashoffset: 13; } }
 @keyframes aggrai-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(.62); } }
-@keyframes aggrai-rot { to { transform: rotate(360deg); } }
-/* Dot swell: gentle grow then settle back to original by 40%, then rest
-   until the next cycle. Softer than a hard pop so it reads as the flow
-   reaching the dot rather than a blink. */
-@keyframes aggrai-node-seq {
-  0%   { transform: scale(1); }
-  20%  { transform: scale(1.5); }
-  45%  { transform: scale(1); }
-  100% { transform: scale(1); }
+/* variant C loading keyframes: dots gather -> merge -> spring out; the core
+   pulses once per loop; the ripple radiates as the answer leaves. */
+@keyframes aggrai-gather {
+  0%       { transform: translate(0, 0) scale(1); opacity: 1;
+             animation-timing-function: cubic-bezier(.4, 0, .9, .5); }
+  10%      { transform: translate(calc(var(--dx) * -.07), calc(var(--dy) * -.07)) scale(1.12);
+             animation-timing-function: cubic-bezier(.7, 0, .9, .5); }
+  40%      { transform: translate(var(--dx), var(--dy)) scale(.6); opacity: 1; }
+  44%, 56% { transform: translate(var(--dx), var(--dy)) scale(.4); opacity: 0; }
+  59%      { transform: translate(var(--dx), var(--dy)) scale(.9); opacity: 1;
+             animation-timing-function: cubic-bezier(.18, .9, .3, 1.35); }
+  80%, 100%{ transform: translate(0, 0) scale(1); }
 }
-/* Comet travels one full perimeter (pathLength=100) per cycle, clockwise. */
-@keyframes aggrai-edge-flow-anim {
-  to { stroke-dashoffset: -100; }
+@keyframes aggrai-core-pulse {
+  0%, 34%  { transform: scale(0); }
+  44%      { transform: scale(1.3); animation-timing-function: cubic-bezier(.3, 0, .7, 1); }
+  54%      { transform: scale(1.1); }
+  62%, 100%{ transform: scale(0); }
 }
-@keyframes aggrai-breathe {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(0.88); }
+@keyframes aggrai-ripple {
+  0%, 54%  { transform: scale(.3); opacity: 0; }
+  58%      { opacity: .5; }
+  88%, 100%{ transform: scale(2.4); opacity: 0; }
 }
 /* Hover pulse — expand outward then return to rest size (1.32).
    Never shrinks below the default, so the icon stays readable. */
@@ -302,8 +303,9 @@
   .aggrai-spoke,
   .aggrai-core,
   .aggrai-icon.is-loading .aggrai-node,
-  .aggrai-icon.is-loading .aggrai-mesh { animation: none; }
-  .aggrai-icon.is-loading .aggrai-edge-flow { animation: none; opacity: 0; }
+  .aggrai-icon.is-loading .aggrai-core,
+  .aggrai-icon.is-loading .aggrai-ripple { animation: none; }
+  .aggrai-icon.is-loading .aggrai-core { transform: scale(1); }
   .aggrai-icon.is-loading { animation: aggrai-fade 1.6s ease-in-out infinite; }
   /* Per-model loader: drop the scale, keep an opacity-only pulse. */
   .brand-pulse { animation: brand-pulse-fade 1.4s ease-in-out infinite; }

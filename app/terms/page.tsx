@@ -10,7 +10,7 @@ const LAST_UPDATED = "23 May 2026";
 
 export default function TermsPage() {
   return (
-    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
+    <div className="relative min-h-dvh bg-navy px-4 py-12 overflow-hidden">
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
 
       <div className="relative z-10 mx-auto max-w-3xl">
@@ -21,7 +21,7 @@ export default function TermsPage() {
         <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">
           Terms of Service
         </h1>
-        <p className="mt-2 text-sm text-white/40">Last updated: {LAST_UPDATED}</p>
+        <p className="mt-2 text-sm text-white/55">Last updated: {LAST_UPDATED}</p>
 
         <article className="prose prose-invert prose-sm sm:prose-base max-w-none mt-10
           prose-headings:text-white prose-headings:font-semibold
@@ -191,7 +191,7 @@ export default function TermsPage() {
           </p>
 
           <hr className="my-10 border-white/10" />
-          <p className="text-xs text-white/40">
+          <p className="text-xs text-white/55">
             This document is a starting draft and should be reviewed by qualified legal
             counsel before relying on it in production.
           </p>
@@ -201,7 +201,7 @@ export default function TermsPage() {
           <Link href="/privacy" className="text-teal-300 hover:text-teal-200">
             Privacy Policy →
           </Link>
-          <Link href="/" className="text-white/40 hover:text-white">
+          <Link href="/" className="text-white/55 hover:text-white">
             Back to home
           </Link>
         </div>

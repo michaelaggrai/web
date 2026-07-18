@@ -117,11 +117,9 @@ export function Hero() {
   }
 
   return (
-    <section className="relative min-h-[92svh] flex items-center bg-gradient-to-b from-navy via-navy to-[#252547] overflow-hidden">
-      {/* Soft gradient orbs */}
-      <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/20 rounded-full blur-[120px]" />
-      <div className="absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-teal-500/5 rounded-full blur-[150px]" />
+    <section className="relative bg-navy overflow-hidden">
+      {/* One standard teal glow for light relief on the flat navy (P3 #15) */}
+      <div className="absolute top-24 left-1/2 -translate-x-1/2 w-[640px] h-[560px] bg-teal-500/20 rounded-full blur-[130px]" />
       
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20 w-full">
         <div className="text-center">
@@ -149,18 +147,18 @@ export function Hero() {
               }}
               className="relative"
             >
-              <div className="flex items-center bg-white/[0.08] backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 transition-colors shadow-2xl shadow-black/20">
+              <div className="flex items-center bg-surface-2 backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 focus-within:ring-2 focus-within:ring-teal-400/60 focus-within:border-transparent transition-colors shadow-2xl shadow-black/20">
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="What would you like to know?"
                   aria-label="Ask a question"
-                  className="flex-1 bg-transparent text-white placeholder:text-white/30 px-6 py-5 text-base focus:outline-none rounded-2xl"
+                  className="flex-1 bg-transparent text-white placeholder:text-white/45 px-6 py-5 text-base focus:outline-none rounded-2xl"
                 />
                 <button
                   type="submit"
-                  className="m-2 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25"
+                  className="m-2 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-navy p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25"
                   aria-label="Submit query"
                 >
                   <ArrowRight className="w-5 h-5" />
@@ -213,7 +211,7 @@ export function Hero() {
                     key={prompt}
                     type="button"
                     onClick={() => goToApp(prompt)}
-                    className="text-sm text-white/40 hover:text-white/70 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
+                    className="text-sm text-white/55 hover:text-white/70 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
                   >
                     {prompt}
                   </button>
@@ -223,7 +221,7 @@ export function Hero() {
                     type="button"
                     onClick={shuffle}
                     aria-label="Show different example questions"
-                    className="inline-flex items-center gap-1.5 text-sm text-white/40 hover:text-teal-300 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
+                    className="inline-flex items-center gap-1.5 text-sm text-white/55 hover:text-teal-300 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
                   >
                     <Shuffle className="w-3.5 h-3.5" />
                     Shuffle

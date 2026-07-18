@@ -178,7 +178,7 @@ export default function ModelsPage() {
   const filterActive = visibleTiers.size < ALL_TIERS.length;
 
   return (
-    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 pt-24 overflow-hidden">
+    <div className="relative min-h-dvh bg-navy px-4 pt-24 overflow-hidden">
       <Navbar />
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/12 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
@@ -199,12 +199,12 @@ export default function ModelsPage() {
         {/* Controls bar — tier filter (left) + group-by (right). On
             narrow viewports they stack with the tier filter first because
             it's the more frequently used control. */}
-        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl px-5 py-3.5">
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl px-5 py-3.5">
           {/* Tier filter — each pill is a toggle. Clicking turns a tier
               on/off; at least one must stay on (auto-resets to all if the
               user deselects everything). */}
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10px] uppercase tracking-wider text-white/30 shrink-0">Show</span>
+            <span className="text-[11px] uppercase tracking-wider text-white/55 shrink-0">Show</span>
             <div className="flex items-center gap-1.5 flex-wrap">
               {ALL_TIERS.map(tier => {
                 const active = visibleTiers.has(tier);
@@ -216,10 +216,10 @@ export default function ModelsPage() {
                     onClick={() => toggleTier(tier)}
                     aria-pressed={active}
                     title={active ? `Hide ${badge.label} models` : `Show ${badge.label} models`}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider transition-all ${
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold uppercase tracking-wider transition-all ${
                       active
                         ? badge.classes
-                        : "border-white/10 bg-transparent text-white/30 hover:text-white/50 hover:border-white/20"
+                        : "border-white/10 bg-transparent text-white/55 hover:text-white/50 hover:border-white/20"
                     }`}
                   >
                     {TIER_RANK[tier] > TIER_RANK[userTier] && <Lock className="w-2.5 h-2.5" />}
@@ -234,7 +234,7 @@ export default function ModelsPage() {
               Provider (which company built it). Mirrors the same control
               in ModelPicker so the muscle memory transfers. */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-wider text-white/30 mr-1">Group by</span>
+            <span className="text-[11px] uppercase tracking-wider text-white/55 mr-1">Group by</span>
             <div className="inline-flex items-center rounded-md bg-white/5 p-0.5">
               {(["category", "provider"] as const).map(mode => {
                 const isActive = groupBy === mode;
@@ -244,10 +244,10 @@ export default function ModelsPage() {
                     type="button"
                     onClick={() => setGroupBy(mode)}
                     aria-pressed={isActive}
-                    className={`px-2.5 py-1 rounded text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                    className={`px-2.5 py-1 rounded text-[11px] font-semibold uppercase tracking-wider transition-colors ${
                       isActive
                         ? "bg-white/10 text-white"
-                        : "text-white/40 hover:text-white/70"
+                        : "text-white/55 hover:text-white/70"
                     }`}
                   >
                     {mode === "category" ? "Category" : "Provider"}
@@ -261,7 +261,7 @@ export default function ModelsPage() {
         {/* Sub-header showing what the user is actually looking at. Helps
             them notice when a filter is silently hiding a chunk of the
             catalog (e.g. "showing 9 of 30"). */}
-        <p className="mb-6 text-xs text-white/40">
+        <p className="mb-6 text-xs text-white/55">
           {filterActive ? (
             <>Showing <span className="text-white/70">{filteredCount}</span> of {totalCount} models</>
           ) : (
@@ -286,10 +286,10 @@ export default function ModelsPage() {
                       {g.label}
                     </h2>
                     {g.description && (
-                      <p className="text-sm text-white/45 mt-0.5">{g.description}</p>
+                      <p className="text-sm text-white/55 mt-0.5">{g.description}</p>
                     )}
                   </div>
-                  <span className="text-xs text-white/30 shrink-0">
+                  <span className="text-xs text-white/55 shrink-0">
                     {g.models.length} model{g.models.length === 1 ? "" : "s"}
                   </span>
                 </div>
@@ -308,7 +308,7 @@ export default function ModelsPage() {
             (shouldn't happen since toggleTier guards against empty
             filters, but defensive). */}
         {filteredCount === 0 && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
+          <div className="rounded-2xl border border-white/10 bg-surface-1 p-8 text-center">
             <p className="text-sm text-white/60">No models match the current filter.</p>
             <button
               type="button"
@@ -330,7 +330,7 @@ export default function ModelsPage() {
         </div>
 
         {/* CTAs */}
-        <div className="mt-12 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-7 text-center">
+        <div className="mt-12 rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl p-7 text-center">
           <h3 className="text-lg font-semibold text-white">Compare them now</h3>
           <p className="mt-1.5 text-sm text-white/50">
             Pick 3 models and ask anything. Free for ever, no card needed.
@@ -338,7 +338,7 @@ export default function ModelsPage() {
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/app"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-5 py-2.5 text-sm font-medium text-white hover:from-teal-400 hover:to-teal-400 transition shadow-lg shadow-teal-500/20"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-5 py-2.5 text-sm font-semibold text-navy hover:from-teal-400 hover:to-teal-400 transition shadow-lg shadow-teal-500/20"
             >
               Start a comparison
               <ArrowRight className="w-4 h-4" />
@@ -352,7 +352,7 @@ export default function ModelsPage() {
           </div>
         </div>
 
-        <p className="mt-10 text-center text-xs text-white/30">
+        <p className="mt-10 text-center text-xs text-white/55">
           Models change as providers add and deprecate them — this list is
           updated alongside our backend catalog. Questions?{" "}
           <Link href="/contact" className="text-white/50 hover:text-white underline underline-offset-2">
@@ -375,16 +375,16 @@ function ModelCard({ model, userTier }: { model: ModelEntry; userTier: Tier }) {
   // instead of a lock that wrongly reads as "you can't use this".
   const included = !locked && tier !== "free";
   return (
-    <div className="group rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.06] hover:border-white/20 transition-all p-4 flex items-center gap-3">
+    <div className="group rounded-xl border border-white/10 bg-surface-1 hover:bg-surface-2 hover:border-white/20 transition-all p-4 flex items-center gap-3">
       <div className="shrink-0 w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
         <ProviderLogo provider={providerOf(model.id)} className="w-[18px] h-[18px] text-white/80" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-white truncate">{model.label}</p>
-        <p className="text-[11px] text-white/40 truncate">{model.provider}</p>
+        <p className="text-[11px] text-white/55 truncate">{model.provider}</p>
       </div>
       <span
-        className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${badge.classes}`}
+        className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${badge.classes}`}
         title={
           locked
             ? `Available on ${TIERS[tier].label} and up`
@@ -405,7 +405,7 @@ function TierLegend({ tier }: { tier: Tier }) {
   const badge = TIER_BADGES[tier];
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`inline-block rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${badge.classes}`}>
+      <span className={`inline-block rounded-full border px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${badge.classes}`}>
         {badge.label}
       </span>
       <span className="text-white/50">

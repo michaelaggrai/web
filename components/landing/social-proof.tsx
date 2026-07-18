@@ -72,7 +72,7 @@ export function SocialProof() {
   // bridging white gradient any more. Section stays in the [#252547]→navy
   // range so the transition to Features is invisible.
   return (
-    <section className="py-24 bg-gradient-to-b from-[#252547] to-navy">
+    <section className="py-24 bg-navy">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <p className="text-center text-sm text-white/70 mb-8">
           Works with all major AI models

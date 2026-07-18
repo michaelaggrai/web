@@ -158,7 +158,7 @@ function SignIn() {
   }
 
   return (
-    <div className="relative min-h-dvh flex items-center justify-center overflow-hidden bg-gradient-to-b from-navy via-navy to-[#252547] px-4">
+    <div className="relative min-h-dvh flex items-center justify-center overflow-hidden bg-navy px-4">
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 
@@ -169,11 +169,11 @@ function SignIn() {
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-7 shadow-2xl shadow-black/30">
+        <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-7 shadow-2xl shadow-black/30">
           <h1 className="text-lg font-semibold text-white">
             {mode === "signup" ? "Create your account" : "Welcome back"}
           </h1>
-          <p className="mt-1 text-sm text-white/40">
+          <p className="mt-1 text-sm text-white/55">
             {reason === "upgrade"
               ? "Create an account to unlock Pro and Premium plans."
               : mode === "signup"
@@ -186,7 +186,7 @@ function SignIn() {
             return (
               <div className="mt-5">
                 <div className="mb-2 flex items-baseline justify-between">
-                  <p className="text-xs font-medium uppercase tracking-wider text-white/40">
+                  <p className="text-xs font-medium uppercase tracking-wider text-white/55">
                     Choose a plan
                   </p>
                   <Link
@@ -211,7 +211,7 @@ function SignIn() {
                         className={`relative flex flex-col items-center rounded-xl border px-2 py-3 text-center transition-all ${
                           active
                             ? "border-teal-400/60 bg-teal-400/[0.08]"
-                            : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                            : "border-white/10 bg-surface-1 hover:border-white/20"
                         }`}
                       >
                         <Icon className={`w-4 h-4 mb-1 ${p.iconColor}`} />
@@ -220,9 +220,9 @@ function SignIn() {
                         </div>
                         <div className={`text-[11px] mt-0.5 ${active ? "text-white/80" : "text-white/50"}`}>
                           <span className="font-medium">{p.price}</span>
-                          <span className="text-white/40">{p.period}</span>
+                          <span className="text-white/55">{p.period}</span>
                         </div>
-                        <div className={`mt-1.5 text-[10px] leading-tight ${active ? "text-teal-200/90" : "text-white/40"}`}>
+                        <div className={`mt-1.5 text-[11px] leading-tight ${active ? "text-teal-200/90" : "text-white/55"}`}>
                           {p.tagline}
                         </div>
                       </button>
@@ -233,7 +233,7 @@ function SignIn() {
                 <p className="mt-3 text-[11px] text-white/50 leading-relaxed min-h-[2.4em]">
                   {selected.detail}
                   {plan !== "free" && (
-                    <span className="text-white/30"> Applied right after signup.</span>
+                    <span className="text-white/55"> Applied right after signup.</span>
                   )}
                 </p>
               </div>
@@ -250,7 +250,7 @@ function SignIn() {
               aria-label="Email"
               aria-invalid={error ? true : undefined}
               autoComplete="email"
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
+              className="w-full rounded-xl border border-white/10 bg-surface-1 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/30 transition-colors"
             />
             <input
               type="password"
@@ -262,7 +262,7 @@ function SignIn() {
               aria-label="Password"
               aria-invalid={error ? true : undefined}
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
+              className="w-full rounded-xl border border-white/10 bg-surface-1 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/30 transition-colors"
             />
 
             {mode === "signup" && (
@@ -271,7 +271,7 @@ function SignIn() {
                   type="checkbox"
                   checked={agreed}
                   onChange={e => setAgreed(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/[0.06] accent-teal-400 cursor-pointer"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-surface-2 accent-teal-400 cursor-pointer"
                 />
                 <span className="text-xs text-white/60 leading-relaxed">
                   I agree to aggrai&apos;s{" "}
@@ -306,14 +306,14 @@ function SignIn() {
                 password.length < 6 ||
                 (mode === "signup" && !agreed)
               }
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-4 py-3 text-sm font-medium text-white transition hover:from-teal-400 hover:to-teal-400 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-4 py-3 text-sm font-semibold text-navy transition hover:from-teal-400 hover:to-teal-400 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? "…" : mode === "signup" ? "Create account" : "Sign in"}
               {!loading && <ArrowRight className="w-4 h-4" />}
             </button>
           </form>
 
-          <p className="mt-5 text-center text-sm text-white/40">
+          <p className="mt-5 text-center text-sm text-white/55">
             {mode === "signup" ? "Already have an account?" : "Don't have an account?"}{" "}
             <button
               type="button"

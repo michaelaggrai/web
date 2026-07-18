@@ -48,7 +48,7 @@ export const PLANS: Plan[] = [
       "Aggrai's combined answer",
     ],
     icon: Sparkles,
-    iconColor: "text-white/40",
+    iconColor: "text-white/55",
   },
   {
     key: "pro",

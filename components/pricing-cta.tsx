@@ -11,7 +11,7 @@ const BASE = "w-full text-center rounded-xl py-2.5 text-sm font-medium transitio
 
 function upgradeClasses(highlight: boolean) {
   return highlight
-    ? "bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-white shadow-lg shadow-teal-500/20"
+    ? "bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-navy shadow-lg shadow-teal-500/20"
     : "border border-white/20 bg-white/5 hover:bg-white/10 text-white";
 }
 
@@ -78,7 +78,7 @@ export function PlanCta({
   if (planRank < userRank) {
     return (
       <span
-        className={`${BASE} border border-white/10 bg-white/[0.03] text-white/40 cursor-default`}
+        className={`${BASE} border border-white/10 bg-surface-1 text-white/55 cursor-default`}
         aria-disabled="true"
       >
         Included in your plan

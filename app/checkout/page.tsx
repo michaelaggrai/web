@@ -16,7 +16,7 @@ import {
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547]" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-navy" />}>
       <Checkout />
     </Suspense>
   );
@@ -103,17 +103,17 @@ function Checkout() {
   }
 
   if (!authChecked) {
-    return <div className="min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547]" />;
+    return <div className="min-h-dvh bg-navy" />;
   }
 
   const accent = planKey === "premium" ? "amber" : "teal";
   const payBtn =
     accent === "amber"
       ? "bg-gradient-to-r from-amber-400 to-amber-300 text-navy hover:from-amber-300 hover:to-amber-200 shadow-lg shadow-amber-500/20"
-      : "bg-gradient-to-r from-teal-500 to-teal-400 text-white hover:from-teal-400 hover:to-teal-400 shadow-lg shadow-teal-500/20";
+      : "bg-gradient-to-r from-teal-500 to-teal-400 text-navy hover:from-teal-400 hover:to-teal-400 shadow-lg shadow-teal-500/20";
 
   return (
-    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-10 overflow-hidden">
+    <div className="relative min-h-dvh bg-navy px-4 py-10 overflow-hidden">
       <div className="pointer-events-none absolute top-24 left-1/4 w-[480px] h-[480px] bg-teal-500/10 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-10 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[110px]" />
 
@@ -128,18 +128,18 @@ function Checkout() {
         </div>
 
         <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-1">Checkout</h1>
-        <p className="text-sm text-white/45 mb-8">You&apos;re upgrading to <span className="text-white/80 font-medium">{plan.name}</span>. Cancel anytime.</p>
+        <p className="text-sm text-white/55 mb-8">You&apos;re upgrading to <span className="text-white/80 font-medium">{plan.name}</span>. Cancel anytime.</p>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.05fr] gap-6 items-start">
           {/* ── Order summary ───────────────────────────────────────────── */}
-          <section aria-label="Order summary" className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+          <section aria-label="Order summary" className="rounded-2xl border border-white/10 bg-surface-1 p-6">
             <div className="flex items-center gap-2 mb-5">
               <Icon className={`w-5 h-5 ${plan.iconColor}`} aria-hidden="true" />
               <span className="font-semibold text-white">aggrai {plan.name}</span>
             </div>
 
             {/* Billing-cycle toggle */}
-            <div role="radiogroup" aria-label="Billing cycle" className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+            <div role="radiogroup" aria-label="Billing cycle" className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-surface-1 p-1">
               {(["monthly", "annual"] as Cycle[]).map((c) => {
                 const on = cycle === c;
                 const pv = priceFor(plan, c);
@@ -156,7 +156,7 @@ function Checkout() {
                   >
                     {c === "monthly" ? "Monthly" : "Annual"}
                     {c === "annual" && pv.savePctLabel && (
-                      <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${on ? "bg-teal-400/20 text-teal-200" : "bg-teal-400/10 text-teal-300/80"}`}>
+                      <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${on ? "bg-teal-400/20 text-teal-200" : "bg-teal-400/10 text-teal-300/80"}`}>
                         {pv.savePctLabel}
                       </span>
                     )}
@@ -169,13 +169,13 @@ function Checkout() {
             <div className="flex items-end justify-between gap-3 mb-1">
               <div>
                 <span className="text-4xl font-bold text-white">{price.amountLabel}</span>
-                <span className="text-white/40 text-sm ml-1">{price.unit}</span>
+                <span className="text-white/55 text-sm ml-1">{price.unit}</span>
               </div>
               {cycle === "annual" && (
                 <span className="text-xs text-teal-300/90 mb-1.5">{price.perMonthLabel}/mo effective</span>
               )}
             </div>
-            <p className="text-xs text-white/40 mb-5 capitalize">{price.billed}</p>
+            <p className="text-xs text-white/55 mb-5 capitalize">{price.billed}</p>
 
             <ul className="space-y-2 mb-6">
               {plan.features.map((f) => (
@@ -198,7 +198,7 @@ function Checkout() {
                   <span className="tabular-nums">−{price.saveAmountLabel}/yr</span>
                 </div>
               )}
-              <div className="flex justify-between text-white/40">
+              <div className="flex justify-between text-white/55">
                 <span>VAT (20%, included)</span>
                 <span className="tabular-nums">{gbp(vat)}</span>
               </div>
@@ -210,7 +210,7 @@ function Checkout() {
           </section>
 
           {/* ── Payment panel (mock Stripe Payment Element) ─────────────── */}
-          <section aria-label="Payment details" className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+          <section aria-label="Payment details" className="rounded-2xl border border-white/10 bg-surface-1 p-6">
             <div className="mb-4 flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-white/60" aria-hidden="true" />
               <h2 className="text-sm font-semibold text-white">Payment details</h2>
@@ -241,18 +241,18 @@ function Checkout() {
                   type="email"
                   value={email ?? ""}
                   readOnly
-                  className="w-full rounded-lg border border-white/12 bg-white/[0.06] px-3 py-2.5 text-sm text-white/85 outline-none"
+                  className="w-full rounded-lg border border-white/12 bg-surface-2 px-3 py-2.5 text-sm text-white/85 outline-none"
                 />
               </Field>
 
               <Field label="Card information">
-                <div className="rounded-lg border border-white/12 bg-white/[0.04] divide-y divide-white/10">
+                <div className="rounded-lg border border-white/12 bg-surface-1 divide-y divide-white/10">
                   <div className="flex items-center gap-2 px-3 py-2.5">
                     <input
                       readOnly
                       value="4242 4242 4242 4242"
                       aria-label="Card number"
-                      className="flex-1 bg-transparent text-sm text-white/45 outline-none tracking-wider"
+                      className="flex-1 bg-transparent text-sm text-white/55 outline-none tracking-wider"
                     />
                     <div className="flex gap-1 shrink-0" aria-hidden="true">
                       <span className="h-4 w-6 rounded bg-white/15" />
@@ -260,18 +260,18 @@ function Checkout() {
                     </div>
                   </div>
                   <div className="flex">
-                    <input readOnly value="12 / 29" aria-label="Expiry" className="w-1/2 bg-transparent px-3 py-2.5 text-sm text-white/45 outline-none" />
-                    <input readOnly value="•••" aria-label="CVC" className="w-1/2 border-l border-white/10 bg-transparent px-3 py-2.5 text-sm text-white/45 outline-none" />
+                    <input readOnly value="12 / 29" aria-label="Expiry" className="w-1/2 bg-transparent px-3 py-2.5 text-sm text-white/55 outline-none" />
+                    <input readOnly value="•••" aria-label="CVC" className="w-1/2 border-l border-white/10 bg-transparent px-3 py-2.5 text-sm text-white/55 outline-none" />
                   </div>
                 </div>
               </Field>
 
               <Field label="Name on card">
-                <input readOnly value="" placeholder="As shown on card" className="w-full rounded-lg border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm text-white/45 placeholder:text-white/30 outline-none" />
+                <input readOnly value="" placeholder="As shown on card" className="w-full rounded-lg border border-white/12 bg-surface-1 px-3 py-2.5 text-sm text-white/55 placeholder:text-white/45 outline-none" />
               </Field>
 
               <Field label="Country">
-                <div className="w-full rounded-lg border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm text-white/45">United Kingdom</div>
+                <div className="w-full rounded-lg border border-white/12 bg-surface-1 px-3 py-2.5 text-sm text-white/55">United Kingdom</div>
               </Field>
             </div>
 
@@ -290,7 +290,7 @@ function Checkout() {
               {processing ? "Processing…" : `Pay ${price.amountLabel}${price.isFree ? "" : cycle === "annual" ? " / year" : " / month"}`}
             </button>
 
-            <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-white/35">
+            <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-white/55">
               <Lock className="w-3 h-3" aria-hidden="true" />
               <span>Secured by</span>
               <span className="font-semibold text-white/55">Stripe</span>
@@ -303,7 +303,7 @@ function Checkout() {
           </section>
         </div>
 
-        <p className="mt-8 text-center text-xs text-white/30">
+        <p className="mt-8 text-center text-xs text-white/55">
           By subscribing you agree to our{" "}
           <Link href="/terms" className="text-white/50 hover:text-white underline underline-offset-2">Terms</Link>{" "}and{" "}
           <Link href="/privacy" className="text-white/50 hover:text-white underline underline-offset-2">Privacy Policy</Link>.

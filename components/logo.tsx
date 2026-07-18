@@ -44,6 +44,10 @@ const MESH = (
 
 const CORE = <circle className="aggrai-core" cx="50" cy="50" r="7" />
 
+// Radiates from behind the core on each loading loop — the synthesised answer
+// leaving the aggregation. Inert (opacity:0) unless .aggrai-icon.is-loading.
+const RIPPLE = <circle className="aggrai-ripple" cx="50" cy="50" r="12" />
+
 export function Logo({
   height = 36,
   spinning = false,
@@ -98,6 +102,7 @@ export function Logo({
         style={{ width: `${height}px`, height: `${height}px` }}
       >
         {MESH}
+        {RIPPLE}
         {CORE}
       </svg>
     )
@@ -135,6 +140,7 @@ export function Logo({
       >
         <svg className="aggrai-icon" viewBox="-12 -12 124 124" aria-hidden="true">
           {MESH}
+          {RIPPLE}
           {CORE}
         </svg>
         <span className="aggrai-word">

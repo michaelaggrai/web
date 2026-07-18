@@ -39,7 +39,7 @@ export default function StatusPage() {
       subtitle="Live state of the aggrai stack. A synthetic uptime check probes the API every 5 minutes and reports failures to Sentry; the per-system summary below is updated manually when an incident is confirmed. A fully live status page (driven directly from the synthetic check) is on the V2 roadmap."
     >
       {/* Headline banner */}
-      <div className={`rounded-2xl border bg-white/[0.04] p-5 flex items-center gap-3 ${
+      <div className={`rounded-2xl border bg-surface-1 p-5 flex items-center gap-3 ${
         worst === "operational" ? "border-emerald-400/30" : worst === "degraded" ? "border-amber-400/30" : "border-red-400/30"
       }`}>
         <span className={`inline-block h-2.5 w-2.5 rounded-full shadow-[0_0_10px] ${overall.dot}`} aria-hidden />
@@ -47,14 +47,14 @@ export default function StatusPage() {
       </div>
 
       {/* Per-system breakdown */}
-      <ul className="mt-6 divide-y divide-white/5 rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
+      <ul className="mt-6 divide-y divide-white/5 rounded-2xl border border-white/10 bg-surface-1 overflow-hidden">
         {SYSTEMS.map(s => {
           const c = COLORS[s.status];
           return (
             <li key={s.name} className="flex items-center justify-between gap-3 px-5 py-4">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white truncate">{s.name}</p>
-                {s.note && <p className="text-xs text-white/40 mt-0.5">{s.note}</p>}
+                {s.note && <p className="text-xs text-white/55 mt-0.5">{s.note}</p>}
               </div>
               <span className="flex items-center gap-2 shrink-0">
                 <span className={`inline-block h-2 w-2 rounded-full shadow-[0_0_8px] ${c.dot}`} aria-hidden />
@@ -65,7 +65,7 @@ export default function StatusPage() {
         })}
       </ul>
 
-      <p className="mt-8 text-xs text-white/40">
+      <p className="mt-8 text-xs text-white/55">
         Something looks broken from where you are?{" "}
         <Link href="/contact" className="text-teal-300 hover:underline underline-offset-2">
           Let us know

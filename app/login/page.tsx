@@ -59,7 +59,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-dvh flex items-center justify-center overflow-hidden bg-gradient-to-b from-navy via-navy to-[#252547] px-4">
+    <div className="relative min-h-dvh flex items-center justify-center overflow-hidden bg-navy px-4">
       {/* Match the signin/landing gradient orbs so the page feels of-a-piece. */}
       <div
         aria-hidden
@@ -80,9 +80,9 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-7 shadow-2xl shadow-black/30">
+        <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-7 shadow-2xl shadow-black/30">
           <h1 className="text-lg font-semibold text-white">Closed beta</h1>
-          <p className="mt-1 text-sm text-white/40">
+          <p className="mt-1 text-sm text-white/55">
             Enter the beta password to continue.
           </p>
 
@@ -104,7 +104,7 @@ export default function LoginPage() {
               onChange={e => setPassword(e.target.value)}
               required
               autoFocus
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
+              className="w-full rounded-xl border border-white/10 bg-surface-1 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/30 transition-colors"
             />
 
             {error && (
@@ -116,7 +116,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading || password.length === 0}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-4 py-3 text-sm font-medium text-white transition hover:from-teal-400 hover:to-teal-400 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-4 py-3 text-sm font-semibold text-navy transition hover:from-teal-400 hover:to-teal-400 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? "Checking…" : "Continue"}
               {!loading && <ArrowRight className="w-4 h-4" />}

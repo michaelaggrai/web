@@ -7,29 +7,29 @@ import { AnthropicIcon, OpenAIIcon, GoogleIcon } from "@/components/brand-icons"
 // marketing visual stays honest as the product evolves.
 function ResultsMockup() {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-4 sm:p-5 shadow-2xl shadow-black/30 space-y-3">
+    <div className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl p-4 sm:p-5 shadow-2xl shadow-black/30 space-y-3">
       {/* Question */}
-      <div className="text-xs text-white/40">
-        <span className="text-white/25">You asked:</span> Why do recessions hurt the poor more?
+      <div className="text-xs text-white/55">
+        <span className="text-white/55">You asked:</span> Why do recessions hurt the poor more?
       </div>
 
       {/* Summary card with contributions + aggrai's answer */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
+      <div className="rounded-xl border border-white/10 bg-surface-2 p-3">
         <div className="flex items-center gap-1.5 mb-2.5">
           <Layers className="w-3 h-3 text-teal-300" />
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
         </div>
 
         {/* Contribution bars */}
         <div className="space-y-1.5 mb-3 pb-3 border-b border-white/10">
-          <p className="text-[8px] font-semibold uppercase tracking-wider text-white/30 mb-1">Where the summary came from</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55 mb-1">Where the summary came from</p>
           <ContribRow Icon={AnthropicIcon} label="Claude Sonnet 4.6" pct={48} />
           <ContribRow Icon={GoogleIcon}    label="Gemini 2.5 Pro"    pct={32} />
           <ContribRow Icon={OpenAIIcon}    label="GPT-4o"             pct={20} />
         </div>
 
         {/* Aggrai's answer */}
-        <p className="text-[9px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1">
           Aggrai&apos;s answer
         </p>
         <p className="text-[11px] text-white/70 leading-relaxed">
@@ -38,10 +38,10 @@ function ResultsMockup() {
       </div>
 
       {/* Quality scores mini block */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
+      <div className="rounded-xl border border-white/10 bg-surface-2 p-3">
         <div className="flex items-center gap-1.5 mb-2">
           <BarChart3 className="w-3 h-3 text-teal-300" />
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-teal-300/80">Aggr-Score</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80">Aggr-Score</p>
         </div>
         <div className="space-y-1.5">
           <ScoreRow Icon={AnthropicIcon} label="Claude Sonnet 4.6" score={9.2} winner />
@@ -55,7 +55,7 @@ function ResultsMockup() {
 
 function ContribRow({ Icon, label, pct }: { Icon: typeof AnthropicIcon; label: string; pct: number }) {
   return (
-    <div className="flex items-center gap-2 text-[10px]">
+    <div className="flex items-center gap-2 text-[11px]">
       <Icon className="w-2.5 h-2.5 shrink-0 text-white/70" />
       <span className="text-white/60 truncate w-24 shrink-0">{label}</span>
       <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
@@ -71,9 +71,9 @@ function ContribRow({ Icon, label, pct }: { Icon: typeof AnthropicIcon; label: s
 
 function ScoreRow({ Icon, label, score, winner = false }: { Icon: typeof AnthropicIcon; label: string; score: number; winner?: boolean }) {
   return (
-    <div className="flex items-center gap-2 text-[10px]">
+    <div className="flex items-center gap-2 text-[11px]">
       <Icon className="w-2.5 h-2.5 shrink-0 text-white/70" />
-      {winner && <Trophy className="w-2.5 h-2.5 shrink-0 text-amber-300" aria-hidden="true" />}
+      {winner && <Trophy className="w-2.5 h-2.5 shrink-0 text-teal-300" aria-hidden="true" />}
       <span className="text-white/60 truncate flex-1 min-w-0">{label}</span>
       <div className="w-16 h-1 rounded-full bg-white/5 overflow-hidden shrink-0">
         <div
@@ -125,7 +125,7 @@ function FeaturesExplanation() {
 
 function FeatureRow({ Icon, title, body }: { Icon: typeof Trophy; title: string; body: string }) {
   return (
-    <div className="flex items-start gap-3.5 p-4 rounded-xl bg-white/[0.03] border border-white/10">
+    <div className="flex items-start gap-3.5 p-4 rounded-xl bg-surface-1 border border-white/10">
       <div className="w-9 h-9 rounded-lg bg-teal-400/10 border border-teal-400/20 flex items-center justify-center shrink-0">
         <Icon className="w-4 h-4 text-teal-300" />
       </div>
@@ -141,7 +141,7 @@ export function Features() {
   return (
     <section
       id="features"
-      className="relative py-24 sm:py-28 bg-gradient-to-b from-navy via-[#252547] to-navy scroll-mt-20 overflow-hidden"
+      className="relative py-24 sm:py-28 bg-navy scroll-mt-20 overflow-hidden"
     >
       {/* Soft accent orbs to match the rest of the dark sections */}
       <div className="pointer-events-none absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[140px]" />

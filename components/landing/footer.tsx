@@ -33,7 +33,7 @@ export function Footer() {
             <Link href="/" aria-label="aggrai" className="inline-block">
               <BrandLogo height={28} gradientId="footer-logo" />
             </Link>
-            <p className="mt-3 text-sm text-white/40 leading-relaxed">
+            <p className="mt-3 text-sm text-white/55 leading-relaxed">
               Compare AI models.
               <br />
               Get better answers.
@@ -48,7 +48,7 @@ export function Footer() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-white/40 hover:text-white/70 transition-colors"
+                      className="text-sm text-white/55 hover:text-white/70 transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -60,7 +60,7 @@ export function Footer() {
         </div>
 
         <div className="mt-14 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-white/30">
+          <p className="text-xs text-white/55">
             © {new Date().getFullYear()} aggrai. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
@@ -68,7 +68,7 @@ export function Footer() {
               href="https://x.com/aggrai"
               target="_blank"
               rel="noreferrer"
-              className="text-white/30 hover:text-white/60 transition-colors"
+              className="text-white/55 hover:text-white/60 transition-colors"
               aria-label="X (Twitter)"
             >
               {/* X.com logo — the slashed-X glyph */}
@@ -78,7 +78,7 @@ export function Footer() {
             </a>
             <Link
               href="/contact"
-              className="text-white/30 hover:text-white/60 transition-colors"
+              className="text-white/55 hover:text-white/60 transition-colors"
               aria-label="Contact"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">

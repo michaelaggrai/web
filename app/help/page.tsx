@@ -112,7 +112,7 @@ export default function HelpPage() {
         {FAQ.map(({ q, a }, i) => (
           <details
             key={i}
-            className="group rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition-colors hover:bg-white/[0.06] open:bg-white/[0.06]"
+            className="group rounded-2xl border border-white/10 bg-surface-1 p-5 transition-colors hover:bg-surface-2 open:bg-surface-2"
           >
             <summary className="cursor-pointer list-none flex items-start justify-between gap-3 text-sm font-medium text-white">
               <span>{q}</span>
@@ -125,7 +125,7 @@ export default function HelpPage() {
         ))}
       </div>
 
-      <p className="mt-10 text-sm text-white/40">
+      <p className="mt-10 text-sm text-white/55">
         Didn&apos;t find your answer?{" "}
         <Link
           href="/contact"

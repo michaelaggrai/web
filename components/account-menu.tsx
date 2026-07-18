@@ -125,19 +125,19 @@ export function AccountMenu({ variant = "sidebar" }: { variant?: Variant }) {
             aria-label="Account menu"
             className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-left transition hover:bg-white/10 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-teal-400/40"
           >
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-teal-400/15 border border-teal-400/30 text-[10px] font-semibold text-teal-200 shrink-0">
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-teal-400/15 border border-teal-400/30 text-[11px] font-semibold text-teal-200 shrink-0">
               {initial}
             </span>
             <span className="min-w-0 flex-1 flex items-center gap-1.5">
               <span className="text-xs text-white/60 truncate">{email}</span>
               <span
-                className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${TIER_STYLE[tier]}`}
+                className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${TIER_STYLE[tier]}`}
                 title={`Current plan: ${TIER_LABEL[tier]}`}
               >
                 {TIER_LABEL[tier]}
               </span>
             </span>
-            <ChevronDown className="w-3.5 h-3.5 text-white/40 shrink-0" aria-hidden="true" />
+            <ChevronDown className="w-3.5 h-3.5 text-white/55 shrink-0" aria-hidden="true" />
           </button>
         )}
       </DropdownMenuTrigger>
@@ -153,7 +153,7 @@ export function AccountMenu({ variant = "sidebar" }: { variant?: Variant }) {
           <div className="mt-0.5 flex items-center gap-1.5">
             <span className="text-xs text-white/50">on</span>
             <span
-              className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${TIER_STYLE[tier]}`}
+              className={`rounded-full border px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${TIER_STYLE[tier]}`}
             >
               {TIER_LABEL[tier]}
             </span>
@@ -205,7 +205,7 @@ export function AccountMenu({ variant = "sidebar" }: { variant?: Variant }) {
             I get? What's in Premium?) but it's not a primary action like
             Settings or Upgrade. Privacy + Terms keep their existing slot
             alongside it. */}
-        <div className="px-2 py-1.5 flex items-center gap-2 text-[11px] text-white/40">
+        <div className="px-2 py-1.5 flex items-center gap-2 text-[11px] text-white/55">
           <Link href="/models" className="hover:text-white/70 transition-colors">Models</Link>
           <span>·</span>
           <Link href="/privacy" className="hover:text-white/70 transition-colors">Privacy</Link>

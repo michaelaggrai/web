@@ -13,7 +13,7 @@ import {
 
 export default function CheckoutSuccessPage() {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547]" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-navy" />}>
       <Success />
     </Suspense>
   );
@@ -48,7 +48,7 @@ function Success() {
   const price = priceFor(plan, cycle);
 
   return (
-    <div className="relative min-h-dvh flex flex-col items-center justify-center bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-16 overflow-hidden">
+    <div className="relative min-h-dvh flex flex-col items-center justify-center bg-navy px-4 py-16 overflow-hidden">
       <div className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 w-[520px] h-[520px] bg-teal-500/15 rounded-full blur-[130px]" />
 
       <div className="relative z-10 w-full max-w-md">
@@ -56,7 +56,7 @@ function Success() {
           <HomeLink height={26} gradientId="success-logo" className="opacity-70 hover:opacity-100 transition-opacity" />
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
+        <div className="rounded-2xl border border-white/10 bg-surface-1 p-8 text-center">
           {/* Success mark */}
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-teal-400/15 ring-1 ring-teal-400/30">
             <Check className="h-7 w-7 text-teal-300" aria-hidden="true" />
@@ -68,7 +68,7 @@ function Success() {
           </p>
 
           {/* Receipt summary */}
-          <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left text-sm">
+          <div className="mt-6 rounded-xl border border-white/10 bg-surface-1 p-4 text-left text-sm">
             <Line label="Plan">
               <span className="inline-flex items-center gap-1.5">
                 <Icon className={`w-4 h-4 ${plan.iconColor}`} aria-hidden="true" />
@@ -96,21 +96,21 @@ function Success() {
               and the model picker pick up the new tier on a fresh load. */}
           <a
             href="/app?upgraded=1"
-            className="mt-6 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 py-3 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:from-teal-400 hover:to-teal-400"
+            className="mt-6 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 py-3 text-sm font-semibold text-navy shadow-lg shadow-teal-500/20 transition hover:from-teal-400 hover:to-teal-400"
           >
             Start comparing
             <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </a>
           <Link
             href="/settings"
-            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-white/[0.04] py-2.5 text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-surface-1 py-2.5 text-sm text-white/70 transition hover:bg-surface-2 hover:text-white"
           >
             <SettingsIcon className="w-4 h-4" aria-hidden="true" />
             Manage subscription
           </Link>
         </div>
 
-        <p className="mt-6 text-center text-xs text-white/30">
+        <p className="mt-6 text-center text-xs text-white/55">
           Need help? <Link href="/contact" className="text-white/50 hover:text-white underline underline-offset-2">Contact us</Link>
         </p>
       </div>
@@ -121,7 +121,7 @@ function Success() {
 function Line({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 py-1.5 border-b border-white/5 last:border-0">
-      <span className="text-xs uppercase tracking-wider text-white/40">{label}</span>
+      <span className="text-xs uppercase tracking-wider text-white/55">{label}</span>
       {children}
     </div>
   );

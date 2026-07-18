@@ -10,7 +10,7 @@ import { AnalyticsDashboard } from "@/components/settings/analytics";
 
 export default function AnalyticsPage() {
   return (
-    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-10">
+    <div className="relative min-h-dvh bg-navy px-4 py-10">
       <div className="pointer-events-none absolute top-24 left-1/4 h-[420px] w-[420px] rounded-full bg-teal-500/10 blur-[120px]" />
       <div className="relative z-10 mx-auto max-w-3xl">
         <div className="mb-8 flex items-center justify-between">
@@ -25,7 +25,7 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-white">Your analytics</h1>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <div className="rounded-2xl border border-white/10 bg-surface-1 p-5">
           <AnalyticsDashboard />
         </div>
       </div>

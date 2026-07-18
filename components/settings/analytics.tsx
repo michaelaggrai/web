@@ -98,12 +98,12 @@ export function AnalyticsDashboard() {
     <div>
       {/* Tabs + range */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+        <div className="inline-flex rounded-lg border border-white/10 bg-surface-1 p-0.5">
           <SegBtn active={tab === "overview"} onClick={() => setTab("overview")}>Overview</SegBtn>
           <SegBtn active={tab === "models"} onClick={() => setTab("models")}>Models</SegBtn>
           <SegBtn active={tab === "insights"} onClick={() => setTab("insights")}>Insights</SegBtn>
         </div>
-        <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+        <div className="inline-flex rounded-lg border border-white/10 bg-surface-1 p-0.5">
           {(["all", "30d", "7d"] as Range[]).map((r) => {
             const locked = r === "all" && data != null && !paid;
             return (
@@ -140,7 +140,7 @@ export function AnalyticsDashboard() {
       ) : null}
 
       {data?.clampedFromAll && (
-        <p className="mt-4 text-xs text-white/40">
+        <p className="mt-4 text-xs text-white/55">
           Showing the last 30 days. <Link href="/upgrade" className="text-teal-300 hover:underline">Upgrade to Pro</Link> for your full history.
         </p>
       )}
@@ -165,11 +165,11 @@ function OverviewTab({ overview, range }: { overview: Overview; range: Range }) 
         {cards.map((c) => <StatCard key={c.label} {...c} />)}
       </div>
       <div>
-        <div className="mb-2 text-[11px] uppercase tracking-wider text-white/40">Activity</div>
+        <div className="mb-2 text-[11px] uppercase tracking-wider text-white/55">Activity</div>
         {o.dailyActivity.length
           ? <Heatmap data={o.dailyActivity} range={range} />
-          : <div className="text-sm text-white/40">No activity in this range yet.</div>}
-        {o.totalTokens > 0 && <p className="mt-3 text-xs text-white/40">{o.funFact} of generated text.</p>}
+          : <div className="text-sm text-white/55">No activity in this range yet.</div>}
+        {o.totalTokens > 0 && <p className="mt-3 text-xs text-white/55">{o.funFact} of generated text.</p>}
       </div>
     </div>
   );
@@ -179,10 +179,10 @@ function OverviewTab({ overview, range }: { overview: Overview; range: Range }) 
 // at the numeric 18px size.
 function StatCard({ label, value, sub, small }: { label: string; value: string; sub?: string; small?: boolean }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
-      <div className="text-[11px] uppercase tracking-wider text-white/40">{label}</div>
+    <div className="rounded-xl border border-white/10 bg-surface-1 px-4 py-3">
+      <div className="text-[11px] uppercase tracking-wider text-white/55">{label}</div>
       <div className={`truncate font-semibold text-white ${small ? "mt-1.5 text-sm" : "mt-1 text-lg"}`} title={value}>{value}</div>
-      {sub && <div className="truncate text-[11px] text-white/40">{sub}</div>}
+      {sub && <div className="truncate text-[11px] text-white/55">{sub}</div>}
     </div>
   );
 }
@@ -227,7 +227,7 @@ function Heatmap({ data, range }: { data: { date: string; count: number }[]; ran
   }
 
   const bucket = (c: number) => (c <= 0 ? 0 : c / max > 0.66 ? 3 : c / max > 0.33 ? 2 : 1);
-  const shade = ["bg-white/[0.05]", "bg-teal-400/25", "bg-teal-400/55", "bg-teal-400/90"];
+  const shade = ["bg-surface-2", "bg-teal-400/25", "bg-teal-400/55", "bg-teal-400/90"];
   const fmtDay = (key: string) => {
     const d = new Date(key + "T00:00:00Z");
     return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
@@ -239,14 +239,14 @@ function Heatmap({ data, range }: { data: { date: string; count: number }[]; ran
         {/* Month axis — labels sit above the week column where the month starts. */}
         <div className="mb-1 flex gap-1 pl-8">
           {weeks.map((w, wi) => (
-            <div key={wi} className="w-3.5 whitespace-nowrap text-[9px] leading-none text-white/35">{w.label}</div>
+            <div key={wi} className="w-3.5 whitespace-nowrap text-[11px] leading-none text-white/55">{w.label}</div>
           ))}
         </div>
         <div className="flex gap-1">
           {/* Weekday axis */}
           <div className="flex w-7 flex-col gap-1">
             {DOW_LABEL.map((lbl, i) => (
-              <div key={i} className="h-3.5 text-right text-[9px] leading-[14px] text-white/35">{lbl}</div>
+              <div key={i} className="h-3.5 text-right text-[11px] leading-[14px] text-white/55">{lbl}</div>
             ))}
           </div>
           {weeks.map((w, wi) => (
@@ -268,17 +268,17 @@ function Heatmap({ data, range }: { data: { date: string; count: number }[]; ran
 
 function ModelsTab({ models }: { models: ModelRow[] }) {
   if (!models.length) {
-    return <div className="text-sm text-white/40">No model runs in this range yet — this fills in as you compare models.</div>;
+    return <div className="text-sm text-white/55">No model runs in this range yet — this fills in as you compare models.</div>;
   }
   const maxQ = Math.max(...models.map((m) => m.questions));
   return (
     <div className="space-y-2">
       {models.map((m) => (
-        <div key={m.model} className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+        <div key={m.model} className="rounded-xl border border-white/10 bg-surface-1 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-sm font-medium text-white">{modelLabel(m.model)}</div>
-              <div className="text-[11px] text-white/40">
+              <div className="text-[11px] text-white/55">
                 {m.questions} answer{m.questions === 1 ? "" : "s"} · {compact(m.tokens)} tokens
               </div>
             </div>
@@ -288,7 +288,7 @@ function ModelsTab({ models }: { models: ModelRow[] }) {
               </span>
             )}
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
             <div className="h-full rounded-full bg-teal-400/70" style={{ width: `${Math.max(4, (m.questions / maxQ) * 100)}%` }} />
           </div>
         </div>
@@ -301,7 +301,7 @@ function InsightsTab({ insights }: { insights: Insights }) {
   const i = insights;
   if (!i.topicBreakdown.length) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-6 text-center text-sm text-white/50">
+      <div className="rounded-xl border border-white/10 bg-surface-1 px-4 py-6 text-center text-sm text-white/50">
         {i.totalQuestions === 0
           ? "Ask a few questions and your topic insights will appear here."
           : "Your questions are still being categorised — topics are tagged nightly. Check back soon."}
@@ -312,12 +312,12 @@ function InsightsTab({ insights }: { insights: Insights }) {
   return (
     <div className="space-y-6">
       <div>
-        <div className="mb-2 text-[11px] uppercase tracking-wider text-white/40">Topic breakdown</div>
+        <div className="mb-2 text-[11px] uppercase tracking-wider text-white/55">Topic breakdown</div>
         <div className="space-y-1.5">
           {i.topicBreakdown.map((t) => (
             <div key={t.topic} className="flex items-center gap-3">
               <div className="w-32 shrink-0 truncate text-xs text-white/70">{t.topic}</div>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
                 <div className="h-full rounded-full bg-teal-400/70" style={{ width: `${Math.max(3, (t.count / maxTopic) * 100)}%` }} />
               </div>
               <div className="w-8 shrink-0 text-right text-xs tabular-nums text-white/50">{t.count}</div>
@@ -328,24 +328,24 @@ function InsightsTab({ insights }: { insights: Insights }) {
 
       {i.bestPerTopic.length > 0 && (
         <div>
-          <div className="mb-2 text-[11px] uppercase tracking-wider text-white/40">Best model per topic</div>
+          <div className="mb-2 text-[11px] uppercase tracking-wider text-white/55">Best model per topic</div>
           <div className="space-y-2">
             {i.bestPerTopic.map((b) => (
-              <div key={b.topic} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2.5">
+              <div key={b.topic} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-surface-1 px-4 py-2.5">
                 <div className="min-w-0">
-                  <div className="text-xs text-white/40">{b.topic}</div>
+                  <div className="text-xs text-white/55">{b.topic}</div>
                   <div className="truncate text-sm font-medium text-white">{modelLabel(b.model)}</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="rounded-full border border-teal-400/20 bg-teal-400/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-teal-200">
                     {b.avgScore.toFixed(1)}<span className="text-teal-300/50">/10</span>
                   </span>
-                  <span className="text-[10px] text-white/30">n={b.samples}</span>
+                  <span className="text-[11px] text-white/55">n={b.samples}</span>
                 </div>
               </div>
             ))}
           </div>
-          <p className="mt-2 text-[11px] text-white/30">Highest average aggrai score across your questions in each topic.</p>
+          <p className="mt-2 text-[11px] text-white/55">Highest average aggrai score across your questions in each topic.</p>
         </div>
       )}
 
@@ -353,7 +353,7 @@ function InsightsTab({ insights }: { insights: Insights }) {
 
       {/* Freshness: Overview + Models are live, but topics come from the nightly
           tag-topics cron — so this tab alone can lag by up to a day. */}
-      <p className="text-[11px] text-white/30">
+      <p className="text-[11px] text-white/55">
         {i.tagged < i.totalQuestions
           ? `${i.tagged} of ${i.totalQuestions} questions categorised so far — topics are tagged nightly, so your most recent ones may not appear yet.`
           : "Topics are tagged nightly, so questions you ask today may not appear here until tomorrow."}
@@ -371,12 +371,12 @@ function ScoreTrend({ data }: { data: { date: string; avgScore: number; n: numbe
   const pts = xs.map((x, idx) => `${x.toFixed(1)},${ys[idx].toFixed(1)}`).join(" ");
   return (
     <div>
-      <div className="mb-2 text-[11px] uppercase tracking-wider text-white/40">Score trend</div>
+      <div className="mb-2 text-[11px] uppercase tracking-wider text-white/55">Score trend</div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Average answer score over time">
         <polyline points={pts} fill="none" stroke="#2dd4bf" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
         {xs.map((x, idx) => <circle key={idx} cx={x} cy={ys[idx]} r={2.5} fill="#2dd4bf" />)}
       </svg>
-      <div className="mt-1 flex justify-between text-[10px] text-white/30">
+      <div className="mt-1 flex justify-between text-[11px] text-white/55">
         <span>{data[0].date}</span>
         <span>avg aggrai score · 0–10</span>
         <span>{data[data.length - 1].date}</span>
@@ -404,7 +404,7 @@ function SegBtn({
         active
           ? "bg-white/90 text-neutral-900"
           : locked
-            ? "cursor-not-allowed text-white/25"
+            ? "cursor-not-allowed text-white/55"
             : "text-white/60 hover:text-white/90"
       }`}
     >
@@ -415,7 +415,7 @@ function SegBtn({
 
 function SignInPrompt() {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-6 text-center">
+    <div className="rounded-xl border border-white/10 bg-surface-1 px-4 py-6 text-center">
       <p className="text-sm text-white/60">Sign in to see your analytics.</p>
       <Link
         href="/signin?next=/settings/analytics"
@@ -432,10 +432,10 @@ function DashSkeleton() {
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="h-[68px] animate-pulse rounded-xl border border-white/10 bg-white/[0.02]" />
+          <div key={i} className="h-[68px] animate-pulse rounded-xl border border-white/10 bg-surface-1" />
         ))}
       </div>
-      <div className="h-24 animate-pulse rounded-xl border border-white/10 bg-white/[0.02]" />
+      <div className="h-24 animate-pulse rounded-xl border border-white/10 bg-surface-1" />
     </div>
   );
 }

@@ -52,7 +52,7 @@ export default function ContactPage() {
   // After a successful send — show a friendly confirmation rather than the form.
   if (sent) {
     return (
-      <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-16 overflow-hidden">
+      <div className="relative min-h-dvh bg-navy px-4 py-16 overflow-hidden">
         <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
         <div className="relative z-10 mx-auto max-w-md text-center">
           <div className="mb-8 inline-block">
@@ -84,7 +84,7 @@ export default function ContactPage() {
                   setMessage("");
                   setTopic("general");
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-teal-500 to-teal-400 px-4 py-2 text-sm font-medium text-white hover:from-teal-400 hover:to-teal-400 transition"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-teal-500 to-teal-400 px-4 py-2 text-sm font-semibold text-navy hover:from-teal-400 hover:to-teal-400 transition"
               >
                 Send another
               </button>
@@ -98,7 +98,7 @@ export default function ContactPage() {
   const selected = TOPICS.find(t => t.id === topic)!;
 
   return (
-    <div className="relative min-h-dvh bg-gradient-to-b from-navy via-navy to-[#252547] px-4 py-12 overflow-hidden">
+    <div className="relative min-h-dvh bg-navy px-4 py-12 overflow-hidden">
       <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
       <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
 
@@ -125,7 +125,7 @@ export default function ContactPage() {
         <form onSubmit={onSubmit} className="space-y-6">
           {/* Topic picker */}
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-white/40 mb-3">What&apos;s this about?</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-white/55 mb-3">What&apos;s this about?</p>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {TOPICS.map(t => {
                 const Icon = t.icon;
@@ -139,7 +139,7 @@ export default function ContactPage() {
                     className={`flex flex-col items-center justify-center rounded-xl border px-2 py-3 text-center transition min-h-[44px] ${
                       active
                         ? "border-teal-400/60 bg-teal-400/[0.08]"
-                        : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                        : "border-white/10 bg-surface-1 hover:border-white/20"
                     }`}
                   >
                     <Icon className={`w-4 h-4 mb-1.5 ${active ? "text-teal-300" : "text-white/50"}`} />
@@ -148,12 +148,12 @@ export default function ContactPage() {
                 );
               })}
             </div>
-            <p className="mt-2 text-xs text-white/40">{selected.description}</p>
+            <p className="mt-2 text-xs text-white/55">{selected.description}</p>
           </div>
 
           {/* Name */}
           <div>
-            <label htmlFor="contact-name" className="block text-xs font-medium uppercase tracking-wider text-white/40 mb-2">
+            <label htmlFor="contact-name" className="block text-xs font-medium uppercase tracking-wider text-white/55 mb-2">
               Your name
             </label>
             <input
@@ -166,13 +166,13 @@ export default function ContactPage() {
               autoComplete="name"
               maxLength={120}
               aria-invalid={error ? true : undefined}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
+              className="w-full rounded-xl border border-white/10 bg-surface-1 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/30 transition-colors"
             />
           </div>
 
           {/* Email */}
           <div>
-            <label htmlFor="contact-email" className="block text-xs font-medium uppercase tracking-wider text-white/40 mb-2">
+            <label htmlFor="contact-email" className="block text-xs font-medium uppercase tracking-wider text-white/55 mb-2">
               Email
             </label>
             <input
@@ -185,13 +185,13 @@ export default function ContactPage() {
               autoComplete="email"
               maxLength={200}
               aria-invalid={error ? true : undefined}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
+              className="w-full rounded-xl border border-white/10 bg-surface-1 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/30 transition-colors"
             />
           </div>
 
           {/* Message */}
           <div>
-            <label htmlFor="contact-message" className="block text-xs font-medium uppercase tracking-wider text-white/40 mb-2">
+            <label htmlFor="contact-message" className="block text-xs font-medium uppercase tracking-wider text-white/55 mb-2">
               Message
             </label>
             <textarea
@@ -210,9 +210,9 @@ export default function ContactPage() {
               minLength={10}
               maxLength={5000}
               aria-invalid={error ? true : undefined}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors resize-y"
+              className="w-full rounded-xl border border-white/10 bg-surface-1 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/30 transition-colors resize-y"
             />
-            <p className="mt-1.5 text-[11px] text-white/30 text-right tabular-nums">{message.length} / 5000</p>
+            <p className="mt-1.5 text-[11px] text-white/55 text-right tabular-nums">{message.length} / 5000</p>
           </div>
 
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
@@ -220,13 +220,13 @@ export default function ContactPage() {
           <button
             type="submit"
             disabled={submitting || !name || !email || message.length < 10}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-4 py-3 text-sm font-medium text-white transition hover:from-teal-400 hover:to-teal-400 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-4 py-3 text-sm font-semibold text-navy transition hover:from-teal-400 hover:to-teal-400 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? "Sending…" : "Send message"}
             {!submitting && <ArrowRight className="w-4 h-4" />}
           </button>
 
-          <p className="text-[11px] text-white/30 text-center">
+          <p className="text-[11px] text-white/55 text-center">
             Prefer email? <a href="mailto:hello@aggrai.com" className="text-white/50 hover:text-white underline underline-offset-2">hello@aggrai.com</a> works too.
           </p>
         </form>

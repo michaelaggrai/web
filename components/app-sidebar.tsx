@@ -144,7 +144,7 @@ export function AppSidebar({
             ref={closeBtnRef}
             type="button"
             onClick={onClose}
-            className="lg:hidden inline-flex items-center justify-center p-2 -mr-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition"
+            className="lg:hidden inline-flex items-center justify-center p-2 -mr-1.5 rounded-lg text-white/55 hover:text-white hover:bg-white/5 transition"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
@@ -166,11 +166,11 @@ export function AppSidebar({
 
         {/* Recents */}
         <div className="flex-1 overflow-y-auto px-3">
-          <p className="px-1 py-2 text-[11px] font-semibold uppercase tracking-wider text-white/30">
+          <p className="px-1 py-2 text-[11px] font-semibold uppercase tracking-wider text-white/55">
             Recents
           </p>
           {recents.length === 0 ? (
-            <p className="px-1 text-xs leading-relaxed text-white/30">
+            <p className="px-1 text-xs leading-relaxed text-white/55">
               Your past comparisons will appear here.
             </p>
           ) : (
@@ -199,9 +199,10 @@ export function AppSidebar({
             AGG-38 #2: safe-area-inset-bottom so the Sign-out / settings
             buttons clear the iOS home indicator on devices without a
             physical home button. */}
-        <div className="border-t border-white/5 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-2">
-          {signedIn ? (
-            <>
+        {/* P3 #16: anonymous users use the header's Log in / Sign up pair —
+            no duplicate sidebar login. Footer only renders when signed in. */}
+        {signedIn && (
+          <div className="border-t border-white/5 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-2">
               {canUpgrade && (
                 <Link
                   href="/upgrade"
@@ -231,16 +232,8 @@ export function AppSidebar({
                 Settings
               </Link>
               <AccountMenu />
-            </>
-          ) : (
-            <Link
-              href="/signin"
-              className="flex w-full items-center justify-center rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
-            >
-              Log in
-            </Link>
-          )}
-        </div>
+          </div>
+        )}
       </aside>
     </>
   );

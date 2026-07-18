@@ -120,16 +120,16 @@ export function MemorySettings() {
   }
 
   if (loading) {
-    return <div className="h-24 rounded-xl border border-white/10 bg-white/[0.02] animate-pulse" />;
+    return <div className="h-24 rounded-xl border border-white/10 bg-surface-1 animate-pulse" />;
   }
 
   return (
     <div className="space-y-4">
       {/* Master switch */}
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-surface-1 px-4 py-3">
         <div className="min-w-0">
           <div className="text-sm font-medium text-white/85">Use memory</div>
-          <div className="text-xs text-white/40">
+          <div className="text-xs text-white/55">
             Tailors answers as you continue a conversation. Your first question in a thread stays neutral.
           </div>
         </div>
@@ -137,7 +137,7 @@ export function MemorySettings() {
       </div>
 
       {enabled && (
-        <div className="space-y-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <div className="space-y-4 rounded-xl border border-white/10 bg-surface-1 p-4">
           <Field label="Response length">
             <PillGroup options={LENGTH_OPTS} value={length} onChange={mark(setLength)} />
           </Field>
@@ -151,7 +151,7 @@ export function MemorySettings() {
               maxLength={300}
               onChange={(e) => mark(setExpertise)(e.target.value)}
               placeholder="e.g. Senior backend engineer, comfortable with TypeScript"
-              className="w-full rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-white/30 focus:outline-none"
+              className="w-full rounded-lg border border-white/15 bg-surface-1 px-3 py-2 text-sm text-white placeholder:text-white/45 focus:border-white/30 focus:outline-none"
             />
           </Field>
           <Field label="Recurring interests">
@@ -161,7 +161,7 @@ export function MemorySettings() {
               maxLength={300}
               onChange={(e) => mark(setTopics)(e.target.value)}
               placeholder="e.g. AI infrastructure, startups, climate tech"
-              className="w-full rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-white/30 focus:outline-none"
+              className="w-full rounded-lg border border-white/15 bg-surface-1 px-3 py-2 text-sm text-white placeholder:text-white/45 focus:border-white/30 focus:outline-none"
             />
           </Field>
           <Field label="Anything else aggrai should know">
@@ -171,18 +171,18 @@ export function MemorySettings() {
               rows={3}
               onChange={(e) => mark(setCustom)(e.target.value)}
               placeholder="Free-form. e.g. Prefer answers with code examples; based in the UK."
-              className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-white/30 focus:outline-none"
+              className="w-full resize-y rounded-lg border border-white/15 bg-surface-1 px-3 py-2 text-sm text-white placeholder:text-white/45 focus:border-white/30 focus:outline-none"
             />
           </Field>
         </div>
       )}
 
       {/* Implicit / auto-learned */}
-      <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+      <div className="space-y-3 rounded-xl border border-white/10 bg-surface-1 p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-sm font-medium text-white/85">Learn from my conversations</div>
-            <div className="text-xs text-white/40">
+            <div className="text-xs text-white/55">
               Off by default. When on, aggrai periodically notes durable preferences from your chats — you can review and clear them below.
             </div>
           </div>
@@ -190,8 +190,8 @@ export function MemorySettings() {
         </div>
 
         {facts.length > 0 && (
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
-            <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-white/40">
+          <div className="rounded-lg border border-white/10 bg-surface-1 p-3">
+            <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-white/55">
               Learned about you
             </div>
             <ul className="space-y-1.5">
@@ -225,7 +225,7 @@ export function MemorySettings() {
           {saving ? "Saving…" : "Save preferences"}
         </button>
         {saved && <span className="text-xs text-teal-300">Saved</span>}
-        {dirty && !saving && <span className="text-xs text-white/40">Unsaved changes</span>}
+        {dirty && !saving && <span className="text-xs text-white/55">Unsaved changes</span>}
         {error && <span className="text-xs text-red-300">{error}</span>}
       </div>
     </div>
@@ -235,9 +235,9 @@ export function MemorySettings() {
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs uppercase tracking-wider text-white/40">{label}</label>
+      <label className="mb-1.5 block text-xs uppercase tracking-wider text-white/55">{label}</label>
       {children}
-      {hint && <p className="mt-1 text-[11px] text-white/30">{hint}</p>}
+      {hint && <p className="mt-1 text-[11px] text-white/55">{hint}</p>}
     </div>
   );
 }
@@ -261,7 +261,7 @@ function PillGroup({
             className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
               active
                 ? "border-teal-400/40 bg-teal-400/15 text-teal-200"
-                : "border-white/10 bg-white/[0.02] text-white/60 hover:bg-white/5 hover:text-white/80"
+                : "border-white/10 bg-surface-1 text-white/60 hover:bg-white/5 hover:text-white/80"
             }`}
           >
             {o.label}
