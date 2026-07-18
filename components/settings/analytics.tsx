@@ -316,7 +316,7 @@ function InsightsTab({ insights }: { insights: Insights }) {
         <div className="space-y-1.5">
           {i.topicBreakdown.map((t) => (
             <div key={t.topic} className="flex items-center gap-3">
-              <div className="w-32 shrink-0 truncate text-xs text-white/70">{t.topic}</div>
+              <div className="w-44 shrink-0 text-xs leading-tight text-white/70" title={t.topic}>{t.topic}</div>
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
                 <div className="h-full rounded-full bg-teal-400/70" style={{ width: `${Math.max(3, (t.count / maxTopic) * 100)}%` }} />
               </div>
