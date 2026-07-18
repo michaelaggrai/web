@@ -1382,6 +1382,11 @@ function Home() {
       });
   }, [signedIn, searchParams]);
 
+  // The "Shared" link belongs to the conversation you shared — clear it when the
+  // active conversation changes (click a recent / new comparison / new ask) so a
+  // stale share URL doesn't linger on the next conversation.
+  useEffect(() => { setShareUrl(null); }, [activeConvId, activeRecentId]);
+
   // Restoring /app/c/{id} on load. Two things live in two places: the ORIGINAL
   // comparison (turns 0-1) is cached in sessionStorage AND in Supabase; the
   // FOLLOW-UP turns (2+) live only in Supabase. So sessionStorage having the
