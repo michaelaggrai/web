@@ -34,7 +34,12 @@ export async function proxy(req: NextRequest) {
   if (pathname.startsWith("/share/")) return NextResponse.next();
   if (req.cookies.get("auth")?.value !== PASSWORD) {
     const url = req.nextUrl.clone();
+    // Preserve where they were headed so /login can send them back there after
+    // the password (e.g. a shared-link Continue → /app/c/{id} or /signin?next=…),
+    // instead of dumping everyone on the landing page.
+    const dest = url.pathname + url.search;
     url.pathname = "/login";
+    url.search = dest && dest !== "/" ? `?next=${encodeURIComponent(dest)}` : "";
     return NextResponse.redirect(url);
   }
 

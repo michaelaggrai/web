@@ -40,7 +40,11 @@ export default function LoginPage() {
         // the password / refresh a few times" flakiness. A full document load
         // re-requests "/" with the freshly-set `auth` cookie, so the gate
         // sees it on the first try. Keep `loading` true — the page unloads.
-        window.location.assign("/");
+        // Honour ?next (the destination the proxy stashed), validated to a
+        // same-origin path so it can't be an open redirect.
+        const raw = new URLSearchParams(window.location.search).get("next");
+        const next = raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+        window.location.assign(next);
         return;
       }
       // 500 = SITE_PASSWORD env var unset on the server. Surface a
