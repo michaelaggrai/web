@@ -309,7 +309,7 @@ export function SharedAnswers({ answers }: { answers: ShareAnswer[] }) {
                 </div>
               </button>
               {shown && a.answer && (
-                <div className="px-5 pb-5 prose prose-sm prose-invert max-w-prose prose-p:my-2 prose-strong:text-white [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_img]:max-w-full [&_code]:break-words">
+                <div className="px-5 pb-5 prose prose-sm prose-invert max-w-prose prose-h1:text-lg prose-h1:font-semibold prose-h1:text-white prose-h1:mt-4 prose-h1:mb-2 prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2 prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2 prose-p:my-2 prose-strong:text-white [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_img]:max-w-full [&_code]:break-words">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{a.answer}</ReactMarkdown>
                 </div>
               )}

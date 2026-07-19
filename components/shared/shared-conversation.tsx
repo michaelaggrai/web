@@ -17,6 +17,7 @@ const label = (id: string) => LABELS[id] ?? id.split("/").pop() ?? id;
 
 const PROSE =
   "prose prose-sm sm:prose-base prose-invert max-w-prose " +
+  "prose-h1:text-lg prose-h1:font-semibold prose-h1:text-white prose-h1:mt-4 prose-h1:mb-2 " +
   "prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2 " +
   "prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2 " +
   "prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white";
