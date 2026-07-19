@@ -13,21 +13,26 @@ const DEFAULT_CTA_CLASS =
 // POSTs to /api/share/[id]/fork, which seeds a new /app/c/{id} they own with ALL
 // turns (root + follow-ups); /converse then reads that thread for full context.
 //
-// Anyone can continue regardless of tier: the link is public and /converse
-// re-gates each follow-up model against the viewer's plan, so gating here would
-// be redundant (and free-tier shares pass anyway). Anon viewers have no account
-// to own a fork, so they fall back to the models-only handoff (and during closed
-// beta hit the login gate on /app regardless).
+// Tier policy (matches the in-app continue gate): a comparison built entirely
+// from Free-tier models can be continued by an account-less GUEST — we mint an
+// anonymous Supabase session so they own + continue a fork with NO signup. If
+// any model is above Free (`allFree` false), continuing needs a paid account,
+// so we skip the guest mint and route to sign-in rather than fork a throwaway
+// anon user into the app's upgrade gate. Either way /converse re-gates each
+// follow-up against the viewer's plan, so this is UX, not the security boundary.
 export function ShareContinue({
   id,
   models,
   snapshot,
+  allFree = false,
   label = "Continue in aggrai →",
   className = DEFAULT_CTA_CLASS,
 }: {
   id: string;
   models: string[];
   snapshot: ShareSnapshot;
+  /** Every model is Free-tier → an account-less guest may continue (no signup). */
+  allFree?: boolean;
   label?: string;
   className?: string;
 }) {
@@ -86,11 +91,15 @@ export function ShareContinue({
     }
 
     setBusy(true);
-    // Guest continuation: account-less viewers get an anonymous Supabase session
-    // so they can own + continue a fork WITHOUT signing up. Requires "anonymous
-    // sign-ins" enabled on the project; if it's off, signInAnonymously errors and
-    // we fall back to free signup (?next auto-forks on return — no dead-end).
-    if (!authed && isSupabaseConfigured) {
+    // Guest continuation (Free-tier conversations only): account-less viewers get
+    // an anonymous Supabase session so they can own + continue a fork WITHOUT
+    // signing up. Requires "anonymous sign-ins" enabled on the project; if it's
+    // off, signInAnonymously errors and we fall back to signup (?next auto-forks
+    // on return — no dead-end). For a conversation with above-Free models we skip
+    // this entirely: a guest couldn't continue it anyway, so we send them to
+    // sign-in rather than mint a throwaway anon user + a fork they'd hit the
+    // upgrade gate on.
+    if (!authed && isSupabaseConfigured && allFree) {
       try {
         const { data, error } = await createClient().auth.signInAnonymously();
         if (!error && data?.user) authed = true;
