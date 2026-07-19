@@ -1198,6 +1198,10 @@ function Home() {
   const [followups, setFollowups] = useState<Followup[]>([]);
   // AGG-44: share-link state — the created public URL + an in-flight flag.
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  // "Always latest" share: the (conversation, turn-count) we last pushed to the
+  // share row, so a shared conversation silently refreshes its ONE link as new
+  // turns land — without re-pushing on every render.
+  const sharePushRef = useRef<{ cid: string | null; turns: number }>({ cid: null, turns: -1 });
   // Brief "Copied!" flash when the share link is (re-)copied.
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -1411,7 +1415,21 @@ function Home() {
   // The "Shared" link belongs to the conversation you shared — clear it when the
   // active conversation changes (click a recent / new comparison / new ask) so a
   // stale share URL doesn't linger on the next conversation.
-  useEffect(() => { setShareUrl(null); }, [activeConvId, activeRecentId]);
+  // On opening/switching a conversation, surface its existing share link (if any)
+  // so the shared state shows immediately and the per-turn refresh below can keep
+  // it current. turns:-1 forces one sync push so a link made before later turns
+  // catches up to the latest.
+  useEffect(() => {
+    const cid = activeConvId;
+    sharePushRef.current = { cid: cid ?? null, turns: -1 };
+    if (!cid) { setShareUrl(null); return; }
+    let alive = true;
+    fetch(`/api/share?conversationId=${encodeURIComponent(cid)}`)
+      .then((r) => r.json())
+      .then((d) => { if (alive) setShareUrl(d?.url ?? null); })
+      .catch(() => { if (alive) setShareUrl(null); });
+    return () => { alive = false; };
+  }, [activeConvId, activeRecentId]);
 
   // Restoring /app/c/{id} on load. Two things live in two places: the ORIGINAL
   // comparison (turns 0-1) is cached in sessionStorage AND in Supabase; the
@@ -1917,12 +1935,40 @@ function Home() {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.url) {
         setShareUrl(data.url);
-        try { await navigator.clipboard?.writeText(data.url); } catch { /* clipboard blocked — link still shown */ }
+        // Mark this turn-count as pushed so the per-turn refresh effect doesn't
+        // immediately re-send the same snapshot.
+        sharePushRef.current = { cid: activeConvId ?? null, turns: snapshot.turns.length };
+        try {
+          await navigator.clipboard?.writeText(data.url);
+          setCopied(true); window.setTimeout(() => setCopied(false), 1500);
+        } catch { /* clipboard blocked — link still shown in the tooltip */ }
       }
     } catch { /* network — button stays ready to retry */ } finally {
       setSharing(false);
     }
   }
+
+  // Per-turn refresh: once a conversation is shared, keep its single link current
+  // as new turns settle — so an old link is never stale. Skips while streaming and
+  // only re-pushes when the turn count actually grows for this conversation (the
+  // POST upserts by conversationId, so the URL never changes).
+  useEffect(() => {
+    if (!shareUrl || loading || followupLoading) return;
+    const snap = buildShareSnapshot();
+    if (!snap) return;
+    const cid = activeConvId ?? null;
+    const seen = sharePushRef.current;
+    if (seen.cid === cid && seen.turns >= snap.turns.length) return;
+    sharePushRef.current = { cid, turns: snap.turns.length };
+    fetch("/api/share", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ snapshot: snap, conversationId: cid }),
+    })
+      .then((r) => r.json())
+      .then((d) => { if (d?.url) setShareUrl(d.url); })
+      .catch(() => { /* refresh is best-effort */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shareUrl, loading, followupLoading, result, followups, activeConvId]);
   // Re-copy the share link on demand, with a brief "Copied!" flash so the click
   // clearly registers (the link is already auto-copied on Share).
   async function copyShareLink() {
@@ -2324,7 +2370,7 @@ function Home() {
                   className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300/25 bg-teal-300/[0.06] px-3 py-1.5 text-xs font-medium text-teal-200 hover:bg-teal-300/10 transition"
                 >
                   <Check className="w-3.5 h-3.5 shrink-0 text-teal-300" aria-hidden="true" />
-                  {copied ? "Copied!" : "Shared link copied"}
+                  {copied ? "Copied!" : "Copy share link"}
                 </button>
               ) : (
                 <button
