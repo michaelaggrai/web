@@ -1421,12 +1421,22 @@ function Home() {
   // catches up to the latest.
   useEffect(() => {
     const cid = activeConvId;
-    sharePushRef.current = { cid: cid ?? null, turns: -1 };
+    // Block auto-push until we know the share's turn count (below). MAX means "no
+    // push yet" — so a partial snapshot mid-hydration (root before the thread
+    // loads) can't shrink an existing link back to just the root.
+    sharePushRef.current = { cid: cid ?? null, turns: Number.MAX_SAFE_INTEGER };
     if (!cid) { setShareUrl(null); return; }
     let alive = true;
     fetch(`/api/share?conversationId=${encodeURIComponent(cid)}`)
       .then((r) => r.json())
-      .then((d) => { if (alive) setShareUrl(d?.url ?? null); })
+      .then((d) => {
+        if (!alive) return;
+        setShareUrl(d?.url ?? null);
+        // Baseline the guard to the share's CURRENT turns — auto-push then only
+        // fires when the conversation has grown beyond it (never shrinks it, and
+        // does sync a stale link UP once the thread has hydrated).
+        if (d?.url) sharePushRef.current = { cid: cid ?? null, turns: typeof d.nTurns === "number" ? d.nTurns : 0 };
+      })
       .catch(() => { if (alive) setShareUrl(null); });
     return () => { alive = false; };
   }, [activeConvId, activeRecentId]);

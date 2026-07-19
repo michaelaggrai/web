@@ -118,10 +118,23 @@ export async function GET(req: NextRequest) {
   const convId = req.nextUrl.searchParams.get("conversationId");
   if (!convId) return NextResponse.json({ url: null });
   const ownerId = await resolveOwner(req);
-  const { data } = await liveShareQuery(convId.slice(0, 64), ownerId).maybeSingle();
+  // Return the share's current turn count too, so the app can baseline its
+  // "never shrink the share" guard — a still-hydrating (root-only) snapshot must
+  // not overwrite a link that already has follow-ups.
+  let q = createAdminClient()
+    .from("conversation_shares")
+    .select("id, snapshot")
+    .eq("conversation_id", convId.slice(0, 64))
+    .eq("revoked", false)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  q = ownerId ? q.eq("owner_id", ownerId) : q.is("owner_id", null);
+  const { data } = await q.maybeSingle();
   if (!data) return NextResponse.json({ url: null });
+  const turns = (data.snapshot as { turns?: unknown[] } | null)?.turns;
+  const nTurns = Array.isArray(turns) ? turns.length : 0;
   const origin = APP_URL || new URL(req.url).origin;
-  return NextResponse.json({ id: data.id, url: `${origin}/share/${data.id}` });
+  return NextResponse.json({ id: data.id, url: `${origin}/share/${data.id}`, nTurns });
 }
 
 // Unshare — matches on the revoke token returned at create time (covers anon
