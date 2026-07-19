@@ -6,7 +6,6 @@ import { SharedConversation } from "@/components/shared/shared-conversation";
 import { ShareRef } from "@/components/shared/share-ref";
 import { ShareContinue } from "@/components/shared/share-continue";
 import { Logo } from "@/components/logo";
-import { FALLBACK_MODELS } from "@/lib/models";
 import type { ShareSnapshot } from "@/lib/share";
 
 // AGG-44: public, read-only shared conversation. Reachable WITHOUT the beta
@@ -47,14 +46,6 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
 
   const snapshot = share.snapshot;
   const models = share.models ?? snapshot.models ?? [];
-  // A comparison built entirely from Free-tier (basic-class) models can be
-  // continued by an account-less GUEST with no signup (share-continue mints an
-  // anonymous session). If ANY model is above Free, continuing needs a paid
-  // account, so the button routes to sign-in instead of minting a throwaway
-  // guest that would only land on the in-app upgrade gate. Unknown ids count as
-  // NOT free (conservative). Mirrors lockedModelIds("free", …) in lib/models.
-  const modelClass = new Map(FALLBACK_MODELS.map((m) => [m.id, m.class] as const));
-  const allFree = models.length > 0 && models.every((id) => modelClass.get(id) === "basic");
 
   return (
     <div className="relative min-h-dvh bg-navy">
@@ -68,7 +59,6 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
             id={id}
             models={models}
             snapshot={snapshot}
-            allFree={allFree}
             label="Continue the conversation"
             className="rounded-lg bg-gradient-to-r from-teal-500 to-teal-400 px-3.5 py-1.5 text-sm font-semibold text-navy hover:from-teal-400 hover:to-teal-400 transition disabled:opacity-70"
           />
@@ -88,7 +78,7 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
         <div className="mt-12 rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
           <p className="text-white font-medium">Want to dig deeper with these models?</p>
           <p className="mt-1 text-sm text-white/55">Continue in aggrai — pick up this conversation and ask your own follow-up. You can continue with the models your plan includes.</p>
-          <ShareContinue id={id} models={models} snapshot={snapshot} allFree={allFree} />
+          <ShareContinue id={id} models={models} snapshot={snapshot} />
         </div>
 
         <p className="mt-8 text-center text-xs text-white/40">
