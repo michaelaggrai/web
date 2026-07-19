@@ -17,6 +17,10 @@ import { rateLimitOk, clientIpKey } from "@/lib/rate-limit";
 //                      browser directly, unlike /ask (whose socket is the tunnel, so
 //                      it needs x-aggrai-ua forwarded).
 //   country            from the Vercel edge header — never trust a client for geo.
+//   ref                SERVER-read from the aggrai_ref cookie (first-touch share
+//                      attribution), never from the body — a client-asserted ref
+//                      is forged acquisition credit. Deliberately NOT in
+//                      PROP_KEYS, so a client-sent props.ref is dropped.
 //   event_type         whitelisted (see EVENT_TYPES) — the governance for the log.
 //   properties         key-whitelisted + length-capped; unbounded jsonb from a public
 //                      endpoint is a storage-abuse vector.
@@ -41,6 +45,9 @@ const EVENT_TYPES = new Set(["page_view"]);
 const PROP_KEYS = ["path", "from", "referrer", "utm_source", "utm_medium", "utm_campaign"] as const;
 
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+// Charset-matched to handle_new_user()'s validation so a ref means the same
+// thing in events / questions.referrer / profiles.ref (e.g. "share:<shareId>").
+const REF_RE = /^[A-Za-z0-9_:.-]{1,80}$/;
 const MAX_VALUE_LEN = 300;
 
 // Mirror of deviceFrom() in the ops repo (api/server.js ~831). The bucket
@@ -127,6 +134,15 @@ export async function POST(req: NextRequest) {
   const props = cleanProps(body.props);
   const country = req.headers.get("x-vercel-ip-country");
   if (country) props.country = country.slice(0, 8);
+
+  // AGG-44: stamp the first-touch share ref on EVERY event, so a visitor who
+  // arrives from /share and never asks is still attributable — that view→ask
+  // drop-off was the blind spot (share page views vastly outnumber attributed
+  // asks). Consent-gated like anon_id; read from the cookie, not the body.
+  if (accepted) {
+    const ref = req.cookies.get("aggrai_ref")?.value;
+    if (ref && REF_RE.test(ref)) props.ref = ref;
+  }
 
   const row = {
     event_type: type,
