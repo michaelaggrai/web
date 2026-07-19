@@ -443,7 +443,7 @@ function SummaryPanel({
           prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
           prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
           prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2 not-prose">
+          <p className="text-[11px] font-medium normal-case tracking-normal text-white/55 mb-2 not-prose">
             aggrai&apos;s answer
             <span className="ml-1.5 normal-case tracking-normal text-white/55 font-medium">
               {/* NOT "weighted by score". The rewrite is a separate call that never
@@ -720,7 +720,7 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
   const PALETTE = ["#5eead4", "#60a5fa", "#c084fc", "#fbbf24", "#f472b6"];
   return (
     <div className="mb-5 pb-4 border-b border-white/10">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55 mb-3">
+      <p className="text-[11px] font-medium normal-case tracking-normal text-white/50 mb-3">
         Where the summary came from
       </p>
       {/* Slim proportional rail (segments sum to 100%). Identity lives in the
@@ -881,11 +881,6 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                   cap when it has been applied; Winner tag marks the
                   top score. */}
               <div className="flex items-center gap-2 text-xs min-w-0">
-                <span
-                  className="w-2.5 h-2.5 rounded-sm shrink-0"
-                  style={{ backgroundColor: color }}
-                  aria-hidden="true"
-                />
                 <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
                 {isWinner && (
                   <Trophy className="w-3.5 h-3.5 text-teal-300 shrink-0" aria-label="Winner — highest overall score" />
@@ -964,7 +959,7 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                 <div className="rounded-lg border border-white/10 bg-surface-1 p-3 space-y-2.5 text-xs">
                   {(a.scores.strengths?.length ?? 0) > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1.5">Strengths</p>
+                      <p className="text-[11px] font-medium normal-case tracking-normal text-white/50 mb-1.5">Strengths</p>
                       <ul className="space-y-1">
                         {a.scores.strengths!.map((s, j) => (
                           <li key={j} className="flex gap-1.5 text-white/70 leading-snug">
@@ -977,7 +972,7 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                   )}
                   {(a.scores.weaknesses?.length ?? 0) > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-300/80 mb-1.5">Weaknesses</p>
+                      <p className="text-[11px] font-medium normal-case tracking-normal text-white/50 mb-1.5">Weaknesses</p>
                       <ul className="space-y-1">
                         {a.scores.weaknesses!.map((w, j) => (
                           <li key={j} className="flex gap-1.5 text-white/70 leading-snug">

@@ -156,7 +156,6 @@ export function SharedScores({ answers }: { answers: ShareAnswer[] }) {
           return (
             <div key={a.model} className="space-y-2 min-w-0">
               <div className="flex items-center gap-2 text-xs min-w-0">
-                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: color }} aria-hidden="true" />
                 <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
                 {isWinner && <Trophy className="w-3.5 h-3.5 text-teal-300 shrink-0" aria-label="Winner — highest overall score" />}
                 <span className="font-medium text-white/90 flex-1 truncate">{label(a.model)}</span>
@@ -218,7 +217,7 @@ export function SharedScores({ answers }: { answers: ShareAnswer[] }) {
                 <div className="rounded-lg border border-white/10 bg-surface-1 p-3 space-y-2.5 text-xs">
                   {(a.scores.strengths?.length ?? 0) > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-1.5">Strengths</p>
+                      <p className="text-[11px] font-medium normal-case tracking-normal text-white/50 mb-1.5">Strengths</p>
                       <ul className="space-y-1">
                         {a.scores.strengths!.map((s, j) => (
                           <li key={j} className="flex gap-1.5 text-white/70 leading-snug">
@@ -231,7 +230,7 @@ export function SharedScores({ answers }: { answers: ShareAnswer[] }) {
                   )}
                   {(a.scores.weaknesses?.length ?? 0) > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-300/80 mb-1.5">Weaknesses</p>
+                      <p className="text-[11px] font-medium normal-case tracking-normal text-white/50 mb-1.5">Weaknesses</p>
                       <ul className="space-y-1">
                         {a.scores.weaknesses!.map((w, j) => (
                           <li key={j} className="flex gap-1.5 text-white/70 leading-snug">

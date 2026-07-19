@@ -42,7 +42,7 @@ function ContributionsBar({ contributions }: { contributions: { model: string; p
   const palette = ["from-teal-400 to-teal-300", "from-blue-400 to-blue-300", "from-purple-400 to-purple-300", "from-amber-400 to-amber-300", "from-rose-400 to-rose-300"];
   return (
     <div className="mb-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55 mb-1.5">Where the summary came from</p>
+      <p className="text-[11px] font-medium normal-case tracking-normal text-white/50 mb-1.5">Where the summary came from</p>
       <div className="flex h-2 w-full overflow-hidden rounded-full">
         {contributions.map((c, i) => (
           <div key={c.model} className={`h-full bg-gradient-to-r ${palette[i % palette.length]}`} style={{ width: `${c.pct}%` }} title={`${label(c.model)} · ${c.pct}%`} />
@@ -103,7 +103,7 @@ function Turn({ turn }: { turn: ShareTurn }) {
                 <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
               </div>
               {turn.contributions && turn.contributions.length > 0 && <ContributionsBar contributions={turn.contributions} />}
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-2">
+              <p className="text-[11px] font-medium normal-case tracking-normal text-white/55 mb-2">
                 aggrai&apos;s answer <span className="ml-1 normal-case tracking-normal text-white/55 font-medium">· combined from all models</span>
               </p>
               <Md>{turn.summary}</Md>
