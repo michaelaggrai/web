@@ -16,7 +16,7 @@ const LABELS: Record<string, string> = Object.fromEntries(FALLBACK_MODELS.map((m
 const label = (id: string) => LABELS[id] ?? id.split("/").pop() ?? id;
 
 const PROSE =
-  "prose prose-sm sm:prose-base prose-invert max-w-none " +
+  "prose prose-sm sm:prose-base prose-invert max-w-[68ch] " +
   "prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2 " +
   "prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2 " +
   "prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white";
@@ -85,7 +85,7 @@ function Turn({ turn }: { turn: ShareTurn }) {
     <div className="space-y-4">
       {/* Question */}
       <div className="flex items-start gap-3">
-        <span className="shrink-0 mt-0.5 inline-flex items-center rounded-full bg-teal-300/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-teal-200">You</span>
+        <span className="shrink-0 mt-0.5 inline-flex items-center rounded-full bg-teal-300/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-teal-200">You</span>
         <p className="text-white font-medium">{turn.question}</p>
       </div>
 

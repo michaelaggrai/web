@@ -310,7 +310,7 @@ export function SharedAnswers({ answers }: { answers: ShareAnswer[] }) {
                 </div>
               </button>
               {shown && a.answer && (
-                <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_img]:max-w-full [&_code]:break-words">
+                <div className="px-5 pb-5 prose prose-sm prose-invert max-w-[68ch] prose-p:my-2 prose-strong:text-white [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_img]:max-w-full [&_code]:break-words">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{a.answer}</ReactMarkdown>
                 </div>
               )}

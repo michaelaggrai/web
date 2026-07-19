@@ -439,7 +439,7 @@ function SummaryPanel({
         {settled?.contributions && settled.contributions.length > 0 && (
           <ContributionsTop contributions={settled.contributions} />
         )}
-        <div className="prose prose-sm sm:prose-base prose-invert max-w-none
+        <div className="prose prose-sm sm:prose-base prose-invert max-w-[68ch]
           prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
           prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
           prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
@@ -565,7 +565,7 @@ function RawAnswers({ answers, streamedText }: {
             {modelLabel(a.model)} didn&apos;t return a response this time — a transient provider hiccup. Try again to include it.
           </div>
         ) : shown && text ? (
-          <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+          <div className="px-5 pb-5 prose prose-sm prose-invert max-w-[68ch] prose-p:my-2 prose-strong:text-white
             [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
             [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_img]:max-w-full [&_code]:break-words">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
@@ -723,36 +723,21 @@ function ContributionsTop({ contributions }: { contributions: Contribution[] }) 
       <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55 mb-3">
         Where the summary came from
       </p>
-      {/* Proportional stacked bar (segments sum to 100%). On wider screens each
-          segment is labelled inline (logo + name + %). On narrow screens a name
-          can't fit a ~20% slice, so segments show just logo + % (never
-          truncated) and the full names move to the wrap-friendly legend below
-          (mobile-only — redundant once names are inline). Dark text for contrast
-          on the light palette; title attr is the hover fallback either way. */}
-      <div className="flex h-2.5 w-full overflow-hidden rounded-lg bg-white/5 sm:h-9">
+      {/* Slim proportional rail (segments sum to 100%). Identity lives in the
+          legend below — NOT inside the bar — so this reads as a quiet meter and
+          stops outweighing the answer heading beneath it (design clean-pass §2).
+          Matches the shared view's contribution bar. */}
+      <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/5">
         {sorted.map(({ model, pct }, i) => (
           <div
             key={model}
-            className="flex items-center gap-1 px-1.5 min-w-0 overflow-hidden"
+            className="min-w-0"
             style={{ width: `${pct}%`, backgroundColor: PALETTE[i % PALETTE.length] }}
             title={`${modelLabel(model)} · ${pct}%`}
-          >
-            {/* Labels only on sm+ (smaller text so names don't truncate). Below
-                sm the bar is a plain slim colour band and the legend below
-                carries every name + %. */}
-            <ProviderLogo provider={providerOf(model)} className="hidden h-3.5 w-3.5 shrink-0 sm:block" />
-            <span className="hidden truncate text-[11px] font-semibold text-slate-900/85 sm:block">
-              {modelLabel(model)}
-            </span>
-            <span className="ml-auto hidden shrink-0 text-[11px] font-semibold tabular-nums text-slate-900/70 sm:block">
-              {pct}%
-            </span>
-          </div>
+          />
         ))}
       </div>
-      {/* Full model names — only on narrow screens, where they don't fit inside
-          the bar. Wraps cleanly, so it's readable at any width. */}
-      <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1.5 sm:hidden">
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5">
         {sorted.map(({ model, pct }, i) => (
           <div key={model} className="flex items-center gap-1.5 text-xs min-w-0">
             <span
@@ -2727,7 +2712,7 @@ function Home() {
                           </div>
                         </button>
                         {isOpen && (
-                          <div className="px-5 pb-5 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                          <div className="px-5 pb-5 prose prose-sm prose-invert max-w-[68ch] prose-p:my-2 prose-strong:text-white
                             [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
                             [&_pre]:overflow-x-auto [&_pre]:max-w-full
                             [&_img]:max-w-full [&_code]:break-words">
@@ -2840,7 +2825,7 @@ function Home() {
                                 {f.streaming && <span className="text-white/55 font-normal">· thinking…</span>}
                               </div>
                               {f.answer ? (
-                                <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-strong:text-white
+                                <div className="prose prose-sm prose-invert max-w-[68ch] prose-p:my-2 prose-strong:text-white
                                   [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
                                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
                                 </div>
@@ -2895,7 +2880,7 @@ function Home() {
                   <div className="mb-3">
                     <Logo height={28} symbolOnly gradientId="product-g" />
                   </div>
-                  <div className="prose prose-sm prose-invert max-w-none">
+                  <div className="prose prose-sm prose-invert max-w-[68ch]">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
                   </div>
                   {/* AGG-39: a grounded direct answer (e.g. "who's the president")
