@@ -196,7 +196,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
             onClick={() => remove(m.id)}
             disabled={selected.size <= 1}
             aria-label={`Remove ${m.label}`}
-            className="inline-flex items-center justify-center min-w-[28px] min-h-[28px] rounded-full p-1.5 hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/70"
+            className="inline-flex items-center justify-center min-w-[36px] min-h-[36px] rounded-full p-1.5 hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/70"
           >
             <X className="w-3 h-3" />
           </button>
@@ -207,7 +207,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-white/15 bg-white/5 text-white/70 hover:text-white hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/70"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 min-h-[36px] text-xs font-medium border border-white/15 bg-white/5 text-white/70 hover:text-white hover:border-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/70"
           >
             <Plus className="w-3 h-3" />
             {limitReached ? `Change models (${selected.size}/${max})` : "Add model"}
@@ -260,7 +260,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
 
           {/* Tab strip — horizontal scroll on narrow viewports. Shape is
               the same whether we're showing categories or providers. */}
-          <div className="flex gap-0.5 px-2 border-b border-white/5 overflow-x-auto scrollbar-none">
+          <div className="flex gap-0.5 px-2 border-b border-white/5 overflow-x-auto scrollbar-none [mask-image:linear-gradient(to_right,#000_calc(100%-16px),transparent)]">
             {groups.map(g => (
               <button
                 key={g.id}

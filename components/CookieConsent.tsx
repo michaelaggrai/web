@@ -42,14 +42,14 @@ export default function CookieConsent() {
           <button
             type="button"
             onClick={() => choose("rejected")}
-            className="flex-1 whitespace-nowrap rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 sm:flex-none"
+            className="flex-1 whitespace-nowrap rounded-lg border border-white/15 px-4 py-3 text-sm font-medium text-white/80 transition hover:bg-white/10 sm:flex-none sm:py-2"
           >
             Reject non-essential
           </button>
           <button
             type="button"
             onClick={() => choose("accepted")}
-            className="flex-1 whitespace-nowrap rounded-lg bg-teal-400 px-4 py-2 text-sm font-semibold text-neutral-950 transition hover:bg-teal-300 sm:flex-none"
+            className="flex-1 whitespace-nowrap rounded-lg bg-teal-400 px-4 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-teal-300 sm:flex-none sm:py-2"
           >
             Accept
           </button>

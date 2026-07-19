@@ -197,7 +197,7 @@ export function Hero() {
                         key={prompt}
                         type="button"
                         onClick={() => goToApp(prompt)}
-                        className="inline-flex items-center gap-1.5 text-sm text-teal-100/80 hover:text-white px-4 py-2 rounded-full bg-teal-400/10 hover:bg-teal-400/20 border border-teal-300/20 hover:border-teal-300/40 transition-all"
+                        className="inline-flex items-center gap-1.5 text-sm text-teal-100/80 hover:text-white px-4 py-2 min-h-11 rounded-full bg-teal-400/10 hover:bg-teal-400/20 border border-teal-300/20 hover:border-teal-300/40 transition-all"
                       >
                         <Globe className="w-3.5 h-3.5 shrink-0 text-teal-300/70" aria-hidden="true" />
                         {prompt}
@@ -214,7 +214,7 @@ export function Hero() {
                     key={prompt}
                     type="button"
                     onClick={() => goToApp(prompt)}
-                    className="text-sm text-white/55 hover:text-white/70 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
+                    className="inline-flex items-center text-sm text-white/55 hover:text-white/70 px-4 py-2 min-h-11 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
                   >
                     {prompt}
                   </button>
@@ -224,7 +224,7 @@ export function Hero() {
                     type="button"
                     onClick={shuffle}
                     aria-label="Show different example questions"
-                    className="inline-flex items-center gap-1.5 text-sm text-white/55 hover:text-teal-300 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
+                    className="inline-flex items-center gap-1.5 text-sm text-white/55 hover:text-teal-300 px-3 py-2 min-h-11 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
                   >
                     <Shuffle className="w-3.5 h-3.5" />
                     Shuffle

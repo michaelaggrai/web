@@ -252,7 +252,7 @@ function Checkout() {
                       readOnly
                       value="4242 4242 4242 4242"
                       aria-label="Card number"
-                      className="flex-1 bg-transparent text-sm text-white/55 outline-none tracking-wider"
+                      className="flex-1 bg-transparent text-base text-white/55 outline-none tracking-wider"
                     />
                     <div className="flex gap-1 shrink-0" aria-hidden="true">
                       <span className="h-4 w-6 rounded bg-white/15" />
@@ -260,14 +260,14 @@ function Checkout() {
                     </div>
                   </div>
                   <div className="flex">
-                    <input readOnly value="12 / 29" aria-label="Expiry" className="w-1/2 bg-transparent px-3 py-2.5 text-sm text-white/55 outline-none" />
-                    <input readOnly value="•••" aria-label="CVC" className="w-1/2 border-l border-white/10 bg-transparent px-3 py-2.5 text-sm text-white/55 outline-none" />
+                    <input readOnly value="12 / 29" aria-label="Expiry" className="w-1/2 bg-transparent px-3 py-2.5 text-base text-white/55 outline-none" />
+                    <input readOnly value="•••" aria-label="CVC" className="w-1/2 border-l border-white/10 bg-transparent px-3 py-2.5 text-base text-white/55 outline-none" />
                   </div>
                 </div>
               </Field>
 
               <Field label="Name on card">
-                <input readOnly value="" placeholder="As shown on card" className="w-full rounded-lg border border-white/12 bg-surface-1 px-3 py-2.5 text-sm text-white/55 placeholder:text-white/45 outline-none" />
+                <input readOnly value="" placeholder="As shown on card" className="w-full rounded-lg border border-white/12 bg-surface-1 px-3 py-2.5 text-base text-white/55 placeholder:text-white/45 outline-none" />
               </Field>
 
               <Field label="Country">
