@@ -27,6 +27,12 @@ export type ModelEntry = {
    * /models). Undefined = available (backward compat with older payloads).
    */
   available?: boolean
+  /**
+   * Backend-reported: when this model is performance-degraded, the id to swap to
+   * (e.g. a flaky flagship → its reliable sibling). The follow-up composer uses
+   * it to offer the replacement instead of the degraded model. See /models.
+   */
+  replaceWith?: string
 }
 
 // Display metadata per category — used by ModelPicker tabs.

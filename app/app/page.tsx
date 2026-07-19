@@ -1141,6 +1141,10 @@ function Home() {
   // Backend-authored defaults (delisted models already swapped for siblings).
   // Static TIER_DEFAULTS is the pre-fetch fallback; /api/models overrides it.
   const [tierDefaults, setTierDefaults] = useState<Record<Tier, string[]>>(TIER_DEFAULTS);
+  // Backend-reported perf-degraded model ids (from /api/models). The follow-up
+  // composer swaps a degraded model for its replacement so a continue never leads
+  // with a flaky model; the stored turns keep their real model.
+  const [degradedIds, setDegradedIds] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(explicitModels ?? new Set(TIER_DEFAULTS.free));
   const [loading, setLoading] = useState(false);
   const [intentHint, setIntentHint] = useState<"compare" | "product" | "direct" | null>(null);
@@ -1511,7 +1515,7 @@ function Home() {
   useEffect(() => {
     fetch("/api/models")
       .then(r => r.json())
-      .then((d: { models?: ModelEntry[]; tierDefaults?: Record<Tier, string[]> }) => {
+      .then((d: { models?: ModelEntry[]; tierDefaults?: Record<Tier, string[]>; degraded?: string[] }) => {
         if (Array.isArray(d.models) && d.models.length > 0) {
           setAllModels(d.models);
           setModelLabels(d.models);
@@ -1519,6 +1523,7 @@ function Home() {
         // Backend ships HEALED defaults (delisted swapped for siblings); adopt
         // them so the picker pre-selects working models.
         if (d.tierDefaults) setTierDefaults(d.tierDefaults);
+        if (Array.isArray(d.degraded)) setDegradedIds(new Set(d.degraded));
       })
       .catch(() => {});
   }, []);
@@ -1866,16 +1871,44 @@ function Home() {
     return [...c.answers].sort((a, b) => sc(b) - sc(a))[0]?.model ?? null;
   }
 
+  // Swap a performance-degraded model for its (in-tier, healthy) replacement — so
+  // reopening a conversation offers the replacement in the follow-up composer
+  // instead of the flaky model. Stored turns are untouched (history is real);
+  // only the FORWARD action heals. Inert (returns id unchanged) when nothing is
+  // degraded, so it's a no-op in the normal case.
+  function healModel(id: string): string {
+    if (!id || !degradedIds.has(id)) return id;
+    const rep = allModels.find(m => m.id === id)?.replaceWith;
+    if (rep && rep !== id && !lockedIds.has(rep) && !degradedIds.has(rep) && allModels.some(m => m.id === rep)) return rep;
+    return id;
+  }
+  // The degraded→replacement pairs actually applied to this thread's models, for
+  // the "using X instead" hint.
+  function followupSwaps(): { from: string; to: string }[] {
+    const c = rootComparison();
+    if (!c) return [];
+    const seen = new Set<string>();
+    const out: { from: string; to: string }[] = [];
+    for (const a of c.answers) {
+      if (lockedIds.has(a.model)) continue;
+      const to = healModel(a.model);
+      if (to !== a.model && !seen.has(a.model)) { seen.add(a.model); out.push({ from: a.model, to }); }
+    }
+    return out;
+  }
+
   // Best-scoring answer the CURRENT tier can still continue with. After a
   // downgrade the top (or every) model in an old thread may be locked — so the
   // default target, the composer, and the chips all key off this, not the raw
-  // winner. Null when the whole comparison is above the current plan.
+  // winner. Null when the whole comparison is above the current plan. A degraded
+  // winner heals to its replacement (see healModel).
   function bestAccessibleModel(): string | null {
     const c = latestComparison();
     if (!c || !c.answers.length) return null;
     const sc = (a: Answer) => (a.scores ? overallScore(a.scores) : 0);
     const accessible = c.answers.filter(a => !lockedIds.has(a.model));
-    return [...accessible].sort((a, b) => sc(b) - sc(a))[0]?.model ?? null;
+    const best = [...accessible].sort((a, b) => sc(b) - sc(a))[0]?.model ?? null;
+    return best ? healModel(best) : null;
   }
 
   // The model a follow-up will actually go to: the user's pick if it's still
@@ -1891,7 +1924,9 @@ function Home() {
   function followupCandidates(): string[] {
     const c = rootComparison();
     if (!c) return [];
-    return c.answers.map(a => a.model).filter(m => !lockedIds.has(m));
+    // In-tier root models, with any degraded one healed to its replacement
+    // (deduped in case two heal to the same model).
+    return [...new Set(c.answers.map(a => a.model).filter(m => !lockedIds.has(m)).map(m => healModel(m)))];
   }
 
   // AGG-44: freeze the current conversation into a public snapshot. Internal
@@ -2424,26 +2459,32 @@ function Home() {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80 mb-3">
                 Continue the conversation
               </p>
+              {followupSwaps().length > 0 && (
+                <p className="mb-3 text-[11px] leading-snug text-amber-300/70">
+                  {followupSwaps().map(s => `${modelLabel(s.from)} is having issues — follow-ups use ${modelLabel(s.to)}`).join("; ")}.
+                </p>
+              )}
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                {/* Chips = the ROOT question's models (constant across the thread,
-                    regardless of which model won); the winner trophy still tracks
-                    the latest turn's re-scored winner via winnerModel(). */}
-                {(rootComparison() ?? result).answers.filter(a => !lockedIds.has(a.model)).map(a => {
+                {/* Chips = the ROOT question's in-tier models, with any degraded
+                    model healed to its replacement (see followupCandidates /
+                    healModel); the winner trophy still tracks the latest turn's
+                    re-scored winner via winnerModel(). */}
+                {followupCandidates().map(mid => {
                   const sel = selectedFollowupModels();
-                  const isActive = sel.includes(a.model);
-                  const isWinner = winnerModel() === a.model;
+                  const isActive = sel.includes(mid);
+                  const isWinner = healModel(winnerModel() ?? "") === mid;
                   // Greyed only when adding this one would break a rule: at the
                   // tier cap, or free (where a second pick replaces rather than
                   // adds, so it stays clickable).
                   const atCap = !isActive && canPickMultiple && sel.length >= maxModels;
                   return (
                     <button
-                      key={a.model}
+                      key={mid}
                       type="button"
                       aria-pressed={isActive}
                       disabled={followupLoading || atCap}
                       title={atCap ? `Your ${tier} plan compares up to ${maxModels} models` : undefined}
-                      onClick={() => toggleFollowupModel(a.model)}
+                      onClick={() => toggleFollowupModel(mid)}
                       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/70 disabled:opacity-30 disabled:cursor-not-allowed ${
                         isActive
                           ? "border-teal-300/40 bg-teal-300/15 text-teal-100"
@@ -2451,8 +2492,8 @@ function Home() {
                       }`}
                     >
                       {isWinner && <Trophy className="w-3 h-3 text-teal-300" aria-hidden="true" />}
-                      <ProviderLogo provider={providerOf(a.model)} className="w-3 h-3" />
-                      {modelLabel(a.model)}
+                      <ProviderLogo provider={providerOf(mid)} className="w-3 h-3" />
+                      {modelLabel(mid)}
                     </button>
                   );
                 })}

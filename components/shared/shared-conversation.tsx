@@ -134,9 +134,14 @@ function Turn({ turn }: { turn: ShareTurn }) {
 }
 
 export function SharedConversation({ snapshot }: { snapshot: ShareSnapshot }) {
+  // Newest turn first, mirroring the app (which renders the follow-up thread
+  // reversed, latest under its top composer). The STORED snapshot stays
+  // chronological (root first) — the fork endpoint seeds turns in that order —
+  // so we reverse for DISPLAY only.
+  const turns = [...snapshot.turns].reverse();
   return (
     <div className="space-y-10">
-      {snapshot.turns.map((turn, i) => (
+      {turns.map((turn, i) => (
         <div key={i} className={i > 0 ? "border-t border-white/10 pt-10" : ""}>
           <Turn turn={turn} />
         </div>
