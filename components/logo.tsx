@@ -11,42 +11,88 @@ type LogoProps = {
   symbolOnly?: boolean
 }
 
-// Each outer node carries its own class so the pentagon reads as "five
-// models around the synthesised core". Colours are a cool teal→indigo
-// ramp anchored to the brand teal (see globals.css .aggrai-node-*):
-// constant saturation/lightness, hue varies within one tight cool family,
-// so the dots read as a single ownable brand object and survive down to
-// favicon size. The per-provider rainbow lives on as a *moment*: during
-// the page-load reveal each node pops in with its old hue and settles into
-// the ramp (see .aggrai-logo.is-assembling in globals.css). Spokes stay
-// neutral so the dots lead.
-const MESH = (
-  <g className="aggrai-mesh">
-    <path className="aggrai-edge" d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" />
-    {/* Overlay of the same pentagon outline, invisible except while loading
-        / collapsing / assembling, where it animates a bright "comet" of
-        light sweeping clockwise around the perimeter — water flowing from
-        one dot to the next. pathLength=100 normalises the dash maths to
-        percentages of the perimeter. */}
-    <path className="aggrai-edge-flow" pathLength={100} d="M50 20 L78 41 L68 74 L32 74 L22 41 Z" />
-    <line className="aggrai-spoke" x1="50" y1="50" x2="50" y2="20" />
-    <line className="aggrai-spoke" x1="50" y1="50" x2="78" y2="41" />
-    <line className="aggrai-spoke" x1="50" y1="50" x2="68" y2="74" />
-    <line className="aggrai-spoke" x1="50" y1="50" x2="32" y2="74" />
-    <line className="aggrai-spoke" x1="50" y1="50" x2="22" y2="41" />
-    <circle className="aggrai-node aggrai-node-anthropic" cx="50" cy="20" r="4" />
-    <circle className="aggrai-node aggrai-node-openai"    cx="78" cy="41" r="4" />
-    <circle className="aggrai-node aggrai-node-google"    cx="68" cy="74" r="4" />
-    <circle className="aggrai-node aggrai-node-meta"      cx="32" cy="74" r="4" />
-    <circle className="aggrai-node aggrai-node-mistral"   cx="22" cy="41" r="4" />
-  </g>
-)
+// Size-adaptive mark — logo spec 2026-07-19, variant C. One drawing rendered
+// identically at every size read as sub-pixel fuzz below ~48px (dots ~2.7px at
+// the header, dashed spokes aliasing to grey), so the drawing now SIMPLIFIES as
+// it shrinks. Three tiers, branched off the `height` prop — no CSS media queries:
+//   FULL    (≥48px)                 edge + spokes + 5 nodes r6.5 + core r8
+//                                   — hero/large use; also the loading spinner @84.
+//   COMPACT (<48px)                 edge (heavier) + 5 nodes r7 + core r9, NO spokes
+//                                   — every nav / header / sidebar / gate row.
+//   DOTS    (≤20px, symbol-only)    5 nodes r9 + core r11, no edge/spokes
+//                                   — favicon parity (the file lives in app/icon.svg).
+// Node/core/ripple keep their classes so the thinking + page-load-assemble +
+// hover-collapse animations (globals.css) drive them unchanged — only which
+// elements exist and their radii vary by tier. Node positions & colours are
+// constant across tiers.
+type Tier = "full" | "compact" | "dots"
 
-const CORE = <circle className="aggrai-core" cx="50" cy="50" r="7" />
+const EDGE_D = "M50 20 L78 41 L68 74 L32 74 L22 41 Z"
+// class · cx · cy — clockwise from the top (teal-green → cyan → sky → blue → indigo).
+const NODES = [
+  ["aggrai-node-anthropic", 50, 20],
+  ["aggrai-node-openai", 78, 41],
+  ["aggrai-node-google", 68, 74],
+  ["aggrai-node-meta", 32, 74],
+  ["aggrai-node-mistral", 22, 41],
+] as const
 
-// Radiates from behind the core on each loading loop — the synthesised answer
-// leaving the aggregation. Inert (opacity:0) unless .aggrai-icon.is-loading.
-const RIPPLE = <circle className="aggrai-ripple" cx="50" cy="50" r="12" />
+function tierFor(height: number, symbolOnly: boolean, spinning: boolean): Tier {
+  if (height >= 48) return "full"
+  // DOTS only for a static tiny symbol — never while spinning, since the
+  // loading burst needs the ripple/core the dots tier omits.
+  if (symbolOnly && !spinning && height <= 20) return "dots"
+  return "compact"
+}
+
+// The mark's geometry for a tier. Nodes/edge/spokes stay inside `.aggrai-mesh`
+// (its scale + hover transition) for FULL/COMPACT; DOTS is raw dots+core in a
+// tight favicon box, no mesh transform.
+function Mark({ tier }: { tier: Tier }) {
+  const nodeR = tier === "dots" ? 9 : tier === "compact" ? 7 : 6.5
+  const coreR = tier === "dots" ? 11 : tier === "compact" ? 9 : 8
+  const nodes = NODES.map(([cls, cx, cy]) => (
+    <circle key={cls} className={`aggrai-node ${cls}`} cx={cx} cy={cy} r={nodeR} />
+  ))
+
+  if (tier === "dots") {
+    return (
+      <>
+        {nodes}
+        <circle className="aggrai-core" cx="50" cy="50" r={coreR} />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <g className="aggrai-mesh">
+        {/* COMPACT drops the spokes but keeps a heavier, more opaque edge so the
+            outline still reads once the spokes are gone. Set inline (not a class)
+            so it can't be lost to CSS-layer ordering; the assemble edge-draw and
+            the is-loading hide are CSS animations/higher-specificity rules that
+            still win over it — and compact never enters the loading state anyway
+            (the 84px spinner is the full tier). */}
+        <path
+          className="aggrai-edge"
+          style={tier === "compact" ? { strokeWidth: 3.2, opacity: 0.55 } : undefined}
+          d={EDGE_D}
+        />
+        {/* Perimeter comet overlay — invisible at rest; lit during load / hover /
+            assemble. pathLength=100 normalises the dash maths to percentages. */}
+        <path className="aggrai-edge-flow" pathLength={100} d={EDGE_D} />
+        {tier === "full" &&
+          NODES.map(([, x, y], i) => (
+            <line key={i} className="aggrai-spoke" x1="50" y1="50" x2={x} y2={y} />
+          ))}
+        {nodes}
+      </g>
+      {/* Radiates from behind the core each loading loop. Inert unless is-loading. */}
+      <circle className="aggrai-ripple" cx="50" cy="50" r="12" />
+      <circle className="aggrai-core" cx="50" cy="50" r={coreR} />
+    </>
+  )
+}
 
 export function Logo({
   height = 36,
@@ -90,23 +136,24 @@ export function Logo({
   }, [symbolOnly])
 
   if (symbolOnly) {
-    // Spinning state animates the mesh at scale(1) — fits in 0 0 100 100.
-    // Idle symbol-only still uses the default 1.32x mesh — needs padding.
-    const symbolViewBox = spinning ? "0 0 100 100" : "-12 -12 124 124"
+    const tier = tierFor(height, true, spinning)
+    // Spinning animates the mesh gathering to centre — fits 0 0 100 100.
+    // Idle full/compact keep the 1.32x mesh padding; dots use the tight box.
+    const viewBox = spinning ? "0 0 100 100" : tier === "dots" ? "6 6 88 88" : "-12 -12 124 124"
     return (
       <svg
         className={`aggrai-icon ${spinning ? "is-loading" : ""} ${className}`}
-        viewBox={symbolViewBox}
+        viewBox={viewBox}
         aria-label="aggrai"
         /* inline style beats the .aggrai-icon { width:1.16em } CSS rule */
         style={{ width: `${height}px`, height: `${height}px` }}
       >
-        {MESH}
-        {RIPPLE}
-        {CORE}
+        <Mark tier={tier} />
       </svg>
     )
   }
+
+  const tier = tierFor(height, false, false)
 
   return (
     <span
@@ -139,9 +186,7 @@ export function Logo({
         style={{ ["--aggrai-size" as keyof CSSProperties]: `${height}px` } as CSSProperties}
       >
         <svg className="aggrai-icon" viewBox="-12 -12 124 124" aria-hidden="true">
-          {MESH}
-          {RIPPLE}
-          {CORE}
+          <Mark tier={tier} />
         </svg>
         <span className="aggrai-word">
           <b>a</b><b>g</b><b>g</b><b>r</b><b>a</b><b>i</b>
