@@ -1282,6 +1282,10 @@ function Home() {
   }
   const [showUpgradedBanner, setShowUpgradedBanner] = useState(searchParams.get("upgraded") === "1");
   const [signedIn, setSignedIn] = useState(false);
+  // Distinguishes an anonymous GUEST (forked a share via anonymous auth) from a
+  // real signed-in account — the "can't continue" banner prompts a guest to sign
+  // in, a real user to upgrade.
+  const [isGuest, setIsGuest] = useState(false);
   // Per-model raw answers are collapsed by default. User clicks a card header
   // to expand. Reset whenever a fresh result lands so a new question starts
   // with everything collapsed again.
@@ -1357,7 +1361,10 @@ function Home() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
-    createClient().auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+    createClient().auth.getUser().then(({ data }) => {
+      setSignedIn(!!data.user);
+      setIsGuest(!!data.user?.is_anonymous);
+    });
   }, []);
 
   // ── Cross-device history (signed-in users) ────────────────────────────────
@@ -2346,8 +2353,12 @@ function Home() {
                   Continue the conversation
                 </p>
                 <p className="text-sm text-white/70 leading-relaxed">
-                  This conversation used models that aren&apos;t in your current plan, so you can&apos;t continue it here.{" "}
-                  <Link href="/upgrade" className="text-amber-200 underline underline-offset-2 hover:text-amber-100">Upgrade</Link>{" "}
+                  This conversation used models that aren&apos;t in your {isGuest ? "free plan" : "current plan"}, so you can&apos;t continue it here.{" "}
+                  {isGuest ? (
+                    <Link href="/signin" className="text-amber-200 underline underline-offset-2 hover:text-amber-100">Sign in</Link>
+                  ) : (
+                    <Link href="/upgrade" className="text-amber-200 underline underline-offset-2 hover:text-amber-100">Upgrade</Link>
+                  )}{" "}
                   to pick it back up, or start a{" "}
                   <button type="button" onClick={newComparison} className="text-teal-300 underline underline-offset-2 hover:text-teal-200">new comparison</button>.
                 </p>
