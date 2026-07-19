@@ -53,7 +53,7 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
       <div className="pointer-events-none absolute top-24 left-1/2 -translate-x-1/2 w-[640px] h-[480px] bg-teal-500/15 rounded-full blur-[130px]" />
 
       <header className="relative z-10 border-b border-white/10">
-        <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-4">
           <Logo height={26} />
           <ShareContinue
             id={id}
@@ -65,7 +65,7 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
         </div>
       </header>
 
-      <main className="relative z-10 max-w-3xl mx-auto px-4 py-10">
+      <main className="relative z-10 max-w-5xl mx-auto px-4 py-10">
         <div className="mb-8 inline-flex items-center gap-1.5 rounded-full border border-teal-300/25 bg-teal-300/[0.06] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-teal-200">
           Shared comparison
         </div>

@@ -439,7 +439,7 @@ function SummaryPanel({
         {settled?.contributions && settled.contributions.length > 0 && (
           <ContributionsTop contributions={settled.contributions} />
         )}
-        <div className="prose prose-sm sm:prose-base prose-invert max-w-[68ch]
+        <div className="prose prose-sm sm:prose-base prose-invert max-w-prose
           prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
           prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
           prose-ul:my-2 prose-li:my-1 prose-p:my-2 prose-strong:text-white">
@@ -565,7 +565,7 @@ function RawAnswers({ answers, streamedText }: {
             {modelLabel(a.model)} didn&apos;t return a response this time — a transient provider hiccup. Try again to include it.
           </div>
         ) : shown && text ? (
-          <div className="px-5 pb-5 prose prose-sm prose-invert max-w-[68ch] prose-p:my-2 prose-strong:text-white
+          <div className="px-5 pb-5 prose prose-sm prose-invert max-w-prose prose-p:my-2 prose-strong:text-white
             [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
             [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_img]:max-w-full [&_code]:break-words">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
@@ -1405,11 +1405,15 @@ function Home() {
   // catches up to the latest.
   useEffect(() => {
     const cid = activeConvId;
+    // Reset the share pill on EVERY switch — the lookup below re-sets it only if
+    // THIS conversation actually has a share, so switching to an unshared thread
+    // never leaves a stale "Copy share link" from the previous one.
+    setShareUrl(null);
     // Block auto-push until we know the share's turn count (below). MAX means "no
     // push yet" — so a partial snapshot mid-hydration (root before the thread
     // loads) can't shrink an existing link back to just the root.
     sharePushRef.current = { cid: cid ?? null, turns: Number.MAX_SAFE_INTEGER };
-    if (!cid) { setShareUrl(null); return; }
+    if (!cid) return;
     let alive = true;
     fetch(`/api/share?conversationId=${encodeURIComponent(cid)}`)
       .then((r) => r.json())
@@ -2707,7 +2711,7 @@ function Home() {
                           </div>
                         </button>
                         {isOpen && (
-                          <div className="px-5 pb-5 prose prose-sm prose-invert max-w-[68ch] prose-p:my-2 prose-strong:text-white
+                          <div className="px-5 pb-5 prose prose-sm prose-invert max-w-prose prose-p:my-2 prose-strong:text-white
                             [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-xs
                             [&_pre]:overflow-x-auto [&_pre]:max-w-full
                             [&_img]:max-w-full [&_code]:break-words">
@@ -2820,7 +2824,7 @@ function Home() {
                                 {f.streaming && <span className="text-white/55 font-normal">· thinking…</span>}
                               </div>
                               {f.answer ? (
-                                <div className="prose prose-sm prose-invert max-w-[68ch] prose-p:my-2 prose-strong:text-white
+                                <div className="prose prose-sm prose-invert max-w-prose prose-p:my-2 prose-strong:text-white
                                   [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
                                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
                                 </div>
@@ -2875,7 +2879,7 @@ function Home() {
                   <div className="mb-3">
                     <Logo height={28} symbolOnly gradientId="product-g" />
                   </div>
-                  <div className="prose prose-sm prose-invert max-w-[68ch]">
+                  <div className="prose prose-sm prose-invert max-w-prose">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
                   </div>
                   {/* AGG-39: a grounded direct answer (e.g. "who's the president")
