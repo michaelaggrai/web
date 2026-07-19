@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles, Zap, Crown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { getAnonId } from "@/lib/anon-id";
+import { getAnonId, getShareRef } from "@/lib/anon-id";
 import { Logo } from "@/components/logo";
 
 // Compact plan picker shown only in signup mode. After successful signup, a
@@ -110,10 +110,16 @@ function SignIn() {
         // profile_events.anon_id, i.e. "this visitor landed, asked, then
         // converted". Null without analytics consent (getAnonId returns null),
         // and the trigger validates + ignores anything malformed.
+        //
+        // AGG-44: `ref` carries the first-touch acquisition source (the
+        // aggrai_ref cookie set by /share, e.g. "share:<id>") into
+        // profiles.ref → profile_events.properties.ref, so a shared link can be
+        // credited with the signup — and the later upgrade — directly, rather
+        // than inferred by matching anon_id. Same consent gate.
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { anon_id: getAnonId() } },
+          options: { data: { anon_id: getAnonId(), ref: getShareRef() } },
         });
         if (error) throw error;
         if (!data.session) {

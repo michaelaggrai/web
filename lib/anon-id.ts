@@ -48,3 +48,26 @@ export function getAnonId(): string | null {
     return null; // storage disabled / private mode — backend just records null
   }
 }
+
+/** AGG-44 attribution: the first-touch acquisition ref that /share writes as the
+ *  `aggrai_ref` cookie (e.g. `share:<shareId>`; first link in wins, 30 days).
+ *  Passed in the signup metadata so `handle_new_user()` can stamp `profiles.ref`
+ *  and `log_profile_tier_event()` can echo it onto the signup + upgrade rows in
+ *  `profile_events` — a direct share → signup → paid chain, instead of inferring
+ *  it by matching `anon_id`. Consent-gated on the same signal as `getAnonId`:
+ *  no analytics consent, no attribution. Charset mirrors the trigger's check. */
+export function getShareRef(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    if (!analyticsAllowed()) return null;
+    const raw = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("aggrai_ref="))
+      ?.slice("aggrai_ref=".length);
+    if (!raw) return null;
+    const ref = decodeURIComponent(raw);
+    return /^[A-Za-z0-9_:.-]{1,80}$/.test(ref) ? ref : null;
+  } catch {
+    return null; // cookies blocked — attribution is best-effort
+  }
+}
