@@ -17,8 +17,10 @@ type LogoProps = {
 // it shrinks. Three tiers, branched off the `height` prop — no CSS media queries:
 //   FULL    (≥48px)                 edge + spokes + 5 nodes r6.5 + core r8
 //                                   — hero/large use; also the loading spinner @84.
-//   COMPACT (<48px)                 edge (heavier) + 5 nodes r7 + core r9, NO spokes
+//   COMPACT (<48px)                 edge (heavier) + spokes + 5 nodes r7 + core r9
 //                                   — every nav / header / sidebar / gate row.
+//                                   (spokes kept here per user pref; the spec had
+//                                    dropped them below 48px.)
 //   DOTS    (≤20px, symbol-only)    5 nodes r9 + core r11, no edge/spokes
 //                                   — favicon parity (the file lives in app/icon.svg).
 // Node/core/ripple keep their classes so the thinking + page-load-assemble +
@@ -81,10 +83,13 @@ function Mark({ tier }: { tier: Tier }) {
         {/* Perimeter comet overlay — invisible at rest; lit during load / hover /
             assemble. pathLength=100 normalises the dash maths to percentages. */}
         <path className="aggrai-edge-flow" pathLength={100} d={EDGE_D} />
-        {tier === "full" &&
-          NODES.map(([, x, y], i) => (
-            <line key={i} className="aggrai-spoke" x1="50" y1="50" x2={x} y2={y} />
-          ))}
+        {/* Spokes render in FULL + COMPACT (the DOTS/favicon tier already
+            returned above without them). The spec had dropped spokes below 48px
+            to avoid dashed-line fuzz, but per user preference the dashed spokes
+            stay at header/nav size — the connected "mesh" look wins. */}
+        {NODES.map(([, x, y], i) => (
+          <line key={i} className="aggrai-spoke" x1="50" y1="50" x2={x} y2={y} />
+        ))}
         {nodes}
       </g>
       {/* Radiates from behind the core each loading loop. Inert unless is-loading. */}
