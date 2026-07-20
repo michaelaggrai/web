@@ -403,14 +403,14 @@ function ScoreRailSkeleton({ models }: { models: string[] }) {
         <span className="text-[11px] text-white/55">scoring the answers…</span>
       </div>
       <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2 lg:grid-cols-1 items-start">
-        {models.map((m) => (
+        {models.map((m, i) => (
           <div key={m} className="space-y-2 min-w-0">
             <div className="flex items-center gap-2 text-xs min-w-0">
               <ProviderLogo provider={providerOf(m)} className="w-3.5 h-3.5 shrink-0" />
               <span className="font-medium text-white/70 flex-1 truncate">{modelLabel(m)}</span>
               <span className="h-3 w-8 rounded bg-white/10 shrink-0 animate-pulse" aria-hidden="true" />
             </div>
-            <div className="relative animate-pulse" aria-hidden="true">
+            <div className="relative" aria-hidden="true">
               <ResponsiveContainer width="100%" height={184}>
                 <RadarChart data={placeholder} outerRadius="58%">
                   <PolarGrid stroke="rgba(255,255,255,0.08)" />
@@ -419,8 +419,23 @@ function ScoreRailSkeleton({ models }: { models: string[] }) {
                   <Radar dataKey="value" stroke="rgba(94,234,212,0.5)" fill="rgba(94,234,212,0.12)" strokeWidth={2} isAnimationActive={false} />
                 </RadarChart>
               </ResponsiveContainer>
+              {/* Rotating radar-sweep beam — the "scoring in progress" motion.
+                  Staggered per model so they scan out of phase. Outer div centres,
+                  inner div rotates (a rotate transform would clobber the centring
+                  translate if combined on one element). */}
+              <div className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                <div
+                  className="aggrai-radar-sweep h-full w-full rounded-full"
+                  style={{
+                    background: "conic-gradient(from 0deg, rgba(94,234,212,0.5), rgba(94,234,212,0) 34%)",
+                    WebkitMaskImage: "radial-gradient(closest-side, #000 52%, transparent 100%)",
+                    maskImage: "radial-gradient(closest-side, #000 52%, transparent 100%)",
+                    animationDelay: `${(i % 3) * -0.8}s`,
+                  }}
+                />
+              </div>
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="h-6 w-9 rounded-md bg-white/10" />
+                <div className="h-6 w-9 rounded-md bg-white/10 animate-pulse" />
               </div>
             </div>
           </div>

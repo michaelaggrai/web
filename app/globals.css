@@ -334,6 +334,18 @@
 }
 
 /* ============================================================
+   Aggr-Score loading rail — a rotating "radar sweep" beam over
+   each pentagon while the summariser scores. Transform-only, so
+   it's GPU-cheap even with 3–5 radars sweeping at once.
+   ============================================================ */
+@keyframes aggrai-radar-sweep { to { transform: rotate(360deg); } }
+.aggrai-radar-sweep { animation: aggrai-radar-sweep 2.4s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  /* No rotation for reduce-motion — leave a static faint glow instead. */
+  .aggrai-radar-sweep { animation: none; opacity: 0.4; }
+}
+
+/* ============================================================
    AGG-38 #3 — suppress iOS Safari's default grey/blue tap-highlight
    on touch devices (`hover: none` is the standard query for "no real
    hover capability"). Our buttons + links already have purpose-built
