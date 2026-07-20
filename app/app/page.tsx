@@ -2818,14 +2818,20 @@ function Home() {
                               />
                             </div>
                           ) : (
-                            <>
+                            // Single-model answer: cap + CENTRE the reading column
+                            // (max-w-prose, per bf167c9) inside the full-width card.
+                            // Left-aligned prose in the wide max-w-7xl thread column
+                            // floated in the left half with dead space on the right.
+                            // The card itself stays full-width — it's shared with the
+                            // compare-mode follow-up above, which needs the room.
+                            <div className="mx-auto max-w-prose">
                               <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
                                 <ProviderLogo provider={providerOf(f.modelId)} className="w-3.5 h-3.5 shrink-0" />
                                 <span className="truncate">{modelLabel(f.modelId)}</span>
                                 {f.streaming && <span className="text-white/55 font-normal">· thinking…</span>}
                               </div>
                               {f.answer ? (
-                                <div className="prose prose-sm prose-invert max-w-prose prose-h1:text-lg prose-h1:font-semibold prose-h1:text-white prose-h1:mt-4 prose-h1:mb-2 prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2 prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2 prose-p:my-2 prose-strong:text-white
+                                <div className="prose prose-sm prose-invert max-w-none prose-h1:text-lg prose-h1:font-semibold prose-h1:text-white prose-h1:mt-4 prose-h1:mb-2 prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2 prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2 prose-p:my-2 prose-strong:text-white
                                   [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words">
                                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.answer}</ReactMarkdown>
                                 </div>
@@ -2835,7 +2841,7 @@ function Home() {
                               {/* AGG-39 D-converse: a grounded single follow-up shows
                                   its sources — the [1][2] markers in the text point here. */}
                               {f.searchInfo && <div className="mt-4"><SearchSources info={f.searchInfo} /></div>}
-                            </>
+                            </div>
                           )}
                         </div>
                       )}
@@ -2877,10 +2883,14 @@ function Home() {
               <>
               {result.type === "product" || result.type === "direct" ? (
                 <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl">
+                  {/* Centre the single-answer reading column (max-w-prose) inside the
+                      full-width card, so it isn't crammed into the left of the wide
+                      thread column. Wraps the answer, its sources, and the callout. */}
+                  <div className="mx-auto max-w-prose">
                   <div className="mb-3">
                     <Logo height={28} symbolOnly gradientId="product-g" />
                   </div>
-                  <div className="prose prose-sm prose-invert max-w-prose prose-h1:text-lg prose-h1:font-semibold prose-h1:text-white prose-h1:mt-4 prose-h1:mb-2 prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2 prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2">
+                  <div className="prose prose-sm prose-invert max-w-none prose-h1:text-lg prose-h1:font-semibold prose-h1:text-white prose-h1:mt-4 prose-h1:mb-2 prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2 prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.answer}</ReactMarkdown>
                   </div>
                   {/* AGG-39: a grounded direct answer (e.g. "who's the president")
@@ -2913,6 +2923,7 @@ function Home() {
                       </div>
                     );
                   })()}
+                  </div>
                 </div>
               ) : (
                 <>
