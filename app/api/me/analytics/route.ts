@@ -187,14 +187,15 @@ export async function GET(req: NextRequest) {
     if (t.length) { qTopics.set(r.id as string, t); tagged++; }
   }
 
-  // Follow-up topic inheritance (read-time). A follow-up like "tell me more" or
-  // "what about the 3rd" is tagged in isolation with no subject, so it lands in
-  // "Other". Credit it to the thread's real topic instead: per conversation, the
-  // earliest turn with a non-"Other" topic defines the subject, and any
-  // Other-only turn inherits it. This never touches the stored tags — it just
-  // stops a pile of context-free follow-ups from dominating the breakdown as
-  // "Other" (which reads as noise and buries the user's real interests).
-  const convSubject = new Map<string, string[]>();
+  // Per-question topic inheritance WITH drift (read-time). Walk each conversation
+  // in time order tracking a "running subject" — the most recent turn that had
+  // its OWN real (non-"Other") topic. An Other-only follow-up ("tell me more",
+  // "what about the 3rd") inherits the subject as it stands at that point, so a
+  // mid-thread topic change carries forward from then on (not the original root).
+  // A turn with no subject yet inherits nothing → it's dropped from the breakdown
+  // (see the count loop): genuinely un-relatable asks are omitted rather than
+  // piled into a noisy "Other". Never touches the stored tags.
+  const inherited = new Map<string, string[]>(); // questionId -> nearest preceding subject
   {
     const byConv = new Map<string, { id: string; ts: string }[]>();
     for (const r of qs) {
@@ -204,11 +205,13 @@ export async function GET(req: NextRequest) {
       const a = byConv.get(cid);
       if (a) a.push(row); else byConv.set(cid, [row]);
     }
-    for (const [cid, turns] of byConv) {
+    for (const turns of byConv.values()) {
       turns.sort((a, b) => a.ts.localeCompare(b.ts));
+      let subject: string[] | null = null;
       for (const t of turns) {
-        const real = (qTopics.get(t.id) ?? []).filter((x) => x !== "Other");
-        if (real.length) { convSubject.set(cid, real); break; }
+        const own = (qTopics.get(t.id) ?? []).filter((x) => x !== "Other");
+        if (own.length) subject = own;                  // this turn sets / changes the subject
+        else if (subject) inherited.set(t.id, subject);  // Other-only inherits the current subject
       }
     }
   }
@@ -227,16 +230,14 @@ export async function GET(req: NextRequest) {
   const topicModel = new Map<string, Map<string, { sum: number; n: number }>>();
   const dayScore = new Map<string, { sum: number; n: number }>();
   for (const r of qs) {
-    const rawTopics = qTopics.get(r.id as string);
-    // Other-only follow-ups inherit their thread's subject (see convSubject).
-    let topics = rawTopics;
-    if (rawTopics && !rawTopics.some((x) => x !== "Other")) {
-      const cid = r.conversation_id as string | null;
-      const subj = cid ? convSubject.get(cid) : undefined;
-      if (subj?.length) topics = subj;
-    }
+    const raw = qTopics.get(r.id as string) ?? [];
+    const own = raw.filter((x) => x !== "Other");
+    // Its own real topic wins (captures a mid-thread topic change); else the
+    // inherited subject; else nothing — an un-relatable ask is omitted, never
+    // shown as "Other".
+    const topics = own.length ? own : (inherited.get(r.id as string) ?? []);
     const scores = qScores.get(r.id as string);
-    if (topics) {
+    if (topics.length) {
       for (const topic of topics) {
         topicCount.set(topic, (topicCount.get(topic) ?? 0) + 1);
         if (scores) {
