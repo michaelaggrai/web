@@ -374,6 +374,9 @@
 .asr-scored .asr-polyfill{opacity:1;transition:opacity .45s ease .9s}
 .asr-num{opacity:0;font-variant-numeric:tabular-nums}
 .asr-scored .asr-num{opacity:1;transition:opacity .3s ease .5s}
+/* Per-axis 0–10 sub-scores — hidden while judging, fade in with the landing. */
+.asr-axscore{opacity:0;font-variant-numeric:tabular-nums}
+.asr-scored .asr-axscore{opacity:1;transition:opacity .3s ease .55s}
 
 @media (prefers-reduced-motion: reduce){
   /* Static dots on the spokes while waiting; no core/ripple; commit without spring. */

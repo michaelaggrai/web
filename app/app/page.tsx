@@ -16,7 +16,6 @@ import { listThread } from "@/lib/thread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2 } from "lucide-react";
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ScoreRadar } from "@/components/score-radar";
@@ -830,47 +829,12 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
             dim: label,
             value: (typeof a.scores[key] === "number" ? a.scores[key] : 0) * 2,
           }));
-          const valueByDim: Record<string, number> = Object.fromEntries(
-            data.map(d => [d.dim, d.value]),
-          );
           // Sub-metric labels this model wins outright — highlighted in its
-          // radar colour + bold on the axis, so you can see at a glance which
-          // model was best at what.
+          // radar colour + bold on the axis (passed to ScoreRadar as `winners`),
+          // so you can see at a glance which model was best at what.
           const winLabels = new Set(
             SCORE_KEYS.filter(k => dimWinner[k.key] === a.model).map(k => k.label),
           );
-          // Custom axis tick: the dimension name plus its 0-10 sub-score in
-          // grey just below it, so each radar shows the exact numbers, not
-          // just the polygon shape. A winning dimension is drawn in the
-          // model's colour + bold. payload.value is the dim string.
-          const renderAxisTick = (props: {
-            payload: { value: string }; x: number; y: number; cy: number;
-            textAnchor: "start" | "middle" | "end" | "inherit";
-          }) => {
-            const { payload, x, y, cy, textAnchor } = props;
-            const v = valueByDim[payload.value];
-            const isWin = winLabels.has(payload.value);
-            // Two-line label: dimension name, then its 0-10 score one line
-            // below. At the top vertex "below" points inward, so the score
-            // would land on the polygon's top point. textAnchor "middle" +
-            // sitting above the centre uniquely identifies that top label
-            // (the side labels are start/end), so lift it one line up into
-            // the headroom above — the score then occupies the (already
-            // clear) spot the name held, and the name moves further out.
-            const topVertex = textAnchor === "middle" && y < cy;
-            const nameY = topVertex ? y - 11 : y;
-            const scoreY = nameY + 11;
-            return (
-              <g>
-                <text x={x} y={nameY} textAnchor={textAnchor} dominantBaseline="central" fontSize={10} fontWeight={isWin ? 700 : 400} fill={isWin ? color : "rgba(255,255,255,0.55)"}>
-                  {payload.value}
-                </text>
-                <text x={x} y={scoreY} textAnchor={textAnchor} dominantBaseline="central" fontSize={9} fontWeight={isWin ? 700 : 400} fill={isWin ? color : "rgba(255,255,255,0.38)"}>
-                  {typeof v === "number" ? v.toFixed(1) : "—"}
-                </text>
-              </g>
-            );
-          };
           const detailOpen = openDetail.has(a.model);
           const hasDetail =
             (a.scores.strengths?.length ?? 0) + (a.scores.weaknesses?.length ?? 0) > 0;
@@ -928,29 +892,12 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
                   if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleDetail(a.model); }
                 } : undefined}
               >
-                <ResponsiveContainer width="100%" height={184}>
-                  <RadarChart data={data} outerRadius="58%">
-                    <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                    <PolarAngleAxis dataKey="dim" tick={renderAxisTick} />
-                    <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-                    <Radar
-                      name={modelLabel(a.model)}
-                      dataKey="value"
-                      stroke={color}
-                      fill={color}
-                      fillOpacity={0.2}
-                      strokeWidth={2}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div
-                    className="text-2xl font-semibold tabular-nums leading-none"
-                    style={{ color }}
-                  >
-                    {a.overall.toFixed(1)}
-                  </div>
-                </div>
+                <ScoreRadar
+                  values={data.map((d) => d.value)}
+                  score={a.overall}
+                  color={color}
+                  winners={SCORE_KEYS.map((k) => winLabels.has(k.label))}
+                />
               </div>
 
               {/* Expanded detail — the answer's pros and cons, judged by the

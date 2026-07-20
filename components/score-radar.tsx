@@ -5,9 +5,11 @@
 // landing when the verdict arrives (see aggr-score-loading-v3 mockup + globals
 // .asr-* keyframes). One element does the whole life: while `values` is null the
 // five provider-coloured dots inhale/gather/burst on a 1.6s heartbeat; when
-// `values` lands we wait for the next burst phase, add `.asr-scored`, and the
-// dots spring out to their real radii in the model's colour, rings stamp each
-// vertex, the polygon draws through, and the centre number counts up.
+// `values` land we add `.asr-scored` and the dots spring out to their real radii
+// in the model's colour, rings stamp each vertex, the polygon draws through, and
+// the per-axis + centre numbers count/fade in. The five axis words keep the
+// mockup's positions (clear of the polygon); each carries its 0–10 sub-score,
+// bold + in the model colour on a dimension this model wins.
 import { useEffect, useRef, useState } from "react";
 
 const DEFAULT_AXES = ["Accuracy", "Completeness", "Calibration", "Clarity", "Insight"];
@@ -24,35 +26,46 @@ const ringPts = (v: number, n: number) =>
 const cssVars = (o: Record<string, string>) => o as React.CSSProperties;
 
 export function ScoreRadar({
-  values, score, color, axes = DEFAULT_AXES,
+  values, score, color, winners, axes = DEFAULT_AXES,
 }: {
   values: number[] | null; // 5 sub-scores 0–10, or null while judging
   score: number | null;    // overall 0–10 for the centre number
   color: string;           // the model's slot colour (verdict colour)
+  winners?: boolean[];      // per-axis: does this model win that dimension?
   axes?: string[];
 }) {
   const startRef = useRef(0);
+  const mountedScoredRef = useRef(values != null); // settled from the first render?
   const numRef = useRef<SVGTextElement>(null);
   const [scored, setScored] = useState(false);
   const n = axes.length;
 
-  // Record the CSS animation's start (≈ first paint) so the commit can align to
-  // a burst phase (t = start + (k + 0.95)·1.6s ≥ ready) instead of snapping.
   useEffect(() => { startRef.current = performance.now(); }, []);
 
   useEffect(() => {
     if (!values) {
-      setScored(false);
+      // Loading: the dots gather/burst via CSS. Reset the centre readout through
+      // the DOM (a ref write, not setState — a synchronous setState in an effect
+      // is the cascading-render smell). `scored` stays false from initial state;
+      // a ScoreRadar instance never goes settled → loading in the app, so there's
+      // nothing to reset.
       if (numRef.current) numRef.current.textContent = "0.0";
       return;
     }
-    const start = startRef.current || performance.now();
-    const elapsed = performance.now() - start;
-    const k = Math.ceil(elapsed / CYCLE - BURST);
-    const commitAt = start + (k + BURST) * CYCLE;
-    const delay = Math.max(0, commitAt - performance.now());
-    let raf = 0;
-    let countTimer = 0;
+    // If we were already looping (loading → verdict), align the commit to the
+    // NEXT burst so the outward burst continues into the landing. If we mounted
+    // with the values (settled fresh, e.g. a revisited comparison), just reveal
+    // quickly — there's no burst in flight to continue.
+    let delay: number;
+    if (mountedScoredRef.current) {
+      delay = 260;
+    } else {
+      const start = startRef.current || performance.now();
+      const elapsed = performance.now() - start;
+      const k = Math.ceil(elapsed / CYCLE - BURST);
+      delay = Math.max(0, start + (k + BURST) * CYCLE - performance.now());
+    }
+    let raf = 0, countTimer = 0;
     const t = window.setTimeout(() => {
       setScored(true);
       const target = score ?? values.reduce((a, b) => a + b, 0) / values.length;
@@ -76,19 +89,36 @@ export function ScoreRadar({
     : ringPts(0.5, n);
 
   return (
-    <svg viewBox="0 0 220 200" className={`block w-full ${scored ? "asr-scored" : ""}`}
+    <svg viewBox="-30 0 280 200" className={`block w-full ${scored ? "asr-scored" : ""}`}
       style={{ overflow: "visible", ...cssVars({ "--slot": color }) }} aria-hidden="true">
       {[0.25, 0.5, 0.75, 1].map((v) => (
         <polygon key={v} points={ringPts(v, n)} fill="none" stroke="rgba(255,255,255,.09)" strokeWidth={1} />
       ))}
       {axes.map((ax, i) => {
-        const [x, y] = pt(i, 1);
         const a = ((-90 + i * 72) * Math.PI) / 180;
+        const [sx, sy] = pt(i, 1);
         const lx = CX + (R + 16) * Math.cos(a), ly = CY + (R + 16) * Math.sin(a) + 3;
+        // Two-line label: name, then its 0–10 score one line below. At the top
+        // vertex "below" points at the polygon apex, so lift the name and let the
+        // score take the (clear) spot the name held.
+        const top = i === 0;
+        const nameY = top ? ly - 11 : ly;
+        const scoreY = nameY + 11;
+        const win = scored && !!winners?.[i];
+        // Anchor side labels OUTWARD (right → start, left → end, top → middle) so
+        // the words extend away from the polygon instead of over it — matching
+        // the settled radar's positions. The widened viewBox gives them room.
+        const anchor: "start" | "middle" | "end" =
+          Math.abs(lx - CX) < 2 ? "middle" : lx > CX ? "start" : "end";
         return (
           <g key={ax}>
-            <line x1={CX} y1={CY} x2={x} y2={y} stroke="rgba(255,255,255,.07)" strokeWidth={1} />
-            <text x={lx} y={ly} textAnchor="middle" fontSize={10} fontWeight={500} fill="rgba(255,255,255,.5)">{ax}</text>
+            <line x1={CX} y1={CY} x2={sx} y2={sy} stroke="rgba(255,255,255,.07)" strokeWidth={1} />
+            <text x={lx} y={nameY} textAnchor={anchor} dominantBaseline="central" fontSize={10}
+              fontWeight={win ? 700 : 500} fill={win ? color : "rgba(255,255,255,.55)"}>{ax}</text>
+            <text className="asr-axscore" x={lx} y={scoreY} textAnchor={anchor} dominantBaseline="central"
+              fontSize={9} fontWeight={win ? 700 : 400} fill={win ? color : "rgba(255,255,255,.4)"}>
+              {values ? (values[i] ?? 0).toFixed(1) : ""}
+            </text>
           </g>
         );
       })}
