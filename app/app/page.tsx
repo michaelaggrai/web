@@ -2880,13 +2880,11 @@ function Home() {
                               />
                             </div>
                           ) : (
-                            // Single-model answer: cap + CENTRE the reading column
-                            // (max-w-prose, per bf167c9) inside the full-width card.
-                            // Left-aligned prose in the wide max-w-7xl thread column
-                            // floated in the left half with dead space on the right.
-                            // The card itself stays full-width — it's shared with the
-                            // compare-mode follow-up above, which needs the room.
-                            <div className="mx-auto max-w-prose">
+                            // Single-model answer: fill the full-width card (the prose
+                            // is max-w-none), so the text spans the box with equal
+                            // padding on both sides — no reading-measure column and no
+                            // centring (per user: "fill the whole box, don't centre").
+                            <>
                               <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 mb-3">
                                 <ProviderLogo provider={providerOf(f.modelId)} className="w-3.5 h-3.5 shrink-0" />
                                 <span className="truncate">{modelLabel(f.modelId)}</span>
@@ -2903,7 +2901,7 @@ function Home() {
                               {/* AGG-39 D-converse: a grounded single follow-up shows
                                   its sources — the [1][2] markers in the text point here. */}
                               {f.searchInfo && <div className="mt-4"><SearchSources info={f.searchInfo} /></div>}
-                            </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -2945,10 +2943,8 @@ function Home() {
               <>
               {result.type === "product" || result.type === "direct" ? (
                 <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl">
-                  {/* Centre the single-answer reading column (max-w-prose) inside the
-                      full-width card, so it isn't crammed into the left of the wide
-                      thread column. Wraps the answer, its sources, and the callout. */}
-                  <div className="mx-auto max-w-prose">
+                  {/* Single answer fills the card (prose is max-w-none), equal padding
+                      both sides — no centred reading column (per user). */}
                   <div className="mb-3">
                     <Logo height={28} symbolOnly gradientId="product-g" />
                   </div>
@@ -2985,7 +2981,6 @@ function Home() {
                       </div>
                     );
                   })()}
-                  </div>
                 </div>
               ) : (
                 <>
