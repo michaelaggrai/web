@@ -19,6 +19,7 @@ import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus,
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { ScoreRadar } from "@/components/score-radar";
 import { ModelLoader } from "@/components/model-loader";
 import { ModelPicker } from "@/components/model-picker";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -336,26 +337,14 @@ function ThinkingStatus({
   );
 }
 
-// Loading skeleton for the Aggr-Score rail — shown while the summariser is
-// scoring/rewriting (answers all in, scores not yet). Same shell + same 5-axis
-// radar as the real ScoresAndMetrics, but with placeholder geometry, no numbers,
-// and a gentle pulse — so the right column isn't dead space during the rewrite,
-// and the layout doesn't jump when the real scores replace it.
+// Loading state for the Aggr-Score rail — while the summariser judges. Each model
+// gets the ScoreRadar loader: the aggrai icon's gather → merge → burst gesture on
+// the radar's five spokes (the mark itself "thinking", in the provider colours).
+// Same shell + geometry as the settled ScoresAndMetrics, so the layout doesn't
+// jump when the real scores land. (The burst-becomes-landing continuity is a
+// follow-up — it needs this rail and the settled rail to be one persistent
+// element; for now the settled radars still render via ScoresAndMetrics.)
 function ScoreRailSkeleton({ models }: { models: string[] }) {
-  const placeholder = SCORE_KEYS.map(({ label }) => ({ dim: label, value: 6 }));
-  // Faint axis labels only (no score line) — matches the real radar's tick.
-  const renderTick = (props: {
-    payload: { value: string }; x: number; y: number; cy: number;
-    textAnchor: "start" | "middle" | "end" | "inherit";
-  }) => {
-    const { payload, x, y, cy, textAnchor } = props;
-    const topVertex = textAnchor === "middle" && y < cy;
-    return (
-      <text x={x} y={topVertex ? y - 6 : y} textAnchor={textAnchor} dominantBaseline="central" fontSize={10} fill="rgba(255,255,255,0.4)">
-        {payload.value}
-      </text>
-    );
-  };
   return (
     <div role="status" aria-label="Scoring the answers" className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl">
       <div className="mb-5 flex items-center gap-x-2 gap-y-1 flex-wrap">
@@ -364,41 +353,14 @@ function ScoreRailSkeleton({ models }: { models: string[] }) {
         <span className="text-[11px] text-white/55">scoring the answers…</span>
       </div>
       <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2 lg:grid-cols-1 items-start">
-        {models.map((m, i) => (
+        {models.map((m) => (
           <div key={m} className="space-y-2 min-w-0">
             <div className="flex items-center gap-2 text-xs min-w-0">
               <ProviderLogo provider={providerOf(m)} className="w-3.5 h-3.5 shrink-0" />
               <span className="font-medium text-white/70 flex-1 truncate">{modelLabel(m)}</span>
-              <span className="h-3 w-8 rounded bg-white/10 shrink-0 animate-pulse" aria-hidden="true" />
+              <span className="text-[11px] text-white/45 shrink-0">scoring…</span>
             </div>
-            <div className="relative" aria-hidden="true">
-              <ResponsiveContainer width="100%" height={184}>
-                <RadarChart data={placeholder} outerRadius="58%">
-                  <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                  <PolarAngleAxis dataKey="dim" tick={renderTick} />
-                  <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-                  <Radar dataKey="value" stroke="rgba(94,234,212,0.5)" fill="rgba(94,234,212,0.12)" strokeWidth={2} isAnimationActive={false} />
-                </RadarChart>
-              </ResponsiveContainer>
-              {/* Rotating radar-sweep beam — the "scoring in progress" motion.
-                  Staggered per model so they scan out of phase. Outer div centres,
-                  inner div rotates (a rotate transform would clobber the centring
-                  translate if combined on one element). */}
-              <div className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                <div
-                  className="aggrai-radar-sweep h-full w-full rounded-full"
-                  style={{
-                    background: "conic-gradient(from 0deg, rgba(94,234,212,0.5), rgba(94,234,212,0) 34%)",
-                    WebkitMaskImage: "radial-gradient(closest-side, #000 52%, transparent 100%)",
-                    maskImage: "radial-gradient(closest-side, #000 52%, transparent 100%)",
-                    animationDelay: `${(i % 3) * -0.8}s`,
-                  }}
-                />
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="h-6 w-9 rounded-md bg-white/10 animate-pulse" />
-              </div>
-            </div>
+            <ScoreRadar values={null} score={null} color="#5eead4" />
           </div>
         ))}
       </div>
