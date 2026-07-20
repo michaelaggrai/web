@@ -375,6 +375,61 @@ function ThinkingStatus({
   );
 }
 
+// Loading skeleton for the Aggr-Score rail — shown while the summariser is
+// scoring/rewriting (answers all in, scores not yet). Same shell + same 5-axis
+// radar as the real ScoresAndMetrics, but with placeholder geometry, no numbers,
+// and a gentle pulse — so the right column isn't dead space during the rewrite,
+// and the layout doesn't jump when the real scores replace it.
+function ScoreRailSkeleton({ models }: { models: string[] }) {
+  const placeholder = SCORE_KEYS.map(({ label }) => ({ dim: label, value: 6 }));
+  // Faint axis labels only (no score line) — matches the real radar's tick.
+  const renderTick = (props: {
+    payload: { value: string }; x: number; y: number; cy: number;
+    textAnchor: "start" | "middle" | "end" | "inherit";
+  }) => {
+    const { payload, x, y, cy, textAnchor } = props;
+    const topVertex = textAnchor === "middle" && y < cy;
+    return (
+      <text x={x} y={topVertex ? y - 6 : y} textAnchor={textAnchor} dominantBaseline="central" fontSize={10} fill="rgba(255,255,255,0.4)">
+        {payload.value}
+      </text>
+    );
+  };
+  return (
+    <div role="status" aria-label="Scoring the answers" className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl">
+      <div className="mb-5 flex items-center gap-x-2 gap-y-1 flex-wrap">
+        <BarChart3 className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+        <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80 whitespace-nowrap">Aggr-Score</p>
+        <span className="text-[11px] text-white/55">scoring the answers…</span>
+      </div>
+      <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2 lg:grid-cols-1 items-start">
+        {models.map((m) => (
+          <div key={m} className="space-y-2 min-w-0">
+            <div className="flex items-center gap-2 text-xs min-w-0">
+              <ProviderLogo provider={providerOf(m)} className="w-3.5 h-3.5 shrink-0" />
+              <span className="font-medium text-white/70 flex-1 truncate">{modelLabel(m)}</span>
+              <span className="h-3 w-8 rounded bg-white/10 shrink-0 animate-pulse" aria-hidden="true" />
+            </div>
+            <div className="relative animate-pulse" aria-hidden="true">
+              <ResponsiveContainer width="100%" height={184}>
+                <RadarChart data={placeholder} outerRadius="58%">
+                  <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                  <PolarAngleAxis dataKey="dim" tick={renderTick} />
+                  <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
+                  <Radar dataKey="value" stroke="rgba(94,234,212,0.5)" fill="rgba(94,234,212,0.12)" strokeWidth={2} isAnimationActive={false} />
+                </RadarChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="h-6 w-9 rounded-md bg-white/10" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // THE comparison summary — every phase of it, for every caller. The first ask and
 // a follow-up ask are the same thing happening twice, so they render through this
 // one component rather than two lookalikes that drift apart. They already drifted:
@@ -421,10 +476,13 @@ function SummaryPanel({
   const components = attrs.length > 0 ? makeAggraiAnswerComponents(attrs, knownIds) : MARKDOWN_COMPONENTS;
 
   return (
-    // 75/25 — the Aggr-Score rail only needs a compact radar + 5 axis labels; the
-    // rewrite wants the width. No rail while streaming, so no grid either: an
-    // empty second column just squeezes the prose against dead space.
-    <div className={settled ? "grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4 items-start" : ""}>
+    // Two-column whether streaming or settled: summary on the left, the Aggr-Score
+    // rail on the right — a live skeleton (5-axis radars pulsing) while the
+    // summariser scores, the real radars once they land. Same layout both phases,
+    // so nothing jumps when scores arrive. 2fr/1fr (was 3fr/1fr) + the summary
+    // filling its column (max-w-none below) closes the reading-measure dead-space
+    // that stranded the prose on the left of a too-wide column.
+    <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 items-start">
       <div
         role={settled ? undefined : "status"}
         aria-label={settled ? undefined : "Writing the summary"}
@@ -439,7 +497,7 @@ function SummaryPanel({
         {settled?.contributions && settled.contributions.length > 0 && (
           <ContributionsTop contributions={settled.contributions} />
         )}
-        <div className="prose prose-sm sm:prose-base prose-invert max-w-prose
+        <div className="prose prose-sm sm:prose-base prose-invert max-w-none
           prose-h1:text-lg prose-h1:font-semibold prose-h1:text-white prose-h1:mt-4 prose-h1:mb-2
           prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
           prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2
@@ -459,7 +517,11 @@ function SummaryPanel({
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{text}</ReactMarkdown>
         </div>
       </div>
-      {settled && <div className="min-w-0"><ScoresAndMetrics answers={settled.answers} /></div>}
+      <div className="min-w-0">
+        {settled
+          ? <ScoresAndMetrics answers={settled.answers} />
+          : <ScoreRailSkeleton models={models} />}
+      </div>
     </div>
   );
 }
