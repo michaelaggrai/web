@@ -281,96 +281,57 @@ function ModelLoadingBlock({ modelId }: { modelId: string }) {
   );
 }
 
-// Playful flavour lines that rotate under the headline so the wait feels alive
-// even in the gaps between real events. Two sets — one per phase.
+// Playful, deliberately VAGUE loading lines — no counts, no model names, so the
+// message can never mismatch the real line-up (the old "X is in — awaiting N
+// more" did, and even named models that weren't in the set). Two moods only:
+// asking, then scoring. Rotates so the wait feels alive without tracking anything.
 const THINKING_FLAVORS = [
   "no peeking at each other's work",
-  "each one thinking solo",
+  "everyone scribbling in silence",
   "the more minds the merrier",
-  "gathering every angle",
-  "same question, five takes",
+  "poking the question from every angle",
+  "same question, different minds",
 ];
 const SCORING_FLAVORS = [
   "reading every answer twice",
-  "tallying the Aggr-Score",
-  "marking on the merits",
-  "checking who backed it up",
+  "marking on the merits, not the vibes",
+  "checking who actually backed it up",
+  "no marks for confidence alone",
   "crowning a winner",
 ];
 
-// The live orchestration status shown while a comparison streams in. Replaces a
-// static "Thinking…" with a phase-aware headline (names the model that just
-// landed), a rotating flavour line, and a per-model checklist that ticks green
-// as each answer arrives — so the top block narrates what aggrai is doing.
+// A vague, playful status while a comparison runs. It says NOTHING about how
+// many models or which just landed — the old per-model "X is in — awaiting N
+// more" churned every second and could even name a model that wasn't in the
+// set. Two moods only: asking, then scoring. The spinner is the progress; the
+// line is just for fun.
 function ThinkingStatus({
-  modelIds, done, typing, gradientId,
+  modelIds, done, gradientId,
 }: {
   modelIds: string[];
-  done: string[];      // finished, in completion order (newest last)
-  typing: string[];    // currently streaming
+  done: string[];
   gradientId: string;
 }) {
-  const total = modelIds.length;
-  const doneCount = done.length;
-  const allIn = total > 0 && doneCount >= total;
+  const scoring = modelIds.length > 0 && done.length >= modelIds.length;
 
-  // Rotate a flavour line every ~2.4s. Deterministic (no Math.random) so it
-  // stays stable across the frequent re-renders that streaming triggers.
+  // Rotate the line every ~2.8s. Deterministic (no Math.random) so it stays
+  // stable across the frequent re-renders that streaming triggers.
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setTick((v) => v + 1), 2400);
+    const t = setInterval(() => setTick((v) => v + 1), 2800);
     return () => clearInterval(t);
   }, []);
-  const flavors = allIn ? SCORING_FLAVORS : THINKING_FLAVORS;
-  const flavor = flavors[tick % flavors.length];
-
-  let headline: string;
-  if (allIn) {
-    headline = `Gathered all ${total} answers — scoring them now…`;
-  } else if (doneCount === 0) {
-    headline = `Asking ${total} models…`;
-  } else {
-    const last = modelLabel(done[done.length - 1]);
-    const remaining = total - doneCount;
-    headline = `${last} is in — awaiting ${remaining} more…`;
-  }
+  const lines = scoring ? SCORING_FLAVORS : THINKING_FLAVORS;
+  const line = lines[tick % lines.length];
 
   return (
     <div
       role="status"
-      aria-label="Comparing models"
-      className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4"
+      aria-label={scoring ? "Scoring the answers" : "Asking the models"}
+      className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-3 min-h-[110px] p-6"
     >
       <Logo height={LOADING_AGGRAI_SIZE} spinning symbolOnly gradientId={gradientId} />
-      <p className="text-sm font-medium text-white/80 text-center" aria-live="polite">{headline}</p>
-      <p className="text-xs text-white/55 text-center">{flavor}…</p>
-      <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
-        {modelIds.map((id) => {
-          const isDone = done.includes(id);
-          const isTyping = !isDone && typing.includes(id);
-          return (
-            <span
-              key={id}
-              title={modelLabel(id)}
-              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${
-                isDone
-                  ? "border-teal-300/40 bg-teal-300/10 text-teal-200"
-                  : isTyping
-                    ? "border-white/15 bg-surface-2 text-white/70"
-                    : "border-white/10 text-white/55"
-              }`}
-            >
-              <ProviderLogo provider={providerOf(id)} className="w-2.5 h-2.5 shrink-0" />
-              <span className="max-w-[90px] truncate">{modelLabel(id)}</span>
-              {isDone ? (
-                <Check className="w-2.5 h-2.5 text-teal-300" aria-hidden="true" />
-              ) : isTyping ? (
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse" aria-hidden="true" />
-              ) : null}
-            </span>
-          );
-        })}
-      </div>
+      <p className="text-sm font-medium text-white/70 text-center" aria-live="polite">{line}…</p>
     </div>
   );
 }
@@ -478,7 +439,6 @@ function SummaryPanel({
       <ThinkingStatus
         modelIds={models}
         done={doneModels}
-        typing={models.filter(m => partialAnswers[m] != null)}
         gradientId={gradientId}
       />
     );
