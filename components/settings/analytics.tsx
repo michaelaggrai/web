@@ -308,7 +308,10 @@ function InsightsTab({ insights }: { insights: Insights }) {
       </div>
     );
   }
-  const maxTopic = Math.max(...i.topicBreakdown.map((t) => t.count));
+  // Scale bars to the biggest *real* topic, not "Other" (the catch-all), so a
+  // fat "Other" bar can't dwarf the topics people actually care about. Falls
+  // back to 1 if somehow only "Other" exists.
+  const realMax = Math.max(1, ...i.topicBreakdown.filter((t) => t.topic !== "Other").map((t) => t.count));
   return (
     <div className="space-y-6">
       <div>
@@ -316,9 +319,12 @@ function InsightsTab({ insights }: { insights: Insights }) {
         <div className="space-y-1.5">
           {i.topicBreakdown.map((t) => (
             <div key={t.topic} className="flex items-center gap-3">
-              <div className="w-44 shrink-0 text-xs leading-tight text-white/70" title={t.topic}>{t.topic}</div>
+              <div className={`w-44 shrink-0 text-xs leading-tight ${t.topic === "Other" ? "text-white/40" : "text-white/70"}`} title={t.topic}>{t.topic}</div>
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
-                <div className="h-full rounded-full bg-teal-400/70" style={{ width: `${Math.max(3, (t.count / maxTopic) * 100)}%` }} />
+                <div
+                  className={`h-full rounded-full ${t.topic === "Other" ? "bg-white/20" : "bg-teal-400/70"}`}
+                  style={{ width: `${Math.min(100, Math.max(3, (t.count / realMax) * 100))}%` }}
+                />
               </div>
               <div className="w-8 shrink-0 text-right text-xs tabular-nums text-white/50">{t.count}</div>
             </div>

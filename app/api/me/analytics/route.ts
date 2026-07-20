@@ -186,6 +186,33 @@ export async function GET(req: NextRequest) {
     const t = Array.isArray(raw) ? (raw as string[]) : [];
     if (t.length) { qTopics.set(r.id as string, t); tagged++; }
   }
+
+  // Follow-up topic inheritance (read-time). A follow-up like "tell me more" or
+  // "what about the 3rd" is tagged in isolation with no subject, so it lands in
+  // "Other". Credit it to the thread's real topic instead: per conversation, the
+  // earliest turn with a non-"Other" topic defines the subject, and any
+  // Other-only turn inherits it. This never touches the stored tags — it just
+  // stops a pile of context-free follow-ups from dominating the breakdown as
+  // "Other" (which reads as noise and buries the user's real interests).
+  const convSubject = new Map<string, string[]>();
+  {
+    const byConv = new Map<string, { id: string; ts: string }[]>();
+    for (const r of qs) {
+      const cid = r.conversation_id as string | null;
+      if (!cid) continue;
+      const row = { id: r.id as string, ts: r.ts as string };
+      const a = byConv.get(cid);
+      if (a) a.push(row); else byConv.set(cid, [row]);
+    }
+    for (const [cid, turns] of byConv) {
+      turns.sort((a, b) => a.ts.localeCompare(b.ts));
+      for (const t of turns) {
+        const real = (qTopics.get(t.id) ?? []).filter((x) => x !== "Other");
+        if (real.length) { convSubject.set(cid, real); break; }
+      }
+    }
+  }
+
   // Scored answers per question (model + overall 0-10).
   const qScores = new Map<string, { model: string; overall: number }[]>();
   for (const r of runs) {
@@ -200,7 +227,14 @@ export async function GET(req: NextRequest) {
   const topicModel = new Map<string, Map<string, { sum: number; n: number }>>();
   const dayScore = new Map<string, { sum: number; n: number }>();
   for (const r of qs) {
-    const topics = qTopics.get(r.id as string);
+    const rawTopics = qTopics.get(r.id as string);
+    // Other-only follow-ups inherit their thread's subject (see convSubject).
+    let topics = rawTopics;
+    if (rawTopics && !rawTopics.some((x) => x !== "Other")) {
+      const cid = r.conversation_id as string | null;
+      const subj = cid ? convSubject.get(cid) : undefined;
+      if (subj?.length) topics = subj;
+    }
     const scores = qScores.get(r.id as string);
     if (topics) {
       for (const topic of topics) {
@@ -224,9 +258,11 @@ export async function GET(req: NextRequest) {
   }
   const topicBreakdown = [...topicCount.entries()]
     .map(([topic, count]) => ({ topic, count }))
-    .sort((a, b) => b.count - a.count);
+    // "Other" is the catch-all, not a subject — pin it last however big it is.
+    .sort((a, b) => (a.topic === "Other" ? 1 : b.topic === "Other" ? -1 : b.count - a.count));
   const bestPerTopic: { topic: string; model: string; avgScore: number; samples: number }[] = [];
   for (const [topic, mm] of topicModel) {
+    if (topic === "Other") continue; // a "best model for Other" is meaningless
     let best: { model: string; avgScore: number; samples: number } | null = null;
     for (const [model, e] of mm) {
       const avg = Math.round((e.sum / e.n) * 10) / 10;
