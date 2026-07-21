@@ -125,12 +125,12 @@ export function ScoreRadar({
       <circle className="asr-rip" cx={CX} cy={CY} r={R * 0.6} />
       {axes.map((_, i) => (
         <g key={i} className={`asr-g${i + 1}`} style={{ transform: `rotate(${i * 72}deg)`, transformOrigin: `${CX}px ${CY}px` }}>
-          <circle className="asr-node" cx={CX} cy={CY} r={3.6} fill={NODECOLS[i % NODECOLS.length]}
+          <circle className="asr-node" cx={CX} cy={CY} r={5.65} fill={NODECOLS[i % NODECOLS.length]}
             style={cssVars({ "--rest": `${REST}px`, "--fr": `${fr(i)}px` })} />
           <circle className="asr-ringv" cx={CX} cy={CY} r={3} style={cssVars({ "--fr": `${fr(i)}px` })} />
         </g>
       ))}
-      <circle className="asr-core" cx={CX} cy={CY} r={5} />
+      <circle className="asr-core" cx={CX} cy={CY} r={7} />
       <polygon className="asr-poly" points={polyPts} style={{ stroke: "var(--slot)" }} />
       <polygon className="asr-polyfill" points={polyPts} style={{ fill: "color-mix(in srgb, var(--slot) 20%, transparent)" }} />
       <text ref={numRef} className="asr-num" x={CX} y={CY + 8} textAnchor="middle" fontSize={24} fontWeight={700} fill="var(--slot)">0.0</text>
