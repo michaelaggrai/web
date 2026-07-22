@@ -43,8 +43,8 @@ const PLANS: Plan[] = [
     period: "/mo",
     icon: Zap,
     iconColor: "text-teal-300",
-    tagline: "16 advanced models",
-    detail: "Everything in Free plus every flagship model — Claude Opus 4.8 Fast, Sonnet 4.6, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.20, Llama 3.3 70B, Codex, Devstral. Up to 3 models per comparison.",
+    tagline: "17 advanced models",
+    detail: "Everything in Free plus every flagship model — Claude Sonnet 5, Opus 4.8 Fast, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.5, Kimi K3, Llama 3.3 70B, Codex, Devstral. Up to 3 models per comparison.",
   },
   {
     id: "premium",

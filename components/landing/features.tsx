@@ -23,7 +23,7 @@ function ResultsMockup() {
         {/* Contribution bars */}
         <div className="space-y-1.5 mb-3 pb-3 border-b border-white/10">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55 mb-1">Where the summary came from</p>
-          <ContribRow Icon={AnthropicIcon} label="Claude Sonnet 4.6" pct={48} />
+          <ContribRow Icon={AnthropicIcon} label="Claude Sonnet 5" pct={48} />
           <ContribRow Icon={GoogleIcon}    label="Gemini 2.5 Pro"    pct={32} />
           <ContribRow Icon={OpenAIIcon}    label="GPT-4o"             pct={20} />
         </div>
@@ -44,7 +44,7 @@ function ResultsMockup() {
           <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-300/80">Aggr-Score</p>
         </div>
         <div className="space-y-1.5">
-          <ScoreRow Icon={AnthropicIcon} label="Claude Sonnet 4.6" score={9.2} winner />
+          <ScoreRow Icon={AnthropicIcon} label="Claude Sonnet 5" score={9.2} winner />
           <ScoreRow Icon={GoogleIcon}    label="Gemini 2.5 Pro"    score={8.6} />
           <ScoreRow Icon={OpenAIIcon}    label="GPT-4o"             score={8.1} />
         </div>

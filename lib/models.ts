@@ -93,7 +93,8 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "google/gemini-3.1-flash-lite",             label: "Gemini 3.1 Flash Lite",provider: "Google",    class: "basic",    category: "fast" },
 
   // Creative
-  { id: "anthropic/claude-sonnet-4-6",              label: "Claude Sonnet 4.6",    provider: "Anthropic", class: "flagship", category: "creative" },
+  { id: "anthropic/claude-sonnet-5",                label: "Claude Sonnet 5",      provider: "Anthropic", class: "flagship", category: "creative" }, // 2026-06-30 — supersedes Sonnet 4.6 (kept below, deprecated, for cached links)
+  { id: "anthropic/claude-sonnet-4-6",              label: "Claude Sonnet 4.6",    provider: "Anthropic", class: "flagship", category: "creative", status: "deprecated" },
   { id: "openai/gpt-4o",                            label: "GPT-4o",               provider: "OpenAI",    class: "flagship", category: "creative" },
   // GPT-5.4 deprecated 2026-05-29 — 5.5 supersedes it; having both as full
   // models in the Creative tab confused users. 5.4 Mini stays in Free.
@@ -130,7 +131,8 @@ export const FALLBACK_MODELS: ModelEntry[] = [
 
   // Multimodal
   { id: "google/gemini-2.5-pro",                    label: "Gemini 2.5 Pro",       provider: "Google",    class: "flagship", category: "multimodal" },
-  { id: "google/gemini-3.5-flash",                  label: "Gemini 3.5 Flash",     provider: "Google",    class: "flagship", category: "multimodal" },
+  { id: "google/gemini-3.6-flash",                  label: "Gemini 3.6 Flash",     provider: "Google",    class: "flagship", category: "multimodal" }, // 2026-07-21 — replaces the degraded 3.5 Flash below
+  { id: "google/gemini-3.5-flash",                  label: "Gemini 3.5 Flash",     provider: "Google",    class: "flagship", category: "multimodal", status: "deprecated" },
   { id: "google/gemini-3.1-pro-preview",            label: "Gemini 3.1 Pro",       provider: "Google",    class: "flagship", category: "multimodal" },
   { id: "google/gemini-3-flash-preview",            label: "Gemini 3 Flash",       provider: "Google",    class: "flagship", category: "multimodal" },
 
@@ -138,7 +140,9 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   // Premium. Opus 4.x Fast, Grok 4.20 base, and Llama 3.3 70B are Pro.
   { id: "anthropic/claude-opus-4.8-fast",           label: "Claude Opus 4.8 Fast", provider: "Anthropic", class: "flagship", category: "frontier" },
   { id: "anthropic/claude-opus-4.7-fast",           label: "Claude Opus 4.7 Fast", provider: "Anthropic", class: "flagship", category: "frontier", status: "deprecated" },
-  { id: "x-ai/grok-4.20",                           label: "Grok 4.20",            provider: "xAI",       class: "flagship", category: "frontier" },
+  { id: "x-ai/grok-4.5",                            label: "Grok 4.5",             provider: "xAI",       class: "flagship", category: "frontier" }, // 2026-07-08 — supersedes Grok 4.20 (kept below, deprecated)
+  { id: "moonshotai/kimi-k3",                       label: "Kimi K3",              provider: "Moonshot",  class: "flagship", category: "frontier" }, // 2026-07-16 — 2.8T generalist; a Pro default
+  { id: "x-ai/grok-4.20",                           label: "Grok 4.20",            provider: "xAI",       class: "flagship", category: "frontier", status: "deprecated" },
   { id: "x-ai/grok-4.20-multi-agent",               label: "Grok 4.20 Multi-Agent",provider: "xAI",       class: "premium",  category: "frontier" },
   { id: "meta-llama/llama-3.3-70b-instruct",        label: "Llama 3.3 70B",        provider: "Meta",      class: "flagship", category: "frontier" },
 ]
@@ -166,7 +170,9 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
 // selectable, off-default. MUST mirror backend TIER_DEFAULTS.
 export const TIER_DEFAULTS: Record<Tier, string[]> = {
   free:    ["anthropic/claude-haiku-4-5", "openai/gpt-4o-mini", "google/gemini-2.5-flash"],
-  pro:     ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-3.5-flash"],
+  // 2026-07-22: Sonnet 4.6 → Sonnet 5, Gemini 3.5 Flash → 3.6 Flash (superseded),
+  // Kimi K3 takes slot 3; GPT-4o drops from the pre-selection (still pickable).
+  pro:     ["anthropic/claude-sonnet-5", "moonshotai/kimi-k3", "google/gemini-3.6-flash"],
   premium: ["anthropic/claude-opus-4.8", "x-ai/grok-4.20-multi-agent", "moonshotai/kimi-k2-thinking",
             "deepseek/deepseek-v4-pro", "z-ai/glm-5.2"],
 }
