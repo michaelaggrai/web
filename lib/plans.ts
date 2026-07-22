@@ -60,7 +60,7 @@ export const PLANS: Plan[] = [
     features: [
       "17 advanced models",
       "Up to 3 models per comparison",
-      "Sonnet 5, Kimi K3, Opus 4.8 Fast, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.5…",
+      "Sonnet 5, Kimi K3, Opus 4.8 Fast, GPT-4o, GPT-5.6, Gemini Pro, Grok 4.5…",
       "Everything in Free",
     ],
     icon: Zap,
@@ -77,7 +77,7 @@ export const PLANS: Plan[] = [
     features: [
       "9 research models",
       "Up to 5 models per comparison",
-      "Claude Opus 4.8, GPT-5.5 Pro, Qwen3 Max Thinking…",
+      "Claude Opus 4.8, GPT-5.6 Pro, Qwen3 Max Thinking…",
       "Everything in Pro",
     ],
     icon: Crown,

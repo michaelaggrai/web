@@ -44,7 +44,7 @@ const PLANS: Plan[] = [
     icon: Zap,
     iconColor: "text-teal-300",
     tagline: "17 advanced models",
-    detail: "Everything in Free plus every flagship model — Claude Sonnet 5, Opus 4.8 Fast, GPT-4o, GPT-5.5, Gemini Pro, Grok 4.5, Kimi K3, Llama 3.3 70B, Codex, Devstral. Up to 3 models per comparison.",
+    detail: "Everything in Free plus every flagship model — Claude Sonnet 5, Opus 4.8 Fast, GPT-4o, GPT-5.6, Gemini Pro, Grok 4.5, Kimi K3, Llama 3.3 70B, Codex, Devstral. Up to 3 models per comparison.",
   },
   {
     id: "premium",
@@ -54,7 +54,7 @@ const PLANS: Plan[] = [
     icon: Crown,
     iconColor: "text-amber-300",
     tagline: "9 research models",
-    detail: "Everything in Pro plus 9 reasoning specialists — Claude Opus 4.8, GPT-5.5 Pro, Kimi K2 Thinking, DeepSeek v4 Pro, Nemotron 3 Ultra, and more. For deep research. Up to 5 models per comparison.",
+    detail: "Everything in Pro plus 9 reasoning specialists — Claude Opus 4.8, GPT-5.6 Pro, Kimi K2 Thinking, DeepSeek v4 Pro, Nemotron 3 Ultra, and more. For deep research. Up to 5 models per comparison.",
   },
 ];
 function isPlanId(v: string | null): v is PlanId {
