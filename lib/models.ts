@@ -65,6 +65,9 @@ export const PROVIDERS: { id: string; label: string; description: string }[] = [
   { id: "NVIDIA",    label: "NVIDIA",    description: "Nemotron family — open reasoning + orchestration." },
   { id: "Zhipu",     label: "Zhipu",     description: "GLM family — frontier reasoning, open-weight." },
   { id: "MiniMax",   label: "MiniMax",   description: "Long-context reasoning, very low cost." },
+  { id: "Xiaomi",    label: "Xiaomi",    description: "MiMo family — low-cost omnimodal (text/audio/image/video)." },
+  { id: "Tencent",   label: "Tencent",   description: "Hunyuan / Hy3 — cost-effective MoE, grounded answers." },
+  { id: "StepFun",   label: "StepFun",   description: "Step family — efficient multimodal MoE." },
 ]
 
 // Display metadata per tier — used by ModelPicker when grouping by tier.
@@ -91,6 +94,9 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   // other basic models, no reason to gate. See backend MODEL_CATALOG.
   { id: "openai/gpt-5.4-mini",                      label: "GPT-5.4 Mini",         provider: "OpenAI",    class: "basic",    category: "fast" },
   { id: "google/gemini-3.1-flash-lite",             label: "Gemini 3.1 Flash Lite",provider: "Google",    class: "basic",    category: "fast" },
+  // 2026-07-23 top-weekly adds, basic-band (≤$0.20/M in → Free)
+  { id: "deepseek/deepseek-v4-flash",               label: "DeepSeek V4 Flash",    provider: "DeepSeek",  class: "basic",    category: "fast" },
+  { id: "tencent/hy3",                              label: "Hy3",                  provider: "Tencent",   class: "basic",    category: "fast" },
 
   // Creative
   { id: "anthropic/claude-sonnet-5",                label: "Claude Sonnet 5",      provider: "Anthropic", class: "flagship", category: "creative" }, // 2026-06-30 — supersedes Sonnet 4.6 (kept below, deprecated, for cached links)
@@ -137,6 +143,10 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "google/gemini-3.5-flash",                  label: "Gemini 3.5 Flash",     provider: "Google",    class: "flagship", category: "multimodal", status: "deprecated" },
   { id: "google/gemini-3.1-pro-preview",            label: "Gemini 3.1 Pro",       provider: "Google",    class: "flagship", category: "multimodal" },
   { id: "google/gemini-3-flash-preview",            label: "Gemini 3 Flash",       provider: "Google",    class: "flagship", category: "multimodal" },
+  // 2026-07-23 top-weekly adds. MiMo is basic (Free); Step 3.7 + M3 are flagship (Pro).
+  { id: "xiaomi/mimo-v2.5",                         label: "MiMo V2.5",            provider: "Xiaomi",    class: "basic",    category: "multimodal" },
+  { id: "stepfun/step-3.7-flash",                   label: "Step 3.7 Flash",       provider: "StepFun",   class: "flagship", category: "multimodal" },
+  { id: "minimax/minimax-m3",                       label: "MiniMax M3",           provider: "MiniMax",   class: "flagship", category: "multimodal" },
 
   // Frontier — only Grok Multi-Agent (experimental agentic mode) stays
   // Premium. Opus 4.x Fast, Grok 4.20 base, and Llama 3.3 70B are Pro.
