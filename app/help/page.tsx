@@ -15,7 +15,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     q: "Which models can I use?",
     a: (
       <>
-        34 models across 12 providers: Anthropic (Opus 4.8,
+        35 models across 12 providers: Anthropic (Opus 4.8,
         Sonnet 5, Haiku 4.5…), OpenAI (GPT-5.6 Pro, GPT-4o, GPT-4o Mini,
         Codex variants…), Google (Gemini 3.1 Pro, Gemini 2.5 Pro, Gemini 2.5
         Flash…), xAI (Grok 4.5), Meta (Llama 3.3 70B, Llama 3.1 8B),
@@ -28,7 +28,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Do I need to sign up?",
-    a: "No. Anyone can use the Free tier (8 basic models, 3 per comparison) without an account. You only need an account to upgrade — Pro unlocks 17 advanced models (Opus 4.8 Fast, GPT-4o, Sonnet 5, Grok 4.5, Kimi K3, Gemini Pro…), Premium adds 9 research models and lets you compare up to 5 at once.",
+    a: "No. Anyone can use the Free tier (8 basic models, 3 per comparison) without an account. You only need an account to upgrade — Pro unlocks 17 advanced models (Opus 4.8 Fast, GPT-4o, Sonnet 5, Grok 4.5, Kimi K3, Gemini Pro…), Premium adds 10 research models and lets you compare up to 5 at once.",
   },
   {
     q: "What's the difference between the plans?",
@@ -38,7 +38,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
         <br />
         <strong>Pro</strong> — 17 advanced models. Every flagship: Claude Sonnet 5, Opus 4.8 Fast, GPT-4o, GPT-5.6, Gemini Pro, Grok 4.5, Kimi K3, Llama 3.3 70B, Codex, Devstral, Nemotron 3 Super and more. Up to 3 per comparison.
         <br />
-        <strong>Premium</strong> — 9 research models. For deep research: Claude Opus 4.8, GPT-5.6 Pro, DeepSeek v4 Pro, Kimi K2 Thinking, GLM-5.2, MiniMax M2.5, Qwen3 Max Thinking, Grok 4.20 Multi-Agent, Nemotron 3 Ultra. Up to 5 per comparison.
+        <strong>Premium</strong> — 10 research models. For deep research: Claude Opus 4.8, Claude Fable 5, GPT-5.6 Pro, DeepSeek v4 Pro, Kimi K2 Thinking, GLM-5.2, MiniMax M2.5, Qwen3 Max Thinking, Grok 4.20 Multi-Agent, Nemotron 3 Ultra. Up to 5 per comparison.
         <br />
         See <Link href="/pricing">Pricing</Link> for details.
       </>

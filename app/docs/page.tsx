@@ -82,7 +82,7 @@ export default function DocsPage() {
         <ul>
           <li><strong>Free</strong> — our fast, lightweight models (Claude Haiku 4.5, GPT-4o Mini, Gemini 2.5 Flash, Mistral Small, and more). Up to 3 per comparison. No account needed.</li>
           <li><strong>Pro</strong> — every flagship model (Claude Sonnet 5, Opus 4.8 Fast, GPT-4o, GPT-5.6, Gemini Pro, Grok 4.5, Kimi K3, the Codex + Devstral coding models, and more). Up to 3 per comparison.</li>
-          <li><strong>Premium</strong> — adds the deep-research models (Claude Opus 4.8, GPT-5.6 Pro, DeepSeek v4 Pro, Kimi K2 Thinking, GLM-5.2, MiniMax M2.5, Qwen3 Max Thinking, Grok 4.20 Multi-Agent, Nemotron 3 Ultra). Up to 5 per comparison.</li>
+          <li><strong>Premium</strong> — adds the deep-research models (Claude Opus 4.8, Claude Fable 5, GPT-5.6 Pro, DeepSeek v4 Pro, Kimi K2 Thinking, GLM-5.2, MiniMax M2.5, Qwen3 Max Thinking, Grok 4.20 Multi-Agent, Nemotron 3 Ultra). Up to 5 per comparison.</li>
         </ul>
         <p>
           The line-up changes as new models ship — see the full{" "}

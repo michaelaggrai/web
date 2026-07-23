@@ -53,8 +53,8 @@ const PLANS: Plan[] = [
     period: "/mo",
     icon: Crown,
     iconColor: "text-amber-300",
-    tagline: "9 research models",
-    detail: "Everything in Pro plus 9 reasoning specialists — Claude Opus 4.8, GPT-5.6 Pro, Kimi K2 Thinking, DeepSeek v4 Pro, Nemotron 3 Ultra, and more. For deep research. Up to 5 models per comparison.",
+    tagline: "10 research models",
+    detail: "Everything in Pro plus 10 reasoning specialists — Claude Opus 4.8, Claude Fable 5, GPT-5.6 Pro, Kimi K2 Thinking, DeepSeek v4 Pro, Nemotron 3 Ultra, and more. For deep research. Up to 5 models per comparison.",
   },
 ];
 function isPlanId(v: string | null): v is PlanId {
