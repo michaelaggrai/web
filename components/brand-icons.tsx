@@ -76,6 +76,9 @@ export const MoonshotIcon = initialIcon("M", "#111827")
 export const ZhipuIcon    = initialIcon("Z", "#1D4ED8")
 export const MiniMaxIcon  = initialIcon("M", "#E5484D")
 export const NvidiaIcon   = initialIcon("N", "#76B900")
+export const XiaomiIcon   = initialIcon("Mi", "#FF6700")
+export const TencentIcon  = initialIcon("T", "#0052D9")
+export const StepFunIcon  = initialIcon("S", "#0891B2")
 
 const BY_PROVIDER: Record<string, (p: IconProps) => React.JSX.Element> = {
   Anthropic: AnthropicIcon,
@@ -90,6 +93,9 @@ const BY_PROVIDER: Record<string, (p: IconProps) => React.JSX.Element> = {
   Zhipu: ZhipuIcon,
   MiniMax: MiniMaxIcon,
   NVIDIA: NvidiaIcon,
+  Xiaomi: XiaomiIcon,
+  Tencent: TencentIcon,
+  StepFun: StepFunIcon,
 }
 
 // Provider derived from the model-id prefix (e.g. "anthropic/claude-..." → "Anthropic")
@@ -106,13 +112,29 @@ const PROVIDER_BY_PREFIX: Record<string, string> = {
   "z-ai": "Zhipu",
   "minimax": "MiniMax",
   "nvidia": "NVIDIA",
+  "xiaomi": "Xiaomi",
+  "tencent": "Tencent",
+  "stepfun": "StepFun",
 }
 
 export function providerOf(modelId: string): string {
-  return PROVIDER_BY_PREFIX[modelId.split("/")[0]] ?? "Anthropic"
+  const prefix = modelId.split("/")[0]
+  // Fall back to a Title-cased prefix (not "Anthropic") so an unmapped provider
+  // is never mis-attributed to another brand.
+  return PROVIDER_BY_PREFIX[prefix] ?? (prefix ? prefix[0].toUpperCase() + prefix.slice(1) : "Unknown")
 }
 
 export function ProviderLogo({ provider, className, style }: { provider: string } & IconProps) {
-  const Icon = BY_PROVIDER[provider] ?? AnthropicIcon
-  return <Icon className={className} style={style} />
+  const Icon = BY_PROVIDER[provider]
+  if (Icon) return <Icon className={className} style={style} />
+  // Neutral fallback: an initial-in-circle for any provider without a brand
+  // mark, so it never borrows another brand's logo (this previously defaulted
+  // to the Anthropic icon — see the Xiaomi/Tencent/StepFun bug 2026-07-23).
+  const letter = (provider?.trim()?.[0] ?? "?").toUpperCase()
+  return (
+    <svg className={className} style={style} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="11" fill="#64748B" />
+      <text x="12" y="16.5" textAnchor="middle" fontSize="12" fontWeight="700" fill="white" fontFamily="ui-sans-serif, system-ui">{letter}</text>
+    </svg>
+  )
 }
