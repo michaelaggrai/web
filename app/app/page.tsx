@@ -15,7 +15,7 @@ import { appendMessage, bumpConversation, type ConvMessage } from "@/lib/message
 import { listThread } from "@/lib/thread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, ImagePlus, X, AlertTriangle, Loader2, Image as ImageIcon, FileText } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, Paperclip, X, AlertTriangle, Loader2, Image as ImageIcon, FileText } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ScoreRadar } from "@/components/score-radar";
@@ -2756,7 +2756,7 @@ function Home() {
                     aria-label="Attach image or PDF"
                     title={attachments.length >= MAX_IMAGES ? "Up to 4 files per question" : "Attach an image or PDF"}
                   >
-                    <ImagePlus className="w-5 h-5" />
+                    <Paperclip className="w-5 h-5" />
                   </button>
                 </>
               )}
