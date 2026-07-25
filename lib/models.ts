@@ -211,19 +211,21 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
 // for Gemini 3.5 Flash — same provider, flagship-class, but far faster (2.5 Pro
 // p50 ~20s / tail ~140s dragged every default comparison). 2.5 Pro is still in
 // the catalog and selectable; it's just no longer auto-selected.
-// 2026-06-11 (revised): Premium defaults = an explicit hand-picked five, all
-// Premium-class, one per provider, led by Opus 4.8 (Anthropic flagship) then a
-// spread of deep-thinkers (Grok Multi-Agent / Kimi / DeepSeek / GLM). Replaces
-// the brief "five cheapest" pass — same all-premium rule, marquee + variety
-// over rock-bottom cost. Pricey premiums (GPT-5.6 Pro, Qwen3 Max) stay
-// selectable, off-default. MUST mirror backend TIER_DEFAULTS.
+// Premium defaults (2026-07-25) = five VISION-CAPABLE generalists, one per provider
+// (Anthropic Opus 4.8 · OpenAI GPT-5.6 · Google Gemini 3.6 Flash · xAI Grok 4.5 ·
+// Mistral Large), so an image ask compares the whole grid instead of skipping most
+// of it. Replaced the text-only reasoning specialists (Kimi K2 Thinking / DeepSeek
+// v4 Pro / GLM-5.2) + Grok 4.20 Multi-Agent: model_runs showed them scoring no higher
+// than Opus / the vision models (Kimi 8.16 / DeepSeek 7.96 / GLM 8.25 vs Opus 8.64),
+// and Grok Multi-Agent also burned ~18x the tokens. All four stay selectable. MUST
+// mirror backend TIER_DEFAULTS.
 export const TIER_DEFAULTS: Record<Tier, string[]> = {
   free:    ["anthropic/claude-haiku-4-5", "openai/gpt-4o-mini", "google/gemini-2.5-flash"],
   // 2026-07-22: OpenAI slot restored with GPT-5.6 (Sol); trio = Sonnet 5 · GPT-5.6
   // · Kimi K3. Gemini 3.6 Flash steps out of the pre-selection (still pickable).
   pro:     ["anthropic/claude-sonnet-5", "openai/gpt-5.6-sol", "moonshotai/kimi-k3"],
-  premium: ["anthropic/claude-opus-4.8", "x-ai/grok-4.20-multi-agent", "moonshotai/kimi-k2-thinking",
-            "deepseek/deepseek-v4-pro", "z-ai/glm-5.2"],
+  premium: ["anthropic/claude-opus-4.8", "openai/gpt-5.6-sol", "google/gemini-3.6-flash",
+            "x-ai/grok-4.5", "mistralai/mistral-large-2512"],
 }
 
 export function maxModelsForTier(tier: Tier): number {

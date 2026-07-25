@@ -1116,6 +1116,18 @@ function Home() {
   const [skippedModels, setSkippedModels] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);        // AGG-14: drag-over highlight
   const [pendingImageCount, setPendingImageCount] = useState(0); // AGG-14: image count for the in-flight ask header
+  // AGG-14: images shown under the question header. Blob previews for the live ask;
+  // re-fetched signed URLs on revisit (effect below). questionImagesConvId marks which
+  // conversation the images belong to — a live ask sets them directly (skipping the
+  // fetch); revisiting a different conversation triggers a re-fetch.
+  const [questionImages, setQuestionImages] = useState<{ id?: string; url: string; name?: string }[]>([]);
+  const questionImagesConvId = useRef<string | null>(null);
+  function setQuestionImagesRevoking(next: { id?: string; url: string; name?: string }[]) {
+    setQuestionImages(prev => {
+      prev.forEach(i => { if (i.url.startsWith("blob:")) URL.revokeObjectURL(i.url); });
+      return next;
+    });
+  }
 
   // ── Conversation continuation (Phase 5a) ──────────────────────────────────
   // A single-model follow-up thread rendered BELOW the turn-1 comparison. Each
@@ -1150,6 +1162,54 @@ function Home() {
   };
   const [activeConvId, setActiveConvId] = useState<string | null>(urlConvId);
   const [followups, setFollowups] = useState<Followup[]>([]);
+
+  // AGG-14: on a REVISIT (a recent click / /app/c/{id} load) re-fetch this
+  // conversation's uploaded images as fresh signed URLs. A live ask sets its blob
+  // previews directly (marking questionImagesConvId), so this skips it; the `loading`
+  // guard protects the in-flight window so an intermediate render can't clobber them.
+  useEffect(() => {
+    if (loading) return;
+    const convId = activeConvId;
+    if (!convId || questionImagesConvId.current === convId || !result) return;
+    questionImagesConvId.current = convId;
+    if (!result.image_count) { setQuestionImagesRevoking([]); return; }
+    let cancelled = false;
+    fetch(`/api/me/attachments?conversationId=${encodeURIComponent(convId)}`, { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (!cancelled && Array.isArray(d?.images)) setQuestionImagesRevoking(d.images); })
+      .catch(() => { /* leave the count-chip fallback */ });
+    return () => { cancelled = true; };
+  }, [activeConvId, result, loading]);
+
+  // Uploaded image(s) shown under the question header — real thumbnails when we
+  // have them (live blobs or re-fetched signed URLs), else a small count chip.
+  function renderQuestionMedia(fallbackCount: number) {
+    if (questionImages.length > 0) {
+      return (
+        <div className="pl-10 flex flex-wrap gap-2">
+          {questionImages.map((img, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={img.id ?? i}
+              src={img.url}
+              alt={img.name ?? "Attached image"}
+              className="h-24 w-auto max-w-[16rem] rounded-lg border border-white/10 object-contain bg-white/5"
+            />
+          ))}
+        </div>
+      );
+    }
+    if (fallbackCount > 0) {
+      return (
+        <div className="pl-10">
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/15 px-2 py-0.5 text-[11px] font-medium text-white/70">
+            <ImageIcon className="w-3 h-3" /> {fallbackCount} image{fallbackCount > 1 ? "s" : ""}
+          </span>
+        </div>
+      );
+    }
+    return null;
+  }
   // AGG-44: share-link state — the created public URL + an in-flight flag.
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   // "Always latest" share: the (conversation, turn-count) we last pushed to the
@@ -1220,6 +1280,7 @@ function Home() {
     setResult(found.result);
     // Anonymous session recents can't be continued (no RLS-scoped thread).
     setActiveConvId(null);
+    setQuestionImagesRevoking([]); questionImagesConvId.current = null; // AGG-14: session recents carry no image refs
     setFollowups([]);
     setFollowupModel(null);
     setSelected(new Set(found.models));
@@ -1602,7 +1663,10 @@ function Home() {
 
   async function submitQuestion(q: string, models: Set<string>, reuseConvId?: string) {
     // AGG-14: image refs that finished uploading — sent with the ask (see body below).
-    const readyAttachmentIds = attachments.filter(a => a.status === "ready" && a.attachmentId).map(a => a.attachmentId as string);
+    const readyAttachments = attachments
+      .filter(a => a.status === "ready" && a.attachmentId)
+      .map(a => ({ attachmentId: a.attachmentId as string, previewUrl: a.previewUrl, name: a.name }));
+    const readyAttachmentIds = readyAttachments.map(a => a.attachmentId);
     // URL bookkeeping: every submit lives at a clean /app/c/{id} URL so
     // the question + model selection don't show in the address bar (or
     // anyone's screen-share). When the auto-submit effect is restoring
@@ -1654,9 +1718,13 @@ function Home() {
     setIntentHint(null);
     setSkippedModels([]);
     setQuestion("");
-    // AGG-14: clear the composer's images (already captured in readyAttachmentIds).
-    attachments.forEach(a => URL.revokeObjectURL(a.previewUrl));
+    // AGG-14: move the uploaded images from the composer to the question header —
+    // blob previews shown live; a revisit re-fetches signed URLs (effect below).
+    // Revoke only the non-ready blobs; the ready ones are adopted by questionImages.
+    attachments.forEach(a => { if (a.status !== "ready") URL.revokeObjectURL(a.previewUrl); });
     setAttachments([]);
+    setQuestionImagesRevoking(readyAttachments.map(a => ({ url: a.previewUrl, name: a.name })));
+    questionImagesConvId.current = convId;
     // Fresh AbortController for this request so stopGeneration() can
     // cancel it. We don't reuse across requests (an aborted controller
     // stays aborted).
@@ -2768,13 +2836,9 @@ function Home() {
                 <div className="flex items-center gap-3">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[11px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
                   <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{pendingQuestion}</p>
-                  {pendingImageCount > 0 && (
-                    <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-white/10 border border-white/15 px-2 py-0.5 text-[11px] font-medium text-white/70">
-                      <ImageIcon className="w-3 h-3" /> {pendingImageCount}
-                    </span>
-                  )}
                 </div>
               )}
+              {renderQuestionMedia(pendingImageCount)}
               {intentHint === "compare" && selected.size > 1 ? (
               <div className="space-y-4">
                 {/* Same panel a follow-up renders, and the same one this becomes
@@ -3014,14 +3078,9 @@ function Home() {
                 </div>
               )}
 
-              {/* AGG-14: photos-attached indicator for this ask (survives restore via result.image_count). */}
-              {result.image_count ? (
-                <div className="pl-10">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/15 px-2 py-0.5 text-[11px] font-medium text-white/70">
-                    <ImageIcon className="w-3 h-3" /> {result.image_count} image{result.image_count > 1 ? "s" : ""}
-                  </span>
-                </div>
-              ) : null}
+              {/* AGG-14: uploaded image(s) under the question — real thumbnails when
+                  available (live blobs, or re-fetched signed URLs on revisit), else a count chip. */}
+              {renderQuestionMedia(result.image_count ?? 0)}
 
               {(followups.length === 0 || comparisonExpanded) && (
               <>
