@@ -19,6 +19,7 @@ const EXT: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/webp": "webp",
   "image/gif": "gif",
+  "application/pdf": "pdf",
 };
 
 export async function POST(req: NextRequest) {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   const sizeBytes = Number(body.sizeBytes ?? 0);
   const ext = EXT[mimeType];
   if (!ext) {
-    return NextResponse.json({ error: "Unsupported image type. Use PNG, JPEG, WebP, or GIF." }, { status: 400 });
+    return NextResponse.json({ error: "Unsupported file type. Use PNG, JPEG, WebP, GIF, or PDF." }, { status: 400 });
   }
   if (!Number.isFinite(sizeBytes) || sizeBytes <= 0 || sizeBytes > MAX_BYTES) {
     return NextResponse.json({ error: "Image must be between 1 byte and 10 MB." }, { status: 400 });

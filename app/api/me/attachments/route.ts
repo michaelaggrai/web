@@ -35,14 +35,19 @@ export async function GET(req: NextRequest) {
   if (!qids.length) return NextResponse.json({ images: [] }, { headers: { "Cache-Control": "no-store" } });
 
   const { data: atts } = await admin
-    .from("attachments").select("id, storage_path")
+    .from("attachments").select("id, storage_path, mime_type")
     .in("question_id", qids).eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
-  const images: { id: string; url: string }[] = [];
+  const images: { id: string; url: string; kind: "image" | "file"; name: string }[] = [];
   for (const a of atts ?? []) {
     const { data: signed } = await admin.storage.from(BUCKET).createSignedUrl(a.storage_path, READ_TTL_S);
-    if (signed?.signedUrl) images.push({ id: a.id, url: signed.signedUrl });
+    if (signed?.signedUrl) images.push({
+      id: a.id,
+      url: signed.signedUrl,
+      kind: a.mime_type === "application/pdf" ? "file" : "image",
+      name: a.storage_path.split("/").pop() || "",
+    });
   }
   return NextResponse.json({ images }, { headers: { "Cache-Control": "no-store" } });
 }

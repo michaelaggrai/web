@@ -15,7 +15,7 @@ import { appendMessage, bumpConversation, type ConvMessage } from "@/lib/message
 import { listThread } from "@/lib/thread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, ImagePlus, X, AlertTriangle, Loader2, Image as ImageIcon } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, ImagePlus, X, AlertTriangle, Loader2, Image as ImageIcon, FileText } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ScoreRadar } from "@/components/score-radar";
@@ -1104,9 +1104,10 @@ function Home() {
     name: string;
     previewUrl: string;            // object URL for the thumbnail
     status: "uploading" | "ready" | "error";
+    kind: "image" | "file";        // AGG-14: image (thumbnail) vs PDF (file card)
   };
   const MAX_IMAGES = 4;
-  const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+  const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"];
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const attachmentsUploading = attachments.some(a => a.status === "uploading");
   const canAttach = tier === "pro" || tier === "premium";
@@ -1120,9 +1121,9 @@ function Home() {
   // re-fetched signed URLs on revisit (effect below). questionImagesConvId marks which
   // conversation the images belong to — a live ask sets them directly (skipping the
   // fetch); revisiting a different conversation triggers a re-fetch.
-  const [questionImages, setQuestionImages] = useState<{ id?: string; url: string; name?: string }[]>([]);
+  const [questionImages, setQuestionImages] = useState<{ id?: string; url: string; name?: string; kind?: "image" | "file" }[]>([]);
   const questionImagesConvId = useRef<string | null>(null);
-  function setQuestionImagesRevoking(next: { id?: string; url: string; name?: string }[]) {
+  function setQuestionImagesRevoking(next: { id?: string; url: string; name?: string; kind?: "image" | "file" }[]) {
     setQuestionImages(prev => {
       prev.forEach(i => { if (i.url.startsWith("blob:")) URL.revokeObjectURL(i.url); });
       return next;
@@ -1187,12 +1188,23 @@ function Home() {
     if (questionImages.length > 0) {
       return (
         <div className="pl-10 flex flex-wrap gap-2">
-          {questionImages.map((img, i) => (
+          {questionImages.map((m, i) => m.kind === "file" ? (
+            <a
+              key={m.id ?? i}
+              href={m.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
+            >
+              <FileText className="w-4 h-4 shrink-0 text-white/55" />
+              <span className="truncate max-w-[12rem]">{m.name ?? "Document.pdf"}</span>
+            </a>
+          ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              key={img.id ?? i}
-              src={img.url}
-              alt={img.name ?? "Attached image"}
+              key={m.id ?? i}
+              src={m.url}
+              alt={m.name ?? "Attached image"}
               className="h-24 w-auto max-w-[16rem] rounded-lg border border-white/10 object-contain bg-white/5"
             />
           ))}
@@ -1607,11 +1619,12 @@ function Home() {
     const room = MAX_IMAGES - attachments.length;
     if (room <= 0) return;
     for (const file of Array.from(files).slice(0, room)) {
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) { setError("Images must be PNG, JPEG, WebP, or GIF."); continue; }
-      if (file.size > 10 * 1024 * 1024) { setError("Each image must be under 10 MB."); continue; }
+      if (!ALLOWED_TYPES.includes(file.type)) { setError("Files must be an image (PNG/JPEG/WebP/GIF) or a PDF."); continue; }
+      if (file.size > 10 * 1024 * 1024) { setError("Each file must be under 10 MB."); continue; }
       const localId = crypto.randomUUID();
       const previewUrl = URL.createObjectURL(file);
-      setAttachments(prev => [...prev, { id: localId, attachmentId: null, name: file.name, previewUrl, status: "uploading" }]);
+      const kind: "image" | "file" = file.type === "application/pdf" ? "file" : "image";
+      setAttachments(prev => [...prev, { id: localId, attachmentId: null, name: file.name, previewUrl, status: "uploading", kind }]);
       try {
         const signRes = await fetch("/api/uploads/sign", {
           method: "POST",
@@ -1665,7 +1678,7 @@ function Home() {
     // AGG-14: image refs that finished uploading — sent with the ask (see body below).
     const readyAttachments = attachments
       .filter(a => a.status === "ready" && a.attachmentId)
-      .map(a => ({ attachmentId: a.attachmentId as string, previewUrl: a.previewUrl, name: a.name }));
+      .map(a => ({ attachmentId: a.attachmentId as string, previewUrl: a.previewUrl, name: a.name, kind: a.kind }));
     const readyAttachmentIds = readyAttachments.map(a => a.attachmentId);
     // URL bookkeeping: every submit lives at a clean /app/c/{id} URL so
     // the question + model selection don't show in the address bar (or
@@ -1723,7 +1736,7 @@ function Home() {
     // Revoke only the non-ready blobs; the ready ones are adopted by questionImages.
     attachments.forEach(a => { if (a.status !== "ready") URL.revokeObjectURL(a.previewUrl); });
     setAttachments([]);
-    setQuestionImagesRevoking(readyAttachments.map(a => ({ url: a.previewUrl, name: a.name })));
+    setQuestionImagesRevoking(readyAttachments.map(a => ({ url: a.previewUrl, name: a.name, kind: a.kind })));
     questionImagesConvId.current = convId;
     // Fresh AbortController for this request so stopGeneration() can
     // cancel it. We don't reuse across requests (an aborted controller
@@ -2674,8 +2687,15 @@ function Home() {
               <div className="flex flex-wrap gap-2">
                 {attachments.map(a => (
                   <div key={a.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/10 bg-surface-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={a.previewUrl} alt={a.name} className="w-full h-full object-cover" />
+                    {a.kind === "file" ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 px-1 text-center">
+                        <FileText className="w-5 h-5 text-white/60" />
+                        <span className="text-[8px] leading-tight text-white/60 truncate max-w-full">{a.name}</span>
+                      </div>
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={a.previewUrl} alt={a.name} className="w-full h-full object-cover" />
+                    )}
                     {a.status === "uploading" && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <Loader2 className="w-4 h-4 animate-spin text-white" />
@@ -2720,7 +2740,7 @@ function Home() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
                     multiple
                     hidden
                     onChange={e => { void handleFilesSelected(e.target.files); e.target.value = ""; }}
@@ -2730,8 +2750,8 @@ function Home() {
                     onClick={() => fileInputRef.current?.click()}
                     disabled={attachments.length >= MAX_IMAGES}
                     className="my-2 text-white/55 hover:text-white p-2.5 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    aria-label="Attach image"
-                    title={attachments.length >= MAX_IMAGES ? "Up to 4 images per question" : "Attach an image"}
+                    aria-label="Attach image or PDF"
+                    title={attachments.length >= MAX_IMAGES ? "Up to 4 files per question" : "Attach an image or PDF"}
                   >
                     <ImagePlus className="w-5 h-5" />
                   </button>
@@ -2780,12 +2800,12 @@ function Home() {
               onChange={handleSelectionChange}
               max={maxModels}
               lockedIds={lockedIds}
-              imagesAttached={attachments.length > 0}
+              imagesAttached={attachments.some(a => a.kind === "image")}
             />
 
             {/* AGG-14: warn at submit time when the selection includes models that
                 can't read the attached image — they'd be skipped. Offer one-tap removal. */}
-            {attachments.length > 0 && (() => {
+            {attachments.some(a => a.kind === "image") && (() => {
               const nonVision = [...selected].filter(id => !isVisionModel(allModels.find(m => m.id === id) ?? id));
               if (nonVision.length === 0) return null;
               const names = nonVision.map(id => allModels.find(m => m.id === id)?.label ?? id);
