@@ -1173,7 +1173,10 @@ function Home() {
     const convId = activeConvId;
     if (!convId || questionImagesConvId.current === convId || !result) return;
     questionImagesConvId.current = convId;
-    if (!result.image_count) { setQuestionImagesRevoking([]); return; }
+    // Clear the previous conversation's images immediately so they don't linger on
+    // this question during the async re-fetch (the stale-image-on-switch bug).
+    setQuestionImagesRevoking([]);
+    if (!result.image_count) return;
     let cancelled = false;
     fetch(`/api/me/attachments?conversationId=${encodeURIComponent(convId)}`, { cache: "no-store" })
       .then(r => (r.ok ? r.json() : null))
