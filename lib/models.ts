@@ -33,6 +33,13 @@ export type ModelEntry = {
    * it to offer the replacement instead of the degraded model. See /models.
    */
   replaceWith?: string
+  /**
+   * AGG-14: true = the model accepts image input (OpenRouter input_modalities
+   * includes "image"). Backend-reported via /api/models; also stamped onto
+   * FALLBACK_MODELS below. Undefined/false = text-only → the composer warns
+   * before an image ask and the backend skips the model with a 'no_vision' status.
+   */
+  vision?: boolean
 }
 
 // Display metadata per category — used by ModelPicker tabs.
@@ -158,6 +165,36 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   { id: "x-ai/grok-4.20-multi-agent",               label: "Grok 4.20 Multi-Agent",provider: "xAI",       class: "premium",  category: "frontier" },
   { id: "meta-llama/llama-3.3-70b-instruct",        label: "Llama 3.3 70B",        provider: "Meta",      class: "flagship", category: "frontier" },
 ]
+
+// AGG-14: image-input capability — mirror of the backend VISION_MODELS set
+// (server.js), derived from OpenRouter input_modalities (2026-07-25). The live
+// picker reads `vision` straight off /api/models; this stamps the same flag onto
+// the offline FALLBACK_MODELS so the composer behaves identically before /models
+// responds. Default is text-only (safe): an unknown model is treated as no-vision.
+const VISION_MODEL_IDS = new Set<string>([
+  "openai/gpt-4o-mini", "google/gemini-2.5-flash", "mistralai/mistral-small-3.2-24b-instruct",
+  "openai/gpt-5.4-mini", "google/gemini-3.1-flash-lite", "anthropic/claude-sonnet-5",
+  "anthropic/claude-sonnet-4-6", "openai/gpt-4o", "openai/gpt-5.4", "openai/gpt-5.6-sol",
+  "openai/gpt-5.5", "mistralai/mistral-large-2512", "openai/gpt-5.4-pro", "openai/gpt-5.6-sol-pro",
+  "openai/gpt-5.5-pro", "anthropic/claude-fable-5", "anthropic/claude-opus-4.8",
+  "anthropic/claude-opus-4.7", "openai/gpt-5.3-codex", "openai/gpt-5.1-codex-mini",
+  "google/gemini-2.5-pro", "google/gemini-3.6-flash", "google/gemini-3.5-flash",
+  "google/gemini-3.1-pro-preview", "google/gemini-3-flash-preview", "xiaomi/mimo-v2.5",
+  "stepfun/step-3.7-flash", "minimax/minimax-m3", "anthropic/claude-opus-4.8-fast",
+  "anthropic/claude-opus-4.7-fast", "x-ai/grok-4.5", "moonshotai/kimi-k3", "x-ai/grok-4.20",
+  "x-ai/grok-4.20-multi-agent", "anthropic/claude-haiku-4-5",
+])
+for (const m of FALLBACK_MODELS) m.vision = VISION_MODEL_IDS.has(m.id)
+
+/**
+ * True if the model accepts image input. Prefers the live-catalog `vision` flag
+ * (from /api/models); falls back to the id set so callers holding only an id (or
+ * a pre-vision backend payload) still resolve correctly.
+ */
+export function isVisionModel(model: ModelEntry | string): boolean {
+  if (typeof model === "string") return VISION_MODEL_IDS.has(model)
+  return model.vision ?? VISION_MODEL_IDS.has(model.id)
+}
 
 // Cumulative tiers — mirror of the backend. The backend is the source of
 // truth and enforces; this is only for shaping the UI.

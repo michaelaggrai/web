@@ -15,7 +15,7 @@ import { appendMessage, bumpConversation, type ConvMessage } from "@/lib/message
 import { listThread } from "@/lib/thread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2 } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, ImagePlus, X, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ScoreRadar } from "@/components/score-radar";
@@ -25,7 +25,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useTier } from "@/lib/use-tier";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
-import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parseModelsParam, type ModelEntry, type Tier } from "@/lib/models";
+import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parseModelsParam, isVisionModel, type ModelEntry, type Tier } from "@/lib/models";
 import type { ShareSnapshot, ShareTurn, ShareAnswer } from "@/lib/share";
 
 // AGG-7 v2 (2026-05-25): switched from 4-dim (comprehension /
@@ -1094,6 +1094,26 @@ function Home() {
   const [sessionRecents, setSessionRecents] = useState<SessionRecent[]>([]);
   const [activeRecentId, setActiveRecentId] = useState<string | null>(null);
 
+  // ── AGG-14: image attachments (Pro+) ──────────────────────────────────────
+  // Images queued for the NEXT ask. Each is signed + pushed to Storage on pick;
+  // the ask sends the ready attachmentIds. Cleared on submit.
+  type Attachment = {
+    id: string;                    // local key
+    attachmentId: string | null;   // server id, set once sign + upload completes
+    name: string;
+    previewUrl: string;            // object URL for the thumbnail
+    status: "uploading" | "ready" | "error";
+  };
+  const MAX_IMAGES = 4;
+  const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const attachmentsUploading = attachments.some(a => a.status === "uploading");
+  const canAttach = tier === "pro" || tier === "premium";
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Models the backend skipped because they can't read the attached image
+  // (stage:'skipped'). Shown as a clear status alongside the results.
+  const [skippedModels, setSkippedModels] = useState<string[]>([]);
+
   // ── Conversation continuation (Phase 5a) ──────────────────────────────────
   // A single-model follow-up thread rendered BELOW the turn-1 comparison. Each
   // Followup is one exchange: the user's question + the chosen model's answer,
@@ -1516,7 +1536,49 @@ function Home() {
     });
   }, [tier, allModels, tierDefaults]);
 
+  // AGG-14: pick → validate → sign → upload each image, tracking status per file.
+  async function handleFilesSelected(files: FileList | null) {
+    if (!files?.length) return;
+    setError("");
+    const room = MAX_IMAGES - attachments.length;
+    if (room <= 0) return;
+    for (const file of Array.from(files).slice(0, room)) {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) { setError("Images must be PNG, JPEG, WebP, or GIF."); continue; }
+      if (file.size > 10 * 1024 * 1024) { setError("Each image must be under 10 MB."); continue; }
+      const localId = crypto.randomUUID();
+      const previewUrl = URL.createObjectURL(file);
+      setAttachments(prev => [...prev, { id: localId, attachmentId: null, name: file.name, previewUrl, status: "uploading" }]);
+      try {
+        const signRes = await fetch("/api/uploads/sign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mimeType: file.type, sizeBytes: file.size }),
+        });
+        if (!signRes.ok) {
+          const j = await signRes.json().catch(() => ({}));
+          throw new Error(j.error ?? "Upload failed");
+        }
+        const { attachmentId, path, token } = await signRes.json();
+        const { error: upErr } = await createClient().storage.from("attachments").uploadToSignedUrl(path, token, file);
+        if (upErr) throw upErr;
+        setAttachments(prev => prev.map(a => a.id === localId ? { ...a, attachmentId, status: "ready" as const } : a));
+      } catch (e) {
+        setAttachments(prev => prev.map(a => a.id === localId ? { ...a, status: "error" as const } : a));
+        setError(e instanceof Error ? e.message : "Upload failed");
+      }
+    }
+  }
+  function removeAttachment(localId: string) {
+    setAttachments(prev => {
+      const found = prev.find(a => a.id === localId);
+      if (found) URL.revokeObjectURL(found.previewUrl);
+      return prev.filter(a => a.id !== localId);
+    });
+  }
+
   async function submitQuestion(q: string, models: Set<string>, reuseConvId?: string) {
+    // AGG-14: image refs that finished uploading — sent with the ask (see body below).
+    const readyAttachmentIds = attachments.filter(a => a.status === "ready" && a.attachmentId).map(a => a.attachmentId as string);
     // URL bookkeeping: every submit lives at a clean /app/c/{id} URL so
     // the question + model selection don't show in the address bar (or
     // anyone's screen-share). When the auto-submit effect is restoring
@@ -1546,7 +1608,7 @@ function Home() {
       r.question.trim().toLowerCase() === qNorm &&
       [...r.models].sort().join(",") === modelsKey
     );
-    if (cached) {
+    if (cached && readyAttachmentIds.length === 0) {
       setResult(cached.result);
       setActiveRecentId(cached.id);
       setQuestion("");
@@ -1565,7 +1627,11 @@ function Home() {
     setSearchInfo(null);
     setError("");
     setIntentHint(null);
+    setSkippedModels([]);
     setQuestion("");
+    // AGG-14: clear the composer's images (already captured in readyAttachmentIds).
+    attachments.forEach(a => URL.revokeObjectURL(a.previewUrl));
+    setAttachments([]);
     // Fresh AbortController for this request so stopGeneration() can
     // cancel it. We don't reuse across requests (an aborted controller
     // stays aborted).
@@ -1583,7 +1649,7 @@ function Home() {
         },
         // P6b root-link: pass the conversation short-id so the backend stamps the
         // root questions row (turn 1) → a thread reconstructs from `questions` alone.
-        body: JSON.stringify({ question: q.trim(), models: [...models], ...(convId ? { conversation_id: convId } : {}) }),
+        body: JSON.stringify({ question: q.trim(), models: [...models], ...(convId ? { conversation_id: convId } : {}), ...(readyAttachmentIds.length ? { attachmentIds: readyAttachmentIds } : {}) }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
@@ -1623,6 +1689,11 @@ function Home() {
             // AGG-39: the ask was grounded on live web results — capture the
             // sources so the result can show a "Searched the web" badge.
             setSearchInfo({ ok: evt.ok !== false, sources: Array.isArray(evt.sources) ? evt.sources as { title: string; url: string }[] : [] });
+          } else if (evt.stage === "skipped") {
+            // AGG-14: backend skipped a non-vision model on an image ask. Record it
+            // so the UI can show a clear "couldn't read the image" status.
+            const model = String(evt.model ?? "");
+            if (model) setSkippedModels(prev => prev.includes(model) ? prev : [...prev, model]);
           } else if (evt.stage === "intent" && (evt.intent === "compare" || evt.intent === "product" || evt.intent === "direct")) {
             setIntentHint(evt.intent);
           } else if (evt.stage === "summary-chunk") {
@@ -2504,6 +2575,33 @@ function Home() {
             )
           ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* AGG-14: attached-image thumbnails (Pro+) */}
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {attachments.map(a => (
+                  <div key={a.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/10 bg-surface-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={a.previewUrl} alt={a.name} className="w-full h-full object-cover" />
+                    {a.status === "uploading" && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      </div>
+                    )}
+                    {a.status === "error" && (
+                      <div className="absolute inset-0 bg-red-900/60 flex items-center justify-center text-[10px] font-medium text-white">Failed</div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(a.id)}
+                      className="absolute top-0.5 right-0.5 bg-black/60 rounded-full p-0.5 hover:bg-black/80 transition-colors"
+                      aria-label={`Remove ${a.name}`}
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex items-center bg-surface-2 backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 focus-within:ring-2 focus-within:ring-teal-400/60 focus-within:border-transparent transition-colors shadow-2xl shadow-black/20">
               <textarea
                 ref={questionInputRef}
@@ -2516,6 +2614,29 @@ function Home() {
                 rows={2}
                 className="flex-1 resize-none bg-transparent text-white placeholder:text-white/45 px-6 py-4 text-base focus:outline-none rounded-2xl"
               />
+              {/* AGG-14: attach image — Pro+ only */}
+              {canAttach && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    multiple
+                    hidden
+                    onChange={e => { void handleFilesSelected(e.target.files); e.target.value = ""; }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={attachments.length >= MAX_IMAGES}
+                    className="my-2 text-white/55 hover:text-white p-2.5 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Attach image"
+                    title={attachments.length >= MAX_IMAGES ? "Up to 4 images per question" : "Attach an image"}
+                  >
+                    <ImagePlus className="w-5 h-5" />
+                  </button>
+                </>
+              )}
               {loading ? (
                 // While a request is in flight, the submit arrow becomes
                 // a stop button that aborts the in-flight fetch. The
@@ -2534,9 +2655,10 @@ function Home() {
               ) : (
                 <button
                   type="submit"
-                  disabled={!question.trim()}
+                  disabled={!question.trim() || attachmentsUploading}
                   className="m-2 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-navy p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Submit"
+                  title={attachmentsUploading ? "Waiting for image upload…" : undefined}
                 >
                   <ArrowRight className="w-5 h-5" />
                 </button>
@@ -2559,6 +2681,29 @@ function Home() {
               max={maxModels}
               lockedIds={lockedIds}
             />
+
+            {/* AGG-14: warn at submit time when the selection includes models that
+                can't read the attached image — they'd be skipped. Offer one-tap removal. */}
+            {attachments.length > 0 && (() => {
+              const nonVision = [...selected].filter(id => !isVisionModel(allModels.find(m => m.id === id) ?? id));
+              if (nonVision.length === 0) return null;
+              const names = nonVision.map(id => allModels.find(m => m.id === id)?.label ?? id);
+              return (
+                <div className="flex items-start gap-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 px-4 py-3 text-sm text-amber-200/90">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div className="space-y-1.5">
+                    <p><span className="font-medium">{names.join(", ")}</span> can&apos;t read images — {nonVision.length > 1 ? "they'll be skipped" : "it'll be skipped"} for this question.</p>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectionChange(new Set([...selected].filter(id => !nonVision.includes(id))))}
+                      className="underline underline-offset-2 hover:text-amber-100"
+                    >
+                      Remove {nonVision.length > 1 ? "them" : "it"} from the comparison
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </form>
           )}
 
@@ -2568,6 +2713,14 @@ function Home() {
               className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300"
             >
               {error}
+            </div>
+          )}
+
+          {/* AGG-14: models skipped because they can't read the image (clear status). */}
+          {skippedModels.length > 0 && (loading || result) && (
+            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-2.5 text-sm text-amber-200/90">
+              Skipped {skippedModels.length} model{skippedModels.length > 1 ? "s" : ""} that can&apos;t read images:{" "}
+              <span className="font-medium">{skippedModels.map(id => allModels.find(m => m.id === id)?.label ?? id).join(", ")}</span>.
             </div>
           )}
 
