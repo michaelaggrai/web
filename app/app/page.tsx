@@ -15,7 +15,7 @@ import { appendMessage, bumpConversation, type ConvMessage } from "@/lib/message
 import { listThread } from "@/lib/thread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, ImagePlus, X, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, ImagePlus, X, AlertTriangle, Loader2, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ScoreRadar } from "@/components/score-radar";
@@ -67,11 +67,11 @@ type SectionAttribution = { heading: string; primary: string; supporting: string
 type SearchBlock = { ok: boolean; provider?: string; sources: { title: string; url: string }[] };
 
 type Result =
-  | { type: "product"; answer: string; question: string; cached?: boolean }
+  | { type: "product"; answer: string; question: string; cached?: boolean; image_count?: number }
   // "direct" = a single-right-answer factual question (2+2, capital of France)
   // where a multi-model comparison adds no value. Rendered like product but
   // with a witty "we didn't burn the energy comparing" note.
-  | { type: "direct"; answer: string; question: string; cached?: boolean; search?: SearchBlock | null }
+  | { type: "direct"; answer: string; question: string; cached?: boolean; search?: SearchBlock | null; image_count?: number }
   | {
       type: "compare";
       summary: string;
@@ -88,6 +88,7 @@ type Result =
       // restored result, so revisiting a grounded ask still shows them.
       search?: SearchBlock | null;
       cached?: boolean;
+      image_count?: number;   // AGG-14: how many images this ask carried (frontend-set)
     };
 
 let _modelLabels: Record<string, string> = Object.fromEntries(FALLBACK_MODELS.map(m => [m.id, m.label]));
@@ -1113,6 +1114,8 @@ function Home() {
   // Models the backend skipped because they can't read the attached image
   // (stage:'skipped'). Shown as a clear status alongside the results.
   const [skippedModels, setSkippedModels] = useState<string[]>([]);
+  const [dragActive, setDragActive] = useState(false);        // AGG-14: drag-over highlight
+  const [pendingImageCount, setPendingImageCount] = useState(0); // AGG-14: image count for the in-flight ask header
 
   // ── Conversation continuation (Phase 5a) ──────────────────────────────────
   // A single-model follow-up thread rendered BELOW the turn-1 comparison. Each
@@ -1575,6 +1578,27 @@ function Home() {
       return prev.filter(a => a.id !== localId);
     });
   }
+  // AGG-14: drop images onto the composer. Free users get the upgrade nudge.
+  function handleComposerDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragActive(false);
+    const files = e.dataTransfer?.files;
+    if (!files?.length) return;
+    if (!canAttach) {
+      if (Array.from(files).some(f => f.type.startsWith("image/"))) setError("Image upload is a Pro feature — upgrade to attach images.");
+      return;
+    }
+    void handleFilesSelected(files);
+  }
+  // AGG-14: paste an image (e.g. a screenshot) into the composer.
+  function handleComposerPaste(e: React.ClipboardEvent) {
+    if (!canAttach) return;
+    const files = e.clipboardData?.files;
+    if (files && Array.from(files).some(f => f.type.startsWith("image/"))) {
+      e.preventDefault();
+      void handleFilesSelected(files);
+    }
+  }
 
   async function submitQuestion(q: string, models: Set<string>, reuseConvId?: string) {
     // AGG-14: image refs that finished uploading — sent with the ask (see body below).
@@ -1620,6 +1644,7 @@ function Home() {
     const startedAt = Date.now();
     setLoading(true);
     setPendingQuestion(q);
+    setPendingImageCount(readyAttachmentIds.length);   // AGG-14: header indicator while streaming
     setResult(null);
     setStreamingAnswers([]);
     setPartialAnswers({});
@@ -1767,6 +1792,7 @@ function Home() {
           const remaining = 2000 - elapsed;
           if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
         }
+        if (readyAttachmentIds.length) pendingResult.image_count = readyAttachmentIds.length; // AGG-14: survives restore (stored in recents/conv)
         setResult(pendingResult);
         // A fresh comparison starts a fresh continuation thread (Phase 5a).
         setActiveConvId(convId ?? null);
@@ -2602,12 +2628,18 @@ function Home() {
                 ))}
               </div>
             )}
-            <div className="flex items-center bg-surface-2 backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 focus-within:ring-2 focus-within:ring-teal-400/60 focus-within:border-transparent transition-colors shadow-2xl shadow-black/20">
+            <div
+              onDragOver={(e) => { e.preventDefault(); if (canAttach) setDragActive(true); }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={handleComposerDrop}
+              className={`flex items-center bg-surface-2 backdrop-blur-xl rounded-2xl border transition-colors shadow-2xl shadow-black/20 ${dragActive ? "border-transparent ring-2 ring-teal-400/70" : "border-white/10 hover:border-white/20 focus-within:ring-2 focus-within:ring-teal-400/60 focus-within:border-transparent"}`}
+            >
               <textarea
                 ref={questionInputRef}
                 value={question}
                 onChange={e => setQuestion(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
+                onPaste={handleComposerPaste}
                 placeholder="What would you like to know?"
                 aria-label="Ask a question"
                 aria-describedby="ask-hint"
@@ -2680,6 +2712,7 @@ function Home() {
               onChange={handleSelectionChange}
               max={maxModels}
               lockedIds={lockedIds}
+              imagesAttached={attachments.length > 0}
             />
 
             {/* AGG-14: warn at submit time when the selection includes models that
@@ -2735,6 +2768,11 @@ function Home() {
                 <div className="flex items-center gap-3">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[11px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-inset ring-teal-300/20">You</span>
                   <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{pendingQuestion}</p>
+                  {pendingImageCount > 0 && (
+                    <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-white/10 border border-white/15 px-2 py-0.5 text-[11px] font-medium text-white/70">
+                      <ImageIcon className="w-3 h-3" /> {pendingImageCount}
+                    </span>
+                  )}
                 </div>
               )}
               {intentHint === "compare" && selected.size > 1 ? (
@@ -2975,6 +3013,15 @@ function Home() {
                   <p className="text-[15px] leading-relaxed font-medium text-white/90 min-w-0 break-words">{result.question}</p>
                 </div>
               )}
+
+              {/* AGG-14: photos-attached indicator for this ask (survives restore via result.image_count). */}
+              {result.image_count ? (
+                <div className="pl-10">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/15 px-2 py-0.5 text-[11px] font-medium text-white/70">
+                    <ImageIcon className="w-3 h-3" /> {result.image_count} image{result.image_count > 1 ? "s" : ""}
+                  </span>
+                </div>
+              ) : null}
 
               {(followups.length === 0 || comparisonExpanded) && (
               <>

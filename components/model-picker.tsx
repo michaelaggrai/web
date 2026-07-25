@@ -1,11 +1,11 @@
 "use client"
 
-import { Plus, X, Check, Lock } from "lucide-react"
+import { Plus, X, Check, Lock, Image as ImageIcon, ImageOff } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ProviderLogo } from "@/components/brand-icons"
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { CATEGORIES, PROVIDERS, TIER_GROUPS, type ModelCategory, type ModelClass, type ModelEntry } from "@/lib/models"
+import { CATEGORIES, PROVIDERS, TIER_GROUPS, isVisionModel, type ModelCategory, type ModelClass, type ModelEntry } from "@/lib/models"
 
 export type { ModelEntry }
 
@@ -16,6 +16,9 @@ type Props = {
   max?: number
   // Model ids the current tier may not use — shown locked with an upgrade hint.
   lockedIds?: Set<string>
+  // AGG-14: true when the ask has image(s) attached — the picker then marks which
+  // models can read images (dims + flags the ones that can't) to guide the pick.
+  imagesAttached?: boolean
 }
 
 // Top-tier cap. When the user's `max` is below this, we show a hint that
@@ -27,7 +30,7 @@ const GROUP_BY_LABELS: Record<GroupBy, string> = { category: "Category", provide
 
 const GROUP_BY_PERSIST_KEY = "aggrai_picker_group_by_v1"
 
-export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Props) {
+export function ModelPicker({ all, selected, onChange, max = 5, lockedIds, imagesAttached = false }: Props) {
   const [open, setOpen] = useState(false)
   // Which axis we're grouping the tabs by. Defaults to category (the
   // original behaviour); persists per-browser so the user's preference
@@ -284,6 +287,14 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
             {activeGroup?.description}
           </p>
 
+          {/* AGG-14: with an image attached, guide the user to image-capable
+              models — dimmed rows can't read it and will be skipped. */}
+          {imagesAttached && (
+            <p className="px-3 py-1.5 text-[11px] leading-snug text-teal-200/80 border-b border-white/5 bg-teal-400/5">
+              Image attached — dimmed models can&apos;t read it and will be skipped.
+            </p>
+          )}
+
           {/* Model list for the active category */}
           <div className="max-h-72 overflow-y-auto px-2 py-2">
             <ul>
@@ -292,6 +303,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                 const isLocked = locked.has(m.id)
                 // !isSelected + limitReached now allowed — it auto-swaps.
                 const disabled = isLocked
+                const noVision = imagesAttached && !isVisionModel(m)
                 return (
                   <li key={m.id}>
                     <button
@@ -304,7 +316,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                           : disabled
                             ? "text-white/55 cursor-not-allowed"
                             : "text-white/80 hover:bg-white/5"
-                      }`}
+                      }${noVision ? " opacity-50" : ""}`}
                     >
                       <ProviderLogo provider={m.provider} className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate flex-1">{m.label}</span>
@@ -325,6 +337,9 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds }: Pro
                           {isLocked && <Lock className="w-2.5 h-2.5" />}Pro
                         </span>
                       ) : null}
+                      {imagesAttached && (isVisionModel(m)
+                        ? <ImageIcon className="w-3.5 h-3.5 text-teal-300/80 shrink-0" aria-label="Reads images" />
+                        : <ImageOff className="w-3.5 h-3.5 text-white/35 shrink-0" aria-label="Can't read images" />)}
                       {isSelected && (
                         <Check className="w-3.5 h-3.5 text-teal-300 shrink-0" />
                       )}
