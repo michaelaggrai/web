@@ -26,7 +26,7 @@ import { useTier } from "@/lib/use-tier";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import { FALLBACK_MODELS, TIER_DEFAULTS, maxModelsForTier, lockedModelIds, parseModelsParam, isVisionModel, type ModelEntry, type Tier } from "@/lib/models";
-import type { ShareSnapshot, ShareTurn, ShareAnswer } from "@/lib/share";
+import type { ShareSnapshot, ShareTurn, ShareAnswer, ShareAttachment } from "@/lib/share";
 
 // AGG-7 v2 (2026-05-25): switched from 4-dim (comprehension /
 // thought_provoking / nuance / clarity) to research-backed 5-dim.
@@ -1160,6 +1160,10 @@ function Home() {
     // (not the page-level searchInfo) — each turn searches independently, so the
     // sources shown must belong to that turn, not the first ask.
     searchInfo: { ok: boolean; sources: { title: string; url: string }[] } | null;
+    // AGG-14: images / PDFs attached to THIS follow-up (Feature 2). Carries the
+    // server attachmentId (for sharing) + a preview URL (blob live, signed on
+    // revisit) + kind, mirroring questionImages for the root turn.
+    attachments?: { id?: string; url?: string; name?: string; kind?: "image" | "file" }[];
   };
   const [activeConvId, setActiveConvId] = useState<string | null>(urlConvId);
   const [followups, setFollowups] = useState<Followup[]>([]);
@@ -1739,7 +1743,11 @@ function Home() {
     // Revoke only the non-ready blobs; the ready ones are adopted by questionImages.
     attachments.forEach(a => { if (a.status !== "ready") URL.revokeObjectURL(a.previewUrl); });
     setAttachments([]);
-    setQuestionImagesRevoking(readyAttachments.map(a => ({ url: a.previewUrl, name: a.name, kind: a.kind })));
+    // Carry the server attachmentId through (not just the blob preview) so a share
+    // built mid-session — before any revisit re-fetch — still knows which uploads
+    // to publish (AGG-14 shared-image). On revisit these ids come back from
+    // /api/me/attachments instead.
+    setQuestionImagesRevoking(readyAttachments.map(a => ({ id: a.attachmentId ?? undefined, url: a.previewUrl, name: a.name, kind: a.kind })));
     questionImagesConvId.current = convId;
     // Fresh AbortController for this request so stopGeneration() can
     // cancel it. We don't reuse across requests (an aborted controller
@@ -2061,18 +2069,31 @@ function Home() {
         ...(a.scores.weaknesses?.length ? { weaknesses: a.scores.weaknesses } : {}),
       } : null,
     });
-    const compareTurn = (r: Extract<Result, { type: "compare" }>, question: string): ShareTurn => ({
+    // AGG-14: the attachments to publish with a turn. Only ids the server can
+    // re-validate (owner + conversation scoped) survive — see /api/share; the name
+    // is a cosmetic label we pass through. Blob-only previews (no server id yet)
+    // are dropped rather than shared as broken refs.
+    const shareAttachments = (imgs: { id?: string; name?: string; kind?: "image" | "file" }[]): ShareAttachment[] | undefined => {
+      const atts = imgs.filter((m) => m.id).map((m) => ({ id: m.id as string, kind: m.kind ?? "image", name: m.name ?? "" }));
+      return atts.length ? atts : undefined;
+    };
+    const compareTurn = (r: Extract<Result, { type: "compare" }>, question: string, attachments?: ShareAttachment[]): ShareTurn => ({
       kind: "compare", question, summary: r.summary,
       contributions: r.contributions ?? null,
       answers: r.answers.map(strip),
       sources: r.search?.sources ?? null,
+      ...(attachments && { attachments }),
     });
     const turns: ShareTurn[] = [];
-    if (result.type === "compare") turns.push(compareTurn(result, result.question));
+    // The root turn's uploads live in questionImages (live blobs carry their id
+    // since this session; a revisit re-fetches ids from /api/me/attachments).
+    const rootAttachments = shareAttachments(questionImages);
+    if (result.type === "compare") turns.push(compareTurn(result, result.question, rootAttachments));
     else if (result.type === "direct" || result.type === "product") turns.push({ kind: "direct", question: result.question, answer: result.answer });
     for (const f of followups) {
-      if (f.mode === "compare" && f.result?.type === "compare") turns.push(compareTurn(f.result, f.question));
-      else if (f.mode === "single" && f.answer) turns.push({ kind: "single", question: f.question, model: f.modelId, answer: f.answer });
+      const fAtts = shareAttachments(f.attachments ?? []);
+      if (f.mode === "compare" && f.result?.type === "compare") turns.push(compareTurn(f.result, f.question, fAtts));
+      else if (f.mode === "single" && f.answer) turns.push({ kind: "single", question: f.question, model: f.modelId, answer: f.answer, ...(fAtts && { attachments: fAtts }) });
     }
     if (!turns.length) return null;
     const models = result.type === "compare" ? result.answers.map(a => a.model) : [];
@@ -2517,7 +2538,15 @@ function Home() {
           {/* AGG-44: share the conversation. Any settled result, anon or signed-in,
               all result types — the API + /share page support them all. */}
           {result && !loading && !followupLoading && (
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-col items-end gap-1.5">
+              {/* AGG-14: sharing publishes the uploaded image/PDF to anyone with the
+                  link — say so plainly before the click, not after. */}
+              {questionImages.some((m) => m.id) && (
+                <p className="text-[11px] text-white/45 text-right max-w-xs">
+                  Anyone with the link will also see the {questionImages.every((m) => (m.kind ?? "image") === "file") ? "PDF" : "image"}{questionImages.filter((m) => m.id).length > 1 ? "s" : ""} you attached.
+                </p>
+              )}
+              <div className="flex flex-wrap items-center justify-end gap-2">
               {shareUrl ? (
                 <button
                   type="button"
@@ -2539,6 +2568,7 @@ function Home() {
                   <Share2 className="w-3.5 h-3.5" aria-hidden="true" /> {sharing ? "Sharing…" : "Share"}
                 </button>
               )}
+              </div>
             </div>
           )}
 

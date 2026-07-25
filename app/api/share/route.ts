@@ -8,6 +8,8 @@ import {
   minTierForModels,
   SHARE_SNAPSHOT_MAX_BYTES,
   type ShareSnapshot,
+  type ShareTurn,
+  type ShareAttachment,
 } from "@/lib/share";
 
 // AGG-44: create a public, read-only snapshot of a conversation. Anyone (anon or
@@ -51,6 +53,64 @@ function liveShareQuery(convId: string, ownerId: string | null) {
   return ownerId ? q.eq("owner_id", ownerId) : q.is("owner_id", null);
 }
 
+// AGG-14: sharing publishes the conversation's uploaded images / PDFs. The client
+// tells us which attachment ids sit on which turn, but this is a PUBLIC write we
+// can't trust — a forged snapshot could otherwise name someone else's attachment
+// id and turn a share link into a read primitive for it. So we STRIP every
+// client-supplied attachment and re-add only ids that (a) belong to this sharer
+// and (b) live on a question in THIS conversation. `kind` is derived from the row
+// (never the client); `name` is a cosmetic label we keep. Anonymous shares have no
+// owner → every attachment is stripped (anon users can't upload anyway).
+function stripAttachments(t: ShareTurn): ShareTurn {
+  if ("attachments" in t && t.attachments) {
+    const clone = { ...t };
+    delete (clone as { attachments?: unknown }).attachments;
+    return clone;
+  }
+  return t;
+}
+async function enrichAttachments(
+  snapshot: ShareSnapshot,
+  ownerId: string | null,
+  convId: string | null,
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<ShareSnapshot> {
+  const ids = [
+    ...new Set(
+      snapshot.turns
+        .flatMap((t) => ("attachments" in t && Array.isArray(t.attachments) ? t.attachments : []))
+        .map((a) => a?.id)
+        .filter((x): x is string => typeof x === "string" && /^[0-9a-f-]{36}$/i.test(x)),
+    ),
+  ].slice(0, 32);
+  if (!ids.length || !ownerId || !convId) return { ...snapshot, turns: snapshot.turns.map(stripAttachments) };
+
+  // The only questions whose attachments may be published: ones in THIS
+  // conversation owned by the sharer.
+  const { data: qs } = await admin.from("questions").select("id").eq("conversation_id", convId).eq("user_id", ownerId);
+  const qids = (qs ?? []).map((q) => q.id);
+  if (!qids.length) return { ...snapshot, turns: snapshot.turns.map(stripAttachments) };
+
+  const { data: atts } = await admin
+    .from("attachments")
+    .select("id, mime_type")
+    .in("id", ids)
+    .in("question_id", qids)
+    .eq("user_id", ownerId);
+  const kindById = new Map(
+    (atts ?? []).map((a) => [a.id as string, (a.mime_type === "application/pdf" ? "file" : "image") as "file" | "image"]),
+  );
+
+  const turns = snapshot.turns.map((t): ShareTurn => {
+    if (!("attachments" in t) || !Array.isArray(t.attachments)) return t;
+    const keep: ShareAttachment[] = t.attachments
+      .filter((a) => a && kindById.has(a.id))
+      .map((a) => ({ id: a.id, kind: kindById.get(a.id)!, name: typeof a.name === "string" ? a.name.slice(0, 200) : "" }));
+    return keep.length ? { ...t, attachments: keep } : stripAttachments(t);
+  });
+  return { ...snapshot, turns };
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const snapshot = body?.snapshot;
@@ -67,6 +127,9 @@ export async function POST(req: NextRequest) {
   const models: string[] = (snapshot.models as string[]).filter((m) => typeof m === "string").slice(0, 8);
   const title = String(snapshot.turns[0]?.question || "aggrai comparison").slice(0, 200);
   const origin = APP_URL || new URL(req.url).origin;
+  // AGG-14: validate + rewrite the turn attachments server-side before anything is
+  // stored, so the frozen snapshot only ever references the sharer's own uploads.
+  const storedSnapshot = await enrichAttachments(snapshot, ownerId, convId, admin);
 
   // "Always latest": one share per conversation. If this conversation already has
   // a live share (owner-scoped), UPDATE its snapshot in place and return the SAME
@@ -78,7 +141,7 @@ export async function POST(req: NextRequest) {
     if (existing) {
       const { error } = await admin
         .from("conversation_shares")
-        .update({ snapshot, title, models, min_tier: minTierForModels(models) })
+        .update({ snapshot: storedSnapshot, title, models, min_tier: minTierForModels(models) })
         .eq("id", existing.id);
       if (error) {
         console.error("[share] update failed", error.message);
@@ -100,7 +163,7 @@ export async function POST(req: NextRequest) {
     conversation_id: convId,
     owner_id: ownerId,
     revoke_token: revokeToken,
-    snapshot,
+    snapshot: storedSnapshot,
     title,
     models,
     min_tier: minTierForModels(models),

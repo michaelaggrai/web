@@ -70,7 +70,7 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
           Shared comparison
         </div>
 
-        <SharedConversation snapshot={snapshot} />
+        <SharedConversation snapshot={snapshot} shareId={id} />
 
         {/* Continue — hands off to the app with the same models pre-selected; the
             app's per-model tier locks apply (a viewer can only continue with the

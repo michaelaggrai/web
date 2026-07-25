@@ -1,6 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Layers, Globe } from "lucide-react";
+import { Layers, Globe, FileText } from "lucide-react";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import { FALLBACK_MODELS } from "@/lib/models";
 import type { ShareSnapshot, ShareTurn } from "@/lib/share";
@@ -81,13 +81,48 @@ function Sources({ sources }: { sources: { title: string; url: string }[] }) {
   );
 }
 
-function Turn({ turn }: { turn: ShareTurn }) {
+// AGG-14: images / PDFs the asker attached to this turn. The bytes are private —
+// each renders through /api/share/{shareId}/attachment/{id}, which mints a signed
+// URL gated on this share. Images inline as thumbnails; PDFs as file cards.
+function Attachments({ shareId, attachments }: { shareId: string; attachments: { id: string; kind: "image" | "file"; name: string }[] }) {
+  if (!attachments.length) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {attachments.map((a) => a.kind === "file" ? (
+        <a
+          key={a.id}
+          href={`/api/share/${shareId}/attachment/${a.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
+        >
+          <FileText className="w-4 h-4 shrink-0 text-white/55" />
+          <span className="truncate max-w-[12rem]">{a.name || "Document.pdf"}</span>
+        </a>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={a.id}
+          src={`/api/share/${shareId}/attachment/${a.id}`}
+          alt={a.name || "Attached image"}
+          className="h-40 w-auto max-w-full rounded-lg border border-white/10 object-contain bg-white/5"
+        />
+      ))}
+    </div>
+  );
+}
+
+function Turn({ turn, shareId }: { turn: ShareTurn; shareId: string }) {
+  const attachments = ("attachments" in turn && turn.attachments) ? turn.attachments : [];
   return (
     <div className="space-y-4">
       {/* Question */}
       <div className="flex items-start gap-3">
         <span className="shrink-0 mt-0.5 inline-flex items-center rounded-full bg-teal-300/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-teal-200">You</span>
-        <p className="text-white font-medium">{turn.question}</p>
+        <div className="min-w-0 space-y-2">
+          <p className="text-white font-medium">{turn.question}</p>
+          <Attachments shareId={shareId} attachments={attachments} />
+        </div>
       </div>
 
       {turn.kind === "compare" && (
@@ -134,7 +169,7 @@ function Turn({ turn }: { turn: ShareTurn }) {
   );
 }
 
-export function SharedConversation({ snapshot }: { snapshot: ShareSnapshot }) {
+export function SharedConversation({ snapshot, shareId }: { snapshot: ShareSnapshot; shareId: string }) {
   // Newest turn first, mirroring the app (which renders the follow-up thread
   // reversed, latest under its top composer). The STORED snapshot stays
   // chronological (root first) — the fork endpoint seeds turns in that order —
@@ -144,7 +179,7 @@ export function SharedConversation({ snapshot }: { snapshot: ShareSnapshot }) {
     <div className="space-y-10">
       {turns.map((turn, i) => (
         <div key={i} className={i > 0 ? "border-t border-white/10 pt-10" : ""}>
-          <Turn turn={turn} />
+          <Turn turn={turn} shareId={shareId} />
         </div>
       ))}
     </div>

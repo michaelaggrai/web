@@ -36,6 +36,13 @@ export type ShareAnswer = {
 
 export type ShareSource = { title: string; url: string };
 
+// AGG-14: an uploaded image / PDF carried on a turn. Only the id + kind + display
+// name are stored — never a URL. The bytes live in the private `attachments`
+// bucket; /share/{id}/attachment/{attachmentId} mints a fresh signed URL at view
+// time, gated on the id appearing in THIS snapshot (server-validated on create,
+// see app/api/share/route.ts). `id` is the attachments-table row id.
+export type ShareAttachment = { id: string; kind: "image" | "file"; name: string };
+
 export type ShareTurn =
   | {
       kind: "compare";
@@ -44,8 +51,9 @@ export type ShareTurn =
       contributions?: { model: string; pct: number }[] | null;
       answers: ShareAnswer[];
       sources?: ShareSource[] | null;
+      attachments?: ShareAttachment[];
     }
-  | { kind: "single"; question: string; model: string; answer: string }
+  | { kind: "single"; question: string; model: string; answer: string; attachments?: ShareAttachment[] }
   | { kind: "direct"; question: string; answer: string };
 
 export type ShareSnapshot = {
