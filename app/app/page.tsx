@@ -1023,6 +1023,39 @@ function AnswerMasonry({
   );
 }
 
+// AGG-14: image / PDF thumbnails shown under a question — images inline, PDFs as
+// file cards. Shared by the root ask (renderQuestionMedia) and follow-up turns.
+// Items with no url (a preview not ready yet, or a follow-up turn with none) are
+// skipped. Indented pl-10 to sit under the question text past the "You" avatar.
+function AttachmentThumbs({ items }: { items: { id?: string; url?: string; name?: string; kind?: "image" | "file" }[] }) {
+  const shown = items.filter((m) => m.url);
+  if (!shown.length) return null;
+  return (
+    <div className="pl-10 flex flex-wrap gap-2">
+      {shown.map((m, i) => m.kind === "file" ? (
+        <a
+          key={m.id ?? i}
+          href={m.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
+        >
+          <FileText className="w-4 h-4 shrink-0 text-white/55" />
+          <span className="truncate max-w-[12rem]">{m.name ?? "Document.pdf"}</span>
+        </a>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={m.id ?? i}
+          src={m.url}
+          alt={m.name ?? "Attached image"}
+          className="h-24 w-auto max-w-[16rem] rounded-lg border border-white/10 object-contain bg-white/5"
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function Page() {
   return (
     <Suspense>
@@ -1129,6 +1162,12 @@ function Home() {
       return next;
     });
   }
+  // AGG-14: attachments for FOLLOW-UP turns on a revisit, keyed by the follow-up's
+  // assistant turn. A live follow-up carries its own `attachments` (blob previews)
+  // on the Followup; on revisit those are gone, so the follow-up render falls back
+  // to this map (fresh signed URLs, fetched with the thread). Root uploads stay in
+  // questionImages.
+  const [convAttsByTurn, setConvAttsByTurn] = useState<Record<number, { id?: string; url: string; name?: string; kind?: "image" | "file" }[]>>({});
 
   // ── Conversation continuation (Phase 5a) ──────────────────────────────────
   // A single-model follow-up thread rendered BELOW the turn-1 comparison. Each
@@ -1169,54 +1208,52 @@ function Home() {
   const [followups, setFollowups] = useState<Followup[]>([]);
 
   // AGG-14: on a REVISIT (a recent click / /app/c/{id} load) re-fetch this
-  // conversation's uploaded images as fresh signed URLs. A live ask sets its blob
-  // previews directly (marking questionImagesConvId), so this skips it; the `loading`
-  // guard protects the in-flight window so an intermediate render can't clobber them.
+  // conversation's uploads as fresh signed URLs and place each on the right turn —
+  // root uploads (turn ≤ 1) → questionImages, follow-up uploads (turn ≥ 3) →
+  // convAttsByTurn. A live ask sets its blob previews directly (marking
+  // questionImagesConvId), so this skips it; the `loading` guard protects the
+  // in-flight window so an intermediate render can't clobber them.
   useEffect(() => {
     if (loading) return;
     const convId = activeConvId;
     if (!convId || questionImagesConvId.current === convId || !result) return;
-    questionImagesConvId.current = convId;
-    // Clear the previous conversation's images immediately so they don't linger on
-    // this question during the async re-fetch (the stale-image-on-switch bug).
+    // Fetch once there's a reason to: the root had an upload, or the thread has
+    // follow-ups (any of which may carry one). The endpoint returns ALL of the
+    // conversation's attachments, so a root-image fetch already includes follow-up
+    // ones even before the thread finishes loading — the render picks them up when
+    // followups arrive.
+    const mightHave = (result.image_count ?? 0) > 0 || followups.length > 0;
+    if (!mightHave) {
+      // Nothing to hydrate yet — clear any prior conversation's media, but DON'T
+      // mark this one handled: a follow-up upload can still surface once the thread
+      // loads and re-runs this effect.
+      setQuestionImagesRevoking([]);
+      setConvAttsByTurn({});
+      return;
+    }
+    questionImagesConvId.current = convId;   // hydrating now — don't re-run / clobber
     setQuestionImagesRevoking([]);
-    if (!result.image_count) return;
+    setConvAttsByTurn({});
     let cancelled = false;
     fetch(`/api/me/attachments?conversationId=${encodeURIComponent(convId)}`, { cache: "no-store" })
       .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (!cancelled && Array.isArray(d?.images)) setQuestionImagesRevoking(d.images); })
+      .then(d => {
+        if (cancelled || !Array.isArray(d?.images)) return;
+        const imgs = d.images as { id: string; url: string; name?: string; kind?: "image" | "file"; turn?: number | null }[];
+        setQuestionImagesRevoking(imgs.filter(a => (a.turn ?? 1) <= 1));
+        const byTurn: Record<number, typeof imgs> = {};
+        for (const a of imgs) { const t = a.turn ?? 1; if (t >= 2) (byTurn[t] ??= []).push(a); }
+        setConvAttsByTurn(byTurn);
+      })
       .catch(() => { /* leave the count-chip fallback */ });
     return () => { cancelled = true; };
-  }, [activeConvId, result, loading]);
+  }, [activeConvId, result, loading, followups.length]);
 
   // Uploaded image(s) shown under the question header — real thumbnails when we
   // have them (live blobs or re-fetched signed URLs), else a small count chip.
   function renderQuestionMedia(fallbackCount: number) {
     if (questionImages.length > 0) {
-      return (
-        <div className="pl-10 flex flex-wrap gap-2">
-          {questionImages.map((m, i) => m.kind === "file" ? (
-            <a
-              key={m.id ?? i}
-              href={m.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
-            >
-              <FileText className="w-4 h-4 shrink-0 text-white/55" />
-              <span className="truncate max-w-[12rem]">{m.name ?? "Document.pdf"}</span>
-            </a>
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={m.id ?? i}
-              src={m.url}
-              alt={m.name ?? "Attached image"}
-              className="h-24 w-auto max-w-[16rem] rounded-lg border border-white/10 object-contain bg-white/5"
-            />
-          ))}
-        </div>
-      );
+      return <AttachmentThumbs items={questionImages} />;
     }
     if (fallbackCount > 0) {
       return (
@@ -2244,11 +2281,20 @@ function Home() {
     const userTurn = maxTurn + 1;
     const asstTurn = maxTurn + 2;
     const id = `t${asstTurn}`;
+    // AGG-14: attach this follow-up's uploads (Pro+). Ready ones ride along as
+    // attachmentIds AND are adopted as the turn's previews; any not-yet-uploaded
+    // blob is dropped (revoked). The composer clears immediately — the files have
+    // moved onto the turn.
+    const readyAtts = attachments.filter(a => a.status === "ready" && a.attachmentId);
+    const readyAttIds = readyAtts.map(a => a.attachmentId as string);
+    attachments.forEach(a => { if (a.status !== "ready") URL.revokeObjectURL(a.previewUrl); });
+    setAttachments([]);
     setFollowups(prev => [...prev, {
       id, userTurn, asstTurn, question: q.trim(), mode: compare ? "compare" : "single", modelId,
       answer: "", result: null, streaming: true, error: null,
       models: compare ? (opts.models ?? []) : [modelId],
       partialAnswers: {}, doneModels: [], partialSummary: "", searchInfo: null,
+      attachments: readyAtts.map(a => ({ id: a.attachmentId ?? undefined, url: a.previewUrl, name: a.name, kind: a.kind })),
     }]);
     setExpandedFollowups(new Set([id]));  // collapse older turns; keep the new one open
     setComparisonExpanded(false);          // collapse the original comparison — it's history now
@@ -2264,8 +2310,8 @@ function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(sessionId ? { "x-aggrai-session-id": sessionId } : {}) },
         body: JSON.stringify(compare
-          ? { conversationId: convId, question: q.trim(), models: opts.models, turn: asstTurn }
-          : { conversationId: convId, question: q.trim(), modelId, turn: asstTurn }),
+          ? { conversationId: convId, question: q.trim(), models: opts.models, turn: asstTurn, ...(readyAttIds.length ? { attachmentIds: readyAttIds } : {}) }
+          : { conversationId: convId, question: q.trim(), modelId, turn: asstTurn, ...(readyAttIds.length ? { attachmentIds: readyAttIds } : {}) }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
@@ -2364,6 +2410,7 @@ function Home() {
   // than one is a fresh comparison. No separate "ask all" concept survives.
   function handleFollowupSubmit(e?: React.FormEvent) {
     e?.preventDefault();
+    if (attachmentsUploading) return;   // AGG-14: wait for the upload (Enter bypasses the disabled button)
     const sel = selectedFollowupModels();
     if (sel.length === 0) return;
     if (sel.length === 1) { void submitContinuation(followupInput, { modelId: sel[0] }); return; }
@@ -2392,6 +2439,12 @@ function Home() {
     setComparisonExpanded(true);
     setFollowupModel(null);
     setFollowupInput("");
+    // AGG-14: drop any queued/attached media so the blank composer starts clean
+    // (and revoke the object URLs rather than leak them).
+    attachments.forEach(a => URL.revokeObjectURL(a.previewUrl));
+    setAttachments([]);
+    setQuestionImagesRevoking([]);
+    setConvAttsByTurn({});
     // A new comparison is a fresh start: snap the picker back to this tier's
     // FULL default set (so Premium gets its 5, not a stale free trio left over
     // from a restored recent) and re-enable tier-default sync. Without this,
@@ -2680,7 +2733,47 @@ function Home() {
                   );
                 })()}
               </div>
-              <form onSubmit={handleFollowupSubmit} className="flex items-end gap-2">
+              {/* AGG-14: attached image/PDF thumbnails on this follow-up (Pro+) —
+                  same tiles as the root composer, operating on the shared
+                  `attachments` state (the two composers are never mounted together). */}
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {attachments.map(a => (
+                    <div key={a.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/10 bg-surface-2">
+                      {a.kind === "file" ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-1 px-1 text-center">
+                          <FileText className="w-5 h-5 text-white/60" />
+                          <span className="text-[8px] leading-tight text-white/60 truncate max-w-full">{a.name}</span>
+                        </div>
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={a.previewUrl} alt={a.name} className="w-full h-full object-cover" />
+                      )}
+                      {a.status === "uploading" && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><Loader2 className="w-4 h-4 animate-spin text-white" /></div>
+                      )}
+                      {a.status === "error" && (
+                        <div className="absolute inset-0 bg-red-900/60 flex items-center justify-center text-[10px] font-medium text-white">Failed</div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(a.id)}
+                        className="absolute top-0.5 right-0.5 bg-black/60 rounded-full p-0.5 hover:bg-black/80 transition-colors"
+                        aria-label={`Remove ${a.name}`}
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <form
+                onSubmit={handleFollowupSubmit}
+                onDragOver={(e) => { e.preventDefault(); if (canAttach) setDragActive(true); }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={handleComposerDrop}
+                className={`flex items-end gap-2 ${dragActive ? "rounded-xl ring-2 ring-teal-400/70" : ""}`}
+              >
                 <textarea
                   ref={followupInputRef}
                   value={followupInput}
@@ -2691,6 +2784,7 @@ function Home() {
                       handleFollowupSubmit();   // honours the selected target, incl. "all"
                     }
                   }}
+                  onPaste={handleComposerPaste}
                   rows={2}
                   placeholder={(() => {
                     const sel = selectedFollowupModels();
@@ -2702,15 +2796,51 @@ function Home() {
                   className="flex-1 resize-none rounded-xl border border-white/10 bg-surface-1 px-4 py-3 text-base text-white placeholder:text-white/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 focus:border-transparent"
                   disabled={followupLoading}
                 />
+                {/* AGG-14: attach an image / PDF to the follow-up — Pro+ only */}
+                {canAttach && (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
+                      multiple
+                      hidden
+                      onChange={e => { void handleFilesSelected(e.target.files); e.target.value = ""; }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={followupLoading || attachments.length >= MAX_IMAGES}
+                      className="shrink-0 my-0.5 text-white/55 hover:text-white p-3 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Attach image or PDF"
+                      title={attachments.length >= MAX_IMAGES ? "Up to 4 files per question" : "Attach an image or PDF"}
+                    >
+                      <Paperclip className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
                 <button
                   type="submit"
-                  disabled={followupLoading || !followupInput.trim()}
+                  disabled={followupLoading || !followupInput.trim() || attachmentsUploading}
                   aria-label="Send follow-up"
+                  title={attachmentsUploading ? "Waiting for upload…" : undefined}
                   className="shrink-0 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-400 text-navy p-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </form>
+              {/* AGG-14: warn when a selected follow-up model can't read the attached
+                  image — the backend runs it without the image (PDFs go to all). */}
+              {attachments.some(a => a.kind === "image") && (() => {
+                const nonVision = selectedFollowupModels().filter(id => !isVisionModel(allModels.find(m => m.id === id) ?? id));
+                if (nonVision.length === 0) return null;
+                return (
+                  <div className="mt-3 flex items-start gap-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 px-4 py-3 text-sm text-amber-200/90">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <p><span className="font-medium">{nonVision.map(id => modelLabel(id)).join(", ")}</span> can&apos;t read images — {nonVision.length > 1 ? "they'll" : "it'll"} answer without it. Pick an image-capable model to include the image.</p>
+                  </div>
+                );
+              })()}
             </div>
             )
           ) : (
@@ -3030,6 +3160,12 @@ function Home() {
                           <ChevronDown className={`w-4 h-4 shrink-0 text-white/55 transition-transform ${isExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
                         )}
                       </button>
+                      {/* AGG-14: images / PDFs attached to this follow-up. Live turns
+                          carry blob previews on f.attachments; a revisit falls back to
+                          convAttsByTurn (fresh signed URLs, keyed by this turn). */}
+                      {isExpanded && (
+                        <AttachmentThumbs items={(f.attachments && f.attachments.length ? f.attachments : convAttsByTurn[f.asstTurn]) ?? []} />
+                      )}
                       {isExpanded && (
                         <div className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl p-5 min-w-0 overflow-hidden">
                           {f.error ? (

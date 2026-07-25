@@ -26,20 +26,23 @@ export async function GET(req: NextRequest) {
   }
 
   const admin = createAdminClient();
-  // Questions in this conversation that belong to the caller (the root ask holds
-  // the images; follow-ups are text-only). Scoping by user_id is the ownership gate.
+  // Questions in this conversation that belong to the caller. The root ask (turn
+  // 1 / null) and any follow-up ask (turn ≥ 3, AGG-14) can each carry uploads, so
+  // we return each attachment's `turn` and let the client place it on the right
+  // turn. Scoping by user_id is the ownership gate.
   const { data: qs } = await admin
-    .from("questions").select("id")
+    .from("questions").select("id, turn")
     .eq("conversation_id", conversationId).eq("user_id", user.id);
-  const qids = (qs ?? []).map((q) => q.id);
+  const turnByQid = new Map((qs ?? []).map((q) => [q.id as string, (q.turn as number | null) ?? null]));
+  const qids = [...turnByQid.keys()];
   if (!qids.length) return NextResponse.json({ images: [] }, { headers: { "Cache-Control": "no-store" } });
 
   const { data: atts } = await admin
-    .from("attachments").select("id, storage_path, mime_type")
+    .from("attachments").select("id, storage_path, mime_type, question_id")
     .in("question_id", qids).eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
-  const images: { id: string; url: string; kind: "image" | "file"; name: string }[] = [];
+  const images: { id: string; url: string; kind: "image" | "file"; name: string; turn: number | null }[] = [];
   for (const a of atts ?? []) {
     const { data: signed } = await admin.storage.from(BUCKET).createSignedUrl(a.storage_path, READ_TTL_S);
     if (signed?.signedUrl) images.push({
@@ -47,6 +50,7 @@ export async function GET(req: NextRequest) {
       url: signed.signedUrl,
       kind: a.mime_type === "application/pdf" ? "file" : "image",
       name: a.storage_path.split("/").pop() || "",
+      turn: turnByQid.get(a.question_id) ?? null,
     });
   }
   return NextResponse.json({ images }, { headers: { "Cache-Control": "no-store" } });
