@@ -71,3 +71,17 @@ export function getShareRef(): string | null {
     return null; // cookies blocked — attribution is best-effort
   }
 }
+
+/** AGG-48: drop a short-lived cookie carrying this browser's anon id so the
+ *  server-side /auth/callback can keep the acquisition funnel intact for social
+ *  (OAuth) signups. signInWithOAuth can't seed the signup metadata the way the
+ *  email path does, and anon_id lives in localStorage (unreadable server-side),
+ *  so this cookie is the bridge. Consent-gated: getAnonId() returns null without
+ *  analytics consent, so nothing is written. No-op on the server. */
+export function dropAnonLinkCookie(): void {
+  if (typeof document === "undefined") return;
+  const anon = getAnonId();
+  if (!anon) return;
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `aggrai_anon_link=${anon}; path=/; max-age=600; SameSite=Lax${secure}`;
+}

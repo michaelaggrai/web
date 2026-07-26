@@ -32,6 +32,11 @@ export async function proxy(req: NextRequest) {
   // AGG-44: shared conversation snapshots are public by design — the whole point
   // is that anyone can open a /share/{id} link without the beta password.
   if (pathname.startsWith("/share/")) return NextResponse.next();
+  // OAuth + password-recovery return lands on the shared PKCE code-exchange
+  // endpoint (app/auth/callback). It's a top-level navigation back from an
+  // external provider, so bypass the beta wall — the route sets its own session
+  // cookies and redirects onward. (Post-launch, when the wall drops, this is moot.)
+  if (pathname.startsWith("/auth/callback")) return NextResponse.next();
   if (req.cookies.get("auth")?.value !== PASSWORD) {
     const url = req.nextUrl.clone();
     // Preserve where they were headed so /login can send them back there after
