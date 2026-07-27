@@ -10,18 +10,27 @@ Do the steps in order. Est. 45–60 min, most of it waiting on DNS.
 - Site URL: `https://www.aggrai.com`
 - App callback (your allow‑list): `https://www.aggrai.com/auth/callback`
 
+**Where these live — the SUPABASE dashboard, not Vercel.** (Vercel's Settings → Authentication is how *you* sign into Vercel; it's unrelated to aggrai's providers.) Direct links:
+- Enable Google/GitHub: https://supabase.com/dashboard/project/kmkuajbtygqwbipcgxxa/auth/providers
+- Site URL + redirect allow-list: https://supabase.com/dashboard/project/kmkuajbtygqwbipcgxxa/auth/url-configuration
+- Email templates: https://supabase.com/dashboard/project/kmkuajbtygqwbipcgxxa/auth/templates
+- SMTP: Authentication → Emails → SMTP Settings
+
 > Note: this wires the providers **behind** the existing beta password wall. It does **not** drop the wall — that stays a separate, deliberate launch flip.
 
 ---
 
-## 1) Google OAuth — Google Cloud Console
+## 1) Google OAuth — Google Cloud → "Google Auth Platform"
 
-1. https://console.cloud.google.com → create/select a project (e.g. `aggrai`).
-2. **APIs & Services → OAuth consent screen**: External. App name `aggrai`, your support email, app logo (optional), **Authorized domain** `aggrai.com`, links to `https://www.aggrai.com/terms` and `/privacy`. Scopes: `email`, `profile`, `openid`. Save. (You can keep it in "Testing" with yourself as a test user until launch; publish before going public to drop the "unverified app" screen.)
-3. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**:
+Google renamed the old "OAuth consent screen" + "Credentials" into **Google Auth Platform**; its left-nav tabs are the steps. Project selector = `aggrai`.
+
+1. **Branding** — App name `aggrai`, User support email `michael@aggrai.com`, App home `https://www.aggrai.com`, Privacy `https://www.aggrai.com/privacy`, Terms `https://www.aggrai.com/terms`, Authorized domain `aggrai.com` (logo optional).
+2. **Audience** — User type **External** → **Publish to Production**. `email`/`profile`/`openid` are non-sensitive, so production works immediately with **no Google verification** (users may see a one-time "unverified app" screen — fine, and moot behind the beta wall). Leaving it in "Testing" instead means only emails added under **Test users** (max 100) can sign in.
+3. **Data Access** — add scopes `.../auth/userinfo.email`, `.../auth/userinfo.profile`, `openid`.
+4. **Clients → Create OAuth client** → **Web application**, name `aggrai web`:
    - **Authorized JavaScript origins:** `https://www.aggrai.com` and `https://aggrai.com`
-   - **Authorized redirect URIs:** `https://kmkuajbtygqwbipcgxxa.supabase.co/auth/v1/callback`
-4. Copy the **Client ID** and **Client secret**.
+   - **Authorized redirect URIs:** `https://kmkuajbtygqwbipcgxxa.supabase.co/auth/v1/callback` ← the **Supabase** URL, not aggrai.com (mismatch → `redirect_uri_mismatch`)
+5. Copy the **Client ID** + **Client secret**.
 
 ## 2) GitHub OAuth — GitHub Developer settings
 
