@@ -265,7 +265,7 @@ function LoadingBlock({ title, gradientId, className = "" }: { title: string; gr
     <div
       role="status"
       aria-label={`Loading ${title}`}
-      className={`rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4 ${className}`}
+      className={`rounded-2xl border border-white/10 bg-surface-2 shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4 ${className}`}
     >
       <Logo height={LOADING_AGGRAI_SIZE} spinning symbolOnly gradientId={gradientId} />
       <p className="text-xs text-white/55">{title}</p>
@@ -275,7 +275,7 @@ function LoadingBlock({ title, gradientId, className = "" }: { title: string; gr
 
 function ModelLoadingBlock({ modelId }: { modelId: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4">
+    <div className="rounded-2xl border border-white/10 bg-surface-1 shadow-xl flex flex-col items-center justify-center gap-2 min-h-[110px] p-4">
       <ModelLoader modelId={modelId} size={LOADING_BRAND_SIZE} label={modelLabel(modelId)} />
       <p className="text-xs text-white/55">{modelLabel(modelId)}</p>
     </div>
@@ -329,7 +329,7 @@ function ThinkingStatus({
     <div
       role="status"
       aria-label={scoring ? "Scoring the answers" : "Asking the models"}
-      className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-3 min-h-[110px] p-6"
+      className="rounded-2xl border border-white/10 bg-surface-2 shadow-xl flex flex-col items-center justify-center gap-3 min-h-[110px] p-6"
     >
       <Logo height={LOADING_AGGRAI_SIZE} spinning symbolOnly gradientId={gradientId} />
       <p className="text-sm font-medium text-white/70 text-center" aria-live="polite">{line}…</p>
@@ -346,7 +346,7 @@ function ThinkingStatus({
 // element; for now the settled radars still render via ScoresAndMetrics.)
 function ScoreRailSkeleton({ models }: { models: string[] }) {
   return (
-    <div role="status" aria-label="Scoring the answers" className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl">
+    <div role="status" aria-label="Scoring the answers" className="rounded-2xl border border-white/10 bg-surface-2 p-6 shadow-xl">
       <div className="mb-5 flex items-center gap-x-2 gap-y-1 flex-wrap">
         <BarChart3 className="w-3.5 h-3.5 text-teal-300 shrink-0" />
         <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80 whitespace-nowrap">Aggr-Score</p>
@@ -423,7 +423,7 @@ function SummaryPanel({
       <div
         role={settled ? undefined : "status"}
         aria-label={settled ? undefined : "Writing the summary"}
-        className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl min-w-0"
+        className="rounded-2xl border border-white/10 bg-surface-2 p-6 shadow-xl min-w-0"
       >
         <div className="flex items-center gap-2 mb-4">
           <Layers className="w-3.5 h-3.5 text-teal-300" />
@@ -527,7 +527,7 @@ function RawAnswers({ answers, streamedText }: {
     const noResponse = streamedText === undefined && !text.trim();
     const expandable = multi && !noResponse;
     return (
-      <div key={a.model} className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl min-w-0 overflow-hidden">
+      <div key={a.model} className="rounded-2xl border border-white/10 bg-surface-1 min-w-0 overflow-hidden">
         <button
           type="button"
           onClick={() => expandable && toggle(a.model)}
@@ -805,7 +805,7 @@ function ScoresAndMetrics({ answers }: { answers: Answer[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl">
+    <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 shadow-xl">
       <div className="mb-5 flex items-center gap-x-2 gap-y-1 flex-wrap">
         <BarChart3 className="w-3.5 h-3.5 text-teal-300 shrink-0" />
         <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80 whitespace-nowrap">
@@ -2474,8 +2474,8 @@ function Home() {
     <div className="relative min-h-dvh bg-navy">
       {/* Soft gradient orbs — fixed so they stay anchored to the
           viewport while the body scrolls. */}
-      <div className="pointer-events-none fixed top-20 left-1/3 w-[500px] h-[500px] bg-teal-500/12 rounded-full blur-[120px]" />
-      <div className="pointer-events-none fixed bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/8 rounded-full blur-[100px]" />
+      <div className="pointer-events-none fixed top-20 left-1/3 w-[500px] h-[500px] glow-teal-12" />
+      <div className="pointer-events-none fixed bottom-20 right-1/4 w-[400px] h-[400px] glow-teal-8" />
 
       <AppSidebar
         open={sidebarOpen}
@@ -2497,7 +2497,7 @@ function Home() {
             don't overlap header content in landscape on iOS. h-14 stays as
             the *minimum* visual height; safe-area extends the box upward
             into the inset region without pushing the click targets down. */}
-        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-white/5 bg-navy/80 backdrop-blur-md px-4 pt-[env(safe-area-inset-top)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-white/5 bg-navy px-4 pt-[env(safe-area-inset-top)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
           {/* Mobile: menu toggle + logo */}
           <div className="flex items-center gap-3 lg:hidden">
             <button
@@ -2883,7 +2883,7 @@ function Home() {
               onDragOver={(e) => { e.preventDefault(); if (canAttach) setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
               onDrop={handleComposerDrop}
-              className={`flex items-center bg-surface-2 backdrop-blur-xl rounded-2xl border transition-colors shadow-2xl shadow-black/20 ${dragActive ? "border-transparent ring-2 ring-teal-400/70" : "border-white/10 hover:border-white/20 focus-within:ring-2 focus-within:ring-teal-400/60 focus-within:border-transparent"}`}
+              className={`flex items-center bg-surface-2 rounded-2xl border transition-colors shadow-2xl shadow-black/20 ${dragActive ? "border-transparent ring-2 ring-teal-400/70" : "border-white/10 hover:border-white/20 focus-within:ring-2 focus-within:ring-teal-400/60 focus-within:border-transparent"}`}
             >
               <textarea
                 ref={questionInputRef}
@@ -3067,7 +3067,7 @@ function Home() {
                     // either way — re-expanding shows the latest.
                     const isOpen = expandedAnswers.has(id);
                     return (
-                      <div key={id} className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl min-w-0 overflow-hidden">
+                      <div key={id} className="rounded-2xl border border-white/10 bg-surface-1 min-w-0 overflow-hidden">
                         <button
                           type="button"
                           onClick={() => toggleAnswer(id)}
@@ -3167,7 +3167,7 @@ function Home() {
                         <AttachmentThumbs items={(f.attachments && f.attachments.length ? f.attachments : convAttsByTurn[f.asstTurn]) ?? []} />
                       )}
                       {isExpanded && (
-                        <div className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl p-5 min-w-0 overflow-hidden">
+                        <div className="rounded-2xl border border-white/10 bg-surface-1 p-5 min-w-0 overflow-hidden">
                           {f.error ? (
                             <p className="text-sm text-amber-300">{f.error}</p>
                           ) : f.mode === "compare" ? (
@@ -3274,7 +3274,7 @@ function Home() {
               {(followups.length === 0 || comparisonExpanded) && (
               <>
               {result.type === "product" || result.type === "direct" ? (
-                <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl">
+                <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 shadow-xl">
                   {/* Single answer fills the card (prose is max-w-none), equal padding
                       both sides — no centred reading column (per user). */}
                   <div className="mb-3">

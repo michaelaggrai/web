@@ -11,7 +11,7 @@ const LAST_UPDATED = "16 July 2026";
 export default function PrivacyPage() {
   return (
     <div className="relative min-h-dvh bg-navy px-4 py-12 overflow-hidden">
-      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
+      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] glow-teal-10" />
 
       <div className="relative z-10 mx-auto max-w-3xl">
         <Link href="/" aria-label="aggrai" className="inline-block mb-10">

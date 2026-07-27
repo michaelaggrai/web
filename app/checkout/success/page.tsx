@@ -49,7 +49,7 @@ function Success() {
 
   return (
     <div className="relative min-h-dvh flex flex-col items-center justify-center bg-navy px-4 py-16 overflow-hidden">
-      <div className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 w-[520px] h-[520px] bg-teal-500/15 rounded-full blur-[130px]" />
+      <div className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 w-[520px] h-[520px] glow-teal-15" />
 
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 flex justify-center">

@@ -29,7 +29,7 @@ export default function CookieConsent() {
       aria-label="Cookie consent"
       className="fixed inset-x-0 bottom-0 z-50 p-3 sm:p-4"
     >
-      <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-white/10 bg-neutral-900/95 p-4 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:gap-4">
+      <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-white/10 bg-neutral-900 p-4 shadow-2xl sm:flex-row sm:items-center sm:gap-4">
         <p className="text-sm leading-relaxed text-white/70">
           We use essential cookies to keep you signed in. With your consent, we
           also use analytics to catch crashes and understand usage.{" "}

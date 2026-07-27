@@ -36,8 +36,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="relative min-h-dvh flex items-center justify-center overflow-hidden bg-navy px-4">
-      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
+      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] glow-teal-15" />
+      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] glow-teal-10" />
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex justify-center">
@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-7 shadow-2xl shadow-black/30">
+        <div className="rounded-2xl border border-white/10 bg-surface-2 p-7 shadow-2xl shadow-black/30">
           {sent ? (
             <>
               <h1 className="text-lg font-semibold text-white">Check your email</h1>

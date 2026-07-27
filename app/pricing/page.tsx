@@ -23,8 +23,8 @@ export default function PricingPage() {
   return (
     <div className="relative min-h-dvh bg-navy px-4 pt-24 overflow-hidden">
       <Navbar />
-      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
+      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] glow-teal-15" />
+      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] glow-teal-10" />
 
       <div className="relative z-10 mx-auto max-w-4xl">
         {/* Centered hero */}

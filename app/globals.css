@@ -116,7 +116,9 @@
    these set only the paint. Colour = brand teal (teal-500 #14B8A6). */
 .glow-teal    { border-radius: 9999px; background: radial-gradient(closest-side, rgb(20 184 166 / 0.20), transparent); }
 .glow-teal-15 { border-radius: 9999px; background: radial-gradient(closest-side, rgb(20 184 166 / 0.15), transparent); }
+.glow-teal-12 { border-radius: 9999px; background: radial-gradient(closest-side, rgb(20 184 166 / 0.12), transparent); }
 .glow-teal-10 { border-radius: 9999px; background: radial-gradient(closest-side, rgb(20 184 166 / 0.10), transparent); }
+.glow-teal-8  { border-radius: 9999px; background: radial-gradient(closest-side, rgb(20 184 166 / 0.08), transparent); }
 
 .aggrai-word {
   display: inline-flex;

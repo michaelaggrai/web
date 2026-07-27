@@ -115,7 +115,7 @@ export function AppSidebar({
             hidden content. React 19 accepts inert as a boolean prop. */
         inert={isHiddenDrawer || undefined}
         className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-64 shrink-0 flex-col
-          border-r border-white/5 bg-navy/90 backdrop-blur-xl transition-transform duration-200
+          border-r border-white/5 bg-navy transition-transform duration-200
           lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         {/* Brand

@@ -112,7 +112,7 @@ export function SharedScores({ answers }: { answers: ShareAnswer[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-6 shadow-xl">
+    <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 shadow-xl">
       <div className="mb-5 flex items-center gap-x-2 gap-y-1 flex-wrap">
         <BarChart3 className="w-3.5 h-3.5 text-teal-300 shrink-0" />
         <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80 whitespace-nowrap">Aggr-Score</p>
@@ -283,7 +283,7 @@ export function SharedAnswers({ answers }: { answers: ShareAnswer[] }) {
         {answers.map((a) => {
           const shown = isOpen(a.model);
           return (
-            <div key={a.model} className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl min-w-0 overflow-hidden">
+            <div key={a.model} className="rounded-2xl border border-white/10 bg-surface-1 min-w-0 overflow-hidden">
               <button
                 type="button"
                 onClick={() => multi && toggle(a.model)}

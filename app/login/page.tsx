@@ -67,11 +67,11 @@ export default function LoginPage() {
       {/* Match the signin/landing gradient orbs so the page feels of-a-piece. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[120px]"
+        className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] glow-teal-15"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]"
+        className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] glow-teal-10"
       />
 
       <div className="relative z-10 w-full max-w-sm">
@@ -84,7 +84,7 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-surface-2 backdrop-blur-xl p-7 shadow-2xl shadow-black/30">
+        <div className="rounded-2xl border border-white/10 bg-surface-2 p-7 shadow-2xl shadow-black/30">
           <h1 className="text-lg font-semibold text-white">Closed beta</h1>
           <p className="mt-1 text-sm text-white/55">
             Enter the beta password to continue.

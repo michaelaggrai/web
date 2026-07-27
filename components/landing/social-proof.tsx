@@ -83,7 +83,7 @@ export function SocialProof() {
             return (
               <div
                 key={model.name}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm"
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white/10 border border-white/15"
               >
                 <Logo className="w-5 h-5 text-white/80" />
                 <span className="text-sm font-medium text-white/90">{model.name}</span>

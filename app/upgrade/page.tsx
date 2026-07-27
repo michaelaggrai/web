@@ -33,8 +33,8 @@ export default function UpgradePage() {
 
   return (
     <div className="relative min-h-dvh flex flex-col items-center bg-navy px-4 py-16 overflow-hidden">
-      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
+      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] glow-teal-15" />
+      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] glow-teal-10" />
 
       <div className="relative z-10 w-full max-w-4xl">
         <div className="mb-10 flex items-center justify-between gap-3">

@@ -7,7 +7,7 @@ import { AnthropicIcon, OpenAIIcon, GoogleIcon } from "@/components/brand-icons"
 // marketing visual stays honest as the product evolves.
 function ResultsMockup() {
   return (
-    <div className="rounded-2xl border border-white/10 bg-surface-1 backdrop-blur-xl p-4 sm:p-5 shadow-2xl shadow-black/30 space-y-3">
+    <div className="rounded-2xl border border-white/10 bg-surface-1 p-4 sm:p-5 shadow-2xl shadow-black/30 space-y-3">
       {/* Question */}
       <div className="text-xs text-white/55">
         <span className="text-white/55">You asked:</span> Why do recessions hurt the poor more?
@@ -144,8 +144,8 @@ export function Features() {
       className="relative py-24 sm:py-28 bg-navy scroll-mt-20 overflow-hidden"
     >
       {/* Soft accent orbs to match the rest of the dark sections */}
-      <div className="pointer-events-none absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[140px]" />
-      <div className="pointer-events-none absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-teal-500/8 rounded-full blur-[120px]" />
+      <div className="pointer-events-none absolute top-1/4 left-1/4 w-[500px] h-[500px] glow-teal-10" />
+      <div className="pointer-events-none absolute bottom-1/4 right-1/4 w-[400px] h-[400px] glow-teal-8" />
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">

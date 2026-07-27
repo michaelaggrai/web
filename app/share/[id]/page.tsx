@@ -50,7 +50,7 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
   return (
     <div className="relative min-h-dvh bg-navy">
       <ShareRef id={id} />
-      <div className="pointer-events-none absolute top-24 left-1/2 -translate-x-1/2 w-[640px] h-[480px] bg-teal-500/15 rounded-full blur-[130px]" />
+      <div className="pointer-events-none absolute top-24 left-1/2 -translate-x-1/2 w-[640px] h-[480px] glow-teal-15" />
 
       <header className="relative z-10 border-b border-white/10">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-4">

@@ -219,7 +219,7 @@ export function ModelPicker({ all, selected, onChange, max = 5, lockedIds, image
         <PopoverContent
           align="start"
           sideOffset={6}
-          className="w-[340px] bg-navy/95 backdrop-blur-xl border-white/10 text-white p-0"
+          className="w-[340px] bg-navy border-white/10 text-white p-0"
         >
           {/* Header: selection count + Premium upsell */}
           <div className="flex items-center justify-between px-3 pt-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-white/55">

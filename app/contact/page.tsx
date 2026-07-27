@@ -53,7 +53,7 @@ export default function ContactPage() {
   if (sent) {
     return (
       <div className="relative min-h-dvh bg-navy px-4 py-16 overflow-hidden">
-        <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
+        <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] glow-teal-10" />
         <div className="relative z-10 mx-auto max-w-md text-center">
           <div className="mb-8 inline-block">
             <Logo height={32} gradientId="contact-sent-logo" />
@@ -99,8 +99,8 @@ export default function ContactPage() {
 
   return (
     <div className="relative min-h-dvh bg-navy px-4 py-12 overflow-hidden">
-      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
+      <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] glow-teal-10" />
+      <div className="pointer-events-none absolute bottom-20 right-1/4 w-[400px] h-[400px] glow-teal-10" />
 
       <div className="relative z-10 mx-auto max-w-xl">
         <div className="mb-8 flex items-center justify-between gap-3">

@@ -145,7 +145,7 @@ export function AccountMenu({ variant = "sidebar" }: { variant?: Variant }) {
         side={variant === "topbar" ? "bottom" : "top"}
         align="end"
         sideOffset={6}
-        className="w-64 bg-navy/95 backdrop-blur-xl border-white/10 text-white p-1"
+        className="w-64 bg-navy border-white/10 text-white p-1"
       >
         {/* Header — email + tier badge */}
         <div className="px-2 py-2">

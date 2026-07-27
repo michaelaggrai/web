@@ -23,7 +23,7 @@ export function LegalShell({ title, subtitle, children }: Props) {
     <div className="relative min-h-dvh flex flex-col bg-navy">
       <Navbar />
       <div className="relative flex-1 px-4 pt-24 pb-16 overflow-hidden">
-        <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
+        <div className="pointer-events-none absolute top-20 left-1/4 w-[500px] h-[500px] glow-teal-10" />
 
         <div className="relative z-10 mx-auto max-w-3xl">
           <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">
