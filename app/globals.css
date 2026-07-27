@@ -109,6 +109,15 @@
   transition: transform 1.1s cubic-bezier(.66, 0, .2, 1);
 }
 
+/* Decorative "glow" — a GPU-free radial-gradient in place of the big
+   filter:blur() blobs. iOS Safari (and mobile GPUs generally) composite a
+   large-radius blur at full size, which is very slow; a gradient costs nothing
+   and reads the same. Keep the element's size/position as Tailwind utilities;
+   these set only the paint. Colour = brand teal (teal-500 #14B8A6). */
+.glow-teal    { border-radius: 9999px; background: radial-gradient(closest-side, rgb(20 184 166 / 0.20), transparent); }
+.glow-teal-15 { border-radius: 9999px; background: radial-gradient(closest-side, rgb(20 184 166 / 0.15), transparent); }
+.glow-teal-10 { border-radius: 9999px; background: radial-gradient(closest-side, rgb(20 184 166 / 0.10), transparent); }
+
 .aggrai-word {
   display: inline-flex;
   overflow: hidden;

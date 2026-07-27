@@ -48,7 +48,7 @@ export function Navbar() {
     }`
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-navy/80 backdrop-blur-xl border-b border-white/5">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-navy border-b border-white/5">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
@@ -89,7 +89,7 @@ export function Navbar() {
 
       {/* Mobile dropdown panel */}
       {open && (
-        <div className="md:hidden border-t border-white/5 bg-navy/95 backdrop-blur-xl">
+        <div className="md:hidden border-t border-white/5 bg-navy">
           <div className="max-w-5xl mx-auto px-4 py-3 flex flex-col">
             {NAV_LINKS.map(l => (
               <Link

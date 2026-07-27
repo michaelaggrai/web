@@ -121,13 +121,15 @@ export function Hero() {
 
   return (
     <section className="relative bg-navy overflow-hidden">
-      {/* One standard teal glow for light relief on the flat navy (P3 #15) */}
-      <div className="absolute top-24 left-1/2 -translate-x-1/2 w-[640px] h-[560px] bg-teal-500/20 rounded-full blur-[130px]" />
+      {/* One standard teal glow for light relief on the flat navy (P3 #15).
+          Radial-gradient, not filter:blur() — the latter is a heavy mobile-GPU
+          composite on iOS Safari for no visual gain here. */}
+      <div className="absolute top-24 left-1/2 -translate-x-1/2 w-[640px] h-[560px] glow-teal" />
       
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 w-full">
         <div className="text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/10 mb-8">
             <Sparkles className="w-4 h-4 text-teal-300" />
             <span className="text-sm text-white/80 font-medium">Compare AI models instantly</span>
           </div>
@@ -150,7 +152,7 @@ export function Hero() {
               }}
               className="relative"
             >
-              <div className="flex items-center bg-surface-2 backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 focus-within:ring-2 focus-within:ring-teal-400/60 focus-within:border-transparent transition-colors shadow-2xl shadow-black/20">
+              <div className="flex items-center bg-surface-2 rounded-2xl border border-white/10 hover:border-white/20 focus-within:ring-2 focus-within:ring-teal-400/60 focus-within:border-transparent transition-colors shadow-2xl shadow-black/20">
                 <input
                   type="text"
                   value={query}
