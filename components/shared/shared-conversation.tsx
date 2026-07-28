@@ -15,8 +15,13 @@ import { SharedScores, SharedAnswers, SharedFinalScores } from "@/components/sha
 const LABELS: Record<string, string> = Object.fromEntries(FALLBACK_MODELS.map((m) => [m.id, m.label]));
 const label = (id: string) => LABELS[id] ?? id.split("/").pop() ?? id;
 
+// max-w-none (not max-w-prose): the summary and single-model / direct answers
+// FILL their card here, matching the app (app/app/page.tsx) — otherwise a
+// full-width single-LLM answer strands its text on the left with dead space
+// to the right. (The multi-model raw-answer cards live in SharedAnswers and
+// keep their own narrower prose.)
 const PROSE =
-  "prose prose-sm sm:prose-base prose-invert max-w-prose " +
+  "prose prose-sm sm:prose-base prose-invert max-w-none " +
   "prose-h1:text-lg prose-h1:font-semibold prose-h1:text-white prose-h1:mt-4 prose-h1:mb-2 " +
   "prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2 " +
   "prose-h3:text-sm prose-h3:font-semibold prose-h3:text-white prose-h3:mt-3 prose-h3:mb-2 " +
