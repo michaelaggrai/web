@@ -4,7 +4,7 @@ import { Layers, Globe, FileText } from "lucide-react";
 import { ProviderLogo, providerOf } from "@/components/brand-icons";
 import { FALLBACK_MODELS } from "@/lib/models";
 import type { ShareSnapshot, ShareTurn } from "@/lib/share";
-import { SharedScores, SharedAnswers } from "@/components/shared/shared-comparison-detail";
+import { SharedScores, SharedAnswers, SharedFinalScores } from "@/components/shared/shared-comparison-detail";
 
 // AGG-44: read-only render of a shared conversation snapshot. Non-interactive
 // (no composer, no streaming), but it renders the SAME Aggr-Score radar +
@@ -36,27 +36,6 @@ function ModelName({ id }: { id: string }) {
       <ProviderLogo provider={providerOf(id)} className="w-3.5 h-3.5 shrink-0" />
       <span className="truncate">{label(id)}</span>
     </span>
-  );
-}
-
-function ContributionsBar({ contributions }: { contributions: { model: string; pct: number }[] }) {
-  const palette = ["from-teal-400 to-teal-300", "from-blue-400 to-blue-300", "from-purple-400 to-purple-300", "from-amber-400 to-amber-300", "from-rose-400 to-rose-300"];
-  return (
-    <div className="mb-4">
-      <p className="text-[11px] font-medium normal-case tracking-normal text-white/50 mb-1.5">Where the summary came from</p>
-      <div className="flex h-2 w-full overflow-hidden rounded-full">
-        {contributions.map((c, i) => (
-          <div key={c.model} className={`h-full bg-gradient-to-r ${palette[i % palette.length]}`} style={{ width: `${c.pct}%` }} title={`${label(c.model)} · ${c.pct}%`} />
-        ))}
-      </div>
-      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
-        {contributions.map((c) => (
-          <span key={c.model} className="inline-flex items-center gap-1 text-[11px] text-white/60">
-            <ProviderLogo provider={providerOf(c.model)} className="w-2.5 h-2.5" /> {label(c.model)} <span className="tabular-nums text-white/45">{c.pct}%</span>
-          </span>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -127,7 +106,6 @@ function Turn({ turn, shareId }: { turn: ShareTurn; shareId: string }) {
 
       {turn.kind === "compare" && (
         <div className="space-y-4">
-          {turn.sources && turn.sources.length > 0 && <Sources sources={turn.sources} />}
           {/* Summary + Aggr-Score rail — mirrors the app's SummaryPanel: the radar
               sits BESIDE the summary on large screens, stacks below on narrow. The
               grid only appears when there are scores (else the summary would be
@@ -138,7 +116,8 @@ function Turn({ turn, shareId }: { turn: ShareTurn; shareId: string }) {
                 <Layers className="w-3.5 h-3.5 text-teal-300" />
                 <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
               </div>
-              {turn.contributions && turn.contributions.length > 0 && <ContributionsBar contributions={turn.contributions} />}
+              {/* Final scores — replaces the old "where the summary came from" bar. */}
+              <SharedFinalScores answers={turn.answers} />
               <p className="text-[11px] font-medium normal-case tracking-normal text-white/55 mb-2">
                 aggrai&apos;s answer <span className="ml-1 normal-case tracking-normal text-white/55 font-medium">· combined from all models</span>
               </p>
@@ -148,6 +127,8 @@ function Turn({ turn, shareId }: { turn: ShareTurn; shareId: string }) {
               <div className="min-w-0"><SharedScores answers={turn.answers} /></div>
             )}
           </div>
+          {/* Web-search sources — below the summary (synthesis leads, sources follow). */}
+          {turn.sources && turn.sources.length > 0 && <Sources sources={turn.sources} />}
           {/* Raw answers — folded, collapsible cards like the app */}
           <SharedAnswers answers={turn.answers} />
         </div>

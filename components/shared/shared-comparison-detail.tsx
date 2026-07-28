@@ -84,6 +84,49 @@ function LegacyScoreCards({ answers }: { answers: ShareAnswer[] }) {
   );
 }
 
+// Ranked "Final scores" glance at the top of the shared summary card — mirrors
+// the app's FinalScoresTop (app/app/page.tsx), replacing the old "where the
+// summary came from" contribution bar. New snapshots carry the full rubric;
+// legacy v1 shares carry only the headline `overall`. Colours + ranking match
+// SharedScores' radar rail so the two read as one object; rows stagger-in on
+// load (globals.css .aggr-score-in), motion-gated.
+export function SharedFinalScores({ answers }: { answers: ShareAnswer[] }) {
+  const ranked = answers
+    .map((a) => {
+      const s = a.scores;
+      if (!s) return null;
+      const overall = hasDims(s) ? overallScore(s) : typeof s.overall === "number" ? s.overall : null;
+      return overall === null ? null : { model: a.model, overall };
+    })
+    .filter((x): x is { model: string; overall: number } => x !== null)
+    .sort((a, b) => b.overall - a.overall);
+  if (ranked.length === 0) return null;
+  const maxOverall = ranked[0].overall;
+  return (
+    <div className="mb-5 pb-4 border-b border-white/10">
+      <p className="text-[11px] font-medium normal-case tracking-normal text-white/50 mb-3">Final scores</p>
+      <div className="flex flex-col gap-2">
+        {ranked.map((r, i) => {
+          const color = PALETTE[i % PALETTE.length];
+          const isWinner = r.overall === maxOverall;
+          return (
+            <div key={r.model} className="aggr-score-in flex items-center gap-2 text-xs min-w-0" style={{ animationDelay: `${i * 70}ms` }}>
+              <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: color }} aria-hidden="true" />
+              <ProviderLogo provider={providerOf(r.model)} className="w-3.5 h-3.5 shrink-0" />
+              <span className="min-w-0 flex-1 truncate text-white/70">{label(r.model)}</span>
+              {isWinner && <Trophy className="w-3 h-3 shrink-0 text-teal-300" aria-label="Winner — highest overall score" />}
+              <span className="relative hidden h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-white/5 sm:block">
+                <span className="aggr-bar-fill absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.max(0, Math.min(100, r.overall * 10))}%`, backgroundColor: color, animationDelay: `${i * 70 + 120}ms` }} />
+              </span>
+              <span className="w-8 shrink-0 text-right font-semibold tabular-nums text-white/90">{r.overall.toFixed(1)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function SharedScores({ answers }: { answers: ShareAnswer[] }) {
   const [openDetail, setOpenDetail] = useState<Set<string>>(new Set());
   const toggleDetail = (model: string) =>

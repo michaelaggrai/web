@@ -429,11 +429,9 @@ function SummaryPanel({
           <Layers className="w-3.5 h-3.5 text-teal-300" />
           <p className="text-xs font-semibold uppercase tracking-wider text-teal-300/80">Summary</p>
         </div>
-        {/* Contributions FIRST — where the rewrite's content came from, before
-            the rewrite itself. */}
-        {settled?.contributions && settled.contributions.length > 0 && (
-          <ContributionsTop contributions={settled.contributions} />
-        )}
+        {/* Final scores FIRST — a ranked glance at who won, before the synthesis
+            (replaces the old "where the summary came from" contribution bar). */}
+        {settled && <FinalScoresTop answers={settled.answers} />}
         <div className="prose prose-sm sm:prose-base prose-invert max-w-none
           prose-h1:text-lg prose-h1:font-semibold prose-h1:text-white prose-h1:mt-4 prose-h1:mb-2
           prose-h2:text-base prose-h2:font-semibold prose-h2:text-white prose-h2:mt-4 prose-h2:mb-2
@@ -704,52 +702,52 @@ function splitSummary(summary: string): { best: string | null; rest: string } {
 // (The "Strongest single answer" WinnerBlock was removed — the winner is now
 // marked with a trophy next to the top model inside the Aggr-Score block.)
 
-// A single 100% stacked bar at the top of the Summary card showing how much
-// each model's content influenced the rewritten Best answer below. Source is
-// the summariser's self-reported attribution; values sum to ~100. One bar
-// (rather than separate per-model bars) makes the "these add up to a whole"
-// relationship obvious at a glance.
-//
-// Rendered above the Best answer so the reader knows *who's behind this*
-// before they read the synthesis — sets context, not a footnote.
-function ContributionsTop({ contributions }: { contributions: Contribution[] }) {
-  if (contributions.length === 0) return null;
-  const sorted = [...contributions].sort((a, b) => b.pct - a.pct);
-  // Distinct segment colours so adjacent slices read apart; legend below
-  // keys each colour to its model.
+// A ranked "Final scores" glance at the top of the Summary card — each model's
+// overall Aggr-Score (0–10), best first, winner flagged with a trophy. Replaces
+// the old "where the summary came from" attribution bar: the score is a stronger
+// signal than provenance, and readers want to know who won before the synthesis.
+// Colours + ranking mirror the Aggr-Score radar rail on the right (which stays),
+// so the top glance and the detailed radars read as one object. Rows stagger-in
+// once the judgement lands (globals.css .aggr-score-in) for a bit of life after
+// the thinking state.
+function FinalScoresTop({ answers }: { answers: Answer[] }) {
+  const scored = answers.filter((a): a is Answer & { scores: Scores } => !!a.scores);
+  if (scored.length === 0) return null;
+  const ranked = scored
+    .map((a) => ({ ...a, overall: overallScore(a.scores) }))
+    .sort((a, b) => b.overall - a.overall);
+  const maxOverall = ranked[0].overall;
+  // Rank palette identical to ScoresAndMetrics: winner teal → blue/purple/amber/pink.
   const PALETTE = ["#5eead4", "#60a5fa", "#c084fc", "#fbbf24", "#f472b6"];
   return (
     <div className="mb-5 pb-4 border-b border-white/10">
       <p className="text-[11px] font-medium normal-case tracking-normal text-white/50 mb-3">
-        Where the summary came from
+        Final scores
       </p>
-      {/* Slim proportional rail (segments sum to 100%). Identity lives in the
-          legend below — NOT inside the bar — so this reads as a quiet meter and
-          stops outweighing the answer heading beneath it (design clean-pass §2).
-          Matches the shared view's contribution bar. */}
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/5">
-        {sorted.map(({ model, pct }, i) => (
-          <div
-            key={model}
-            className="min-w-0"
-            style={{ width: `${pct}%`, backgroundColor: PALETTE[i % PALETTE.length] }}
-            title={`${modelLabel(model)} · ${pct}%`}
-          />
-        ))}
-      </div>
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5">
-        {sorted.map(({ model, pct }, i) => (
-          <div key={model} className="flex items-center gap-1.5 text-xs min-w-0">
-            <span
-              className="w-2 h-2 rounded-sm shrink-0"
-              style={{ backgroundColor: PALETTE[i % PALETTE.length] }}
-              aria-hidden="true"
-            />
-            <ProviderLogo provider={providerOf(model)} className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate text-white/70">{modelLabel(model)}</span>
-            <span className="shrink-0 tabular-nums text-white/55">{pct}%</span>
-          </div>
-        ))}
+      <div className="flex flex-col gap-2">
+        {ranked.map((a, i) => {
+          const color = PALETTE[i % PALETTE.length];
+          const isWinner = a.overall === maxOverall;
+          return (
+            <div
+              key={a.model}
+              className="aggr-score-in flex items-center gap-2 text-xs min-w-0"
+              style={{ animationDelay: `${i * 70}ms` }}
+            >
+              <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: color }} aria-hidden="true" />
+              <ProviderLogo provider={providerOf(a.model)} className="w-3.5 h-3.5 shrink-0" />
+              <span className="min-w-0 flex-1 truncate text-white/70">{modelLabel(a.model)}</span>
+              {isWinner && <Trophy className="w-3 h-3 shrink-0 text-teal-300" aria-label="Winner — highest overall score" />}
+              <span className="relative hidden h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-white/5 sm:block">
+                <span
+                  className="aggr-bar-fill absolute inset-y-0 left-0 rounded-full"
+                  style={{ width: `${Math.max(0, Math.min(100, a.overall * 10))}%`, backgroundColor: color, animationDelay: `${i * 70 + 120}ms` }}
+                />
+              </span>
+              <span className="w-8 shrink-0 text-right font-semibold tabular-nums text-white/90">{a.overall.toFixed(1)}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -3316,14 +3314,11 @@ function Home() {
                 </div>
               ) : (
                 <>
-                  {/* AGG-39: if we grounded this ask on live search, show the
-                      sources — and NOT the "no live access" caveat, which is now
-                      false. Prefer the live searchInfo; fall back to result.search
-                      so a RESTORED/revisited grounded ask still shows its sources
-                      (the live event is gone on reload) instead of the false caveat. */}
-                  {(searchInfo ?? result.search) ? (
-                    <SearchSources info={(searchInfo ?? result.search)!} />
-                  ) : result.recencyWarning && (
+                  {/* AGG-39: the recency caveat stays up top (a heads-up before
+                      you read) — but ONLY when we did NOT ground on live search.
+                      When we did, the "Searched the web" sources render BELOW the
+                      summary instead (see further down), so the synthesis leads. */}
+                  {!(searchInfo ?? result.search) && result.recencyWarning && (
                     <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-200/90 flex items-start gap-2">
                       <span aria-hidden="true" className="mt-px">⏳</span>
                       <span>
@@ -3350,6 +3345,12 @@ function Home() {
                       partialAnswers={{}}
                       gradientId="res-summary"
                     />
+                  )}
+
+                  {/* AGG-39: web-search sources — moved BELOW the summary so the
+                      synthesis leads and the provenance/sources follow. */}
+                  {(searchInfo ?? result.search) && (
+                    <SearchSources info={(searchInfo ?? result.search)!} />
                   )}
 
                   {/* Per-model answers — the same component a follow-up renders,
