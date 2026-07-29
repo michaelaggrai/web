@@ -124,8 +124,13 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   // Fable 5 launched 2026-06: Anthropic's tier above Opus ($10/$50 per 1M —
   // 2× Opus 4.8). First Anthropic model in the Premium class.
   { id: "anthropic/claude-fable-5",                 label: "Claude Fable 5",       provider: "Anthropic", class: "premium",  category: "reasoning" }, // Anthropic's tier above Opus ($10/$50, 2× Opus 4.8). Pulled from GA in June, restored 2026-07-22 (6 live OpenRouter endpoints). Premium-only, never a default.
-  // Opus 4.8 launched 2026-05-27. Same price as 4.7, pure upgrade.
-  { id: "anthropic/claude-opus-4.8",                label: "Claude Opus 4.8",      provider: "Anthropic", class: "premium",  category: "reasoning" }, // premium-exclusive + premium default (replaced Fable 5)
+  // Opus 5 launched 2026-07-24 — same price as 4.8 ($5/$25), pure upgrade, so it
+  // takes the premium-default slot. 4.8 + 4.7 stay as `deprecated`: hidden from
+  // the picker but the ids stay valid, so past conversations, bookmarked
+  // /app/c/{id} URLs and shared snapshots still render "Claude Opus 4.8" rather
+  // than falling back to the raw id. Historical runs keep naming what answered them.
+  { id: "anthropic/claude-opus-5",                  label: "Claude Opus 5",        provider: "Anthropic", class: "premium",  category: "reasoning" }, // premium-exclusive + premium default (supersedes Opus 4.8)
+  { id: "anthropic/claude-opus-4.8",                label: "Claude Opus 4.8",      provider: "Anthropic", class: "premium",  category: "reasoning", status: "deprecated" },
   { id: "anthropic/claude-opus-4.7",                label: "Claude Opus 4.7",      provider: "Anthropic", class: "flagship", category: "reasoning", status: "deprecated" },
   { id: "deepseek/deepseek-v4-pro",                 label: "DeepSeek v4 Pro",      provider: "DeepSeek",  class: "premium",  category: "reasoning" },
   { id: "qwen/qwen3-max-thinking",                  label: "Qwen3 Max Thinking",   provider: "Qwen",      class: "premium",  category: "reasoning" },
@@ -157,7 +162,8 @@ export const FALLBACK_MODELS: ModelEntry[] = [
 
   // Frontier — only Grok Multi-Agent (experimental agentic mode) stays
   // Premium. Opus 4.x Fast, Grok 4.20 base, and Llama 3.3 70B are Pro.
-  { id: "anthropic/claude-opus-4.8-fast",           label: "Claude Opus 4.8 Fast", provider: "Anthropic", class: "flagship", category: "frontier" },
+  { id: "anthropic/claude-opus-5-fast",             label: "Claude Opus 5 Fast",   provider: "Anthropic", class: "flagship", category: "frontier" }, // 2026-07-24 — supersedes 4.8 Fast (kept below, deprecated)
+  { id: "anthropic/claude-opus-4.8-fast",           label: "Claude Opus 4.8 Fast", provider: "Anthropic", class: "flagship", category: "frontier", status: "deprecated" },
   { id: "anthropic/claude-opus-4.7-fast",           label: "Claude Opus 4.7 Fast", provider: "Anthropic", class: "flagship", category: "frontier", status: "deprecated" },
   { id: "x-ai/grok-4.5",                            label: "Grok 4.5",             provider: "xAI",       class: "flagship", category: "frontier" }, // 2026-07-08 — supersedes Grok 4.20 (kept below, deprecated)
   { id: "moonshotai/kimi-k3",                       label: "Kimi K3",              provider: "Moonshot",  class: "flagship", category: "frontier" }, // 2026-07-16 — 2.8T generalist; a Pro default
@@ -176,7 +182,8 @@ const VISION_MODEL_IDS = new Set<string>([
   "openai/gpt-5.4-mini", "google/gemini-3.1-flash-lite", "anthropic/claude-sonnet-5",
   "anthropic/claude-sonnet-4-6", "openai/gpt-4o", "openai/gpt-5.4", "openai/gpt-5.6-sol",
   "openai/gpt-5.5", "mistralai/mistral-large-2512", "openai/gpt-5.4-pro", "openai/gpt-5.6-sol-pro",
-  "openai/gpt-5.5-pro", "anthropic/claude-fable-5", "anthropic/claude-opus-4.8",
+  "openai/gpt-5.5-pro", "anthropic/claude-fable-5", "anthropic/claude-opus-5",
+  "anthropic/claude-opus-5-fast", "anthropic/claude-opus-4.8",
   "anthropic/claude-opus-4.7", "openai/gpt-5.3-codex", "openai/gpt-5.1-codex-mini",
   "google/gemini-2.5-pro", "google/gemini-3.6-flash", "google/gemini-3.5-flash",
   "google/gemini-3.1-pro-preview", "google/gemini-3-flash-preview", "xiaomi/mimo-v2.5",
@@ -211,8 +218,8 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
 // for Gemini 3.5 Flash — same provider, flagship-class, but far faster (2.5 Pro
 // p50 ~20s / tail ~140s dragged every default comparison). 2.5 Pro is still in
 // the catalog and selectable; it's just no longer auto-selected.
-// Premium defaults (2026-07-25) = five VISION-CAPABLE generalists, one per provider
-// (Anthropic Opus 4.8 · OpenAI GPT-5.6 · Google Gemini 3.6 Flash · xAI Grok 4.5 ·
+// Premium defaults (2026-07-29) = five VISION-CAPABLE generalists, one per provider
+// (Anthropic Opus 5 · OpenAI GPT-5.6 · Google Gemini 3.6 Flash · xAI Grok 4.5 ·
 // Mistral Large), so an image ask compares the whole grid instead of skipping most
 // of it. Replaced the text-only reasoning specialists (Kimi K2 Thinking / DeepSeek
 // v4 Pro / GLM-5.2) + Grok 4.20 Multi-Agent: model_runs showed them scoring no higher
@@ -224,7 +231,7 @@ export const TIER_DEFAULTS: Record<Tier, string[]> = {
   // 2026-07-22: OpenAI slot restored with GPT-5.6 (Sol); trio = Sonnet 5 · GPT-5.6
   // · Kimi K3. Gemini 3.6 Flash steps out of the pre-selection (still pickable).
   pro:     ["anthropic/claude-sonnet-5", "openai/gpt-5.6-sol", "moonshotai/kimi-k3"],
-  premium: ["anthropic/claude-opus-4.8", "openai/gpt-5.6-sol", "google/gemini-3.6-flash",
+  premium: ["anthropic/claude-opus-5", "openai/gpt-5.6-sol", "google/gemini-3.6-flash",
             "x-ai/grok-4.5", "mistralai/mistral-large-2512"],
 }
 
