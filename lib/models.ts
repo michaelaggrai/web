@@ -112,14 +112,14 @@ export const FALLBACK_MODELS: ModelEntry[] = [
   // GPT-5.4 deprecated 2026-05-29 — 5.5 supersedes it; having both as full
   // models in the Creative tab confused users. 5.4 Mini stays in Free.
   { id: "openai/gpt-5.4",                           label: "GPT-5.4",              provider: "OpenAI",    class: "flagship", category: "creative", status: "deprecated" },
-  { id: "openai/gpt-5.6-sol",                       label: "GPT-5.6",              provider: "OpenAI",    class: "flagship", category: "creative" }, // 2026-07-09 Sol SKU — 5.6 flagship; supersedes GPT-5.5 (kept below, deprecated). A Pro default.
+  { id: "openai/gpt-5.6-sol",                       label: "GPT-5.6 Sol",              provider: "OpenAI",    class: "flagship", category: "creative" }, // 2026-07-09 Sol SKU — 5.6 flagship; supersedes GPT-5.5 (kept below, deprecated). A Pro default.
   { id: "openai/gpt-5.5",                           label: "GPT-5.5",              provider: "OpenAI",    class: "flagship", category: "creative", status: "deprecated" },
   { id: "mistralai/mistral-large-2512",             label: "Mistral Large",        provider: "Mistral",   class: "flagship", category: "creative" },
 
   // Reasoning — Opus 4.7 is general-purpose flagship (Pro). The 4
   // explicit deep-think specialists stay Premium.
   { id: "openai/gpt-5.4-pro",                       label: "GPT-5.4 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning", status: "deprecated" },
-  { id: "openai/gpt-5.6-sol-pro",                   label: "GPT-5.6 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" }, // 2026-07-09 Sol Pro (reasoning.mode=pro) — supersedes GPT-5.5 Pro (kept below, deprecated).
+  { id: "openai/gpt-5.6-sol-pro",                   label: "GPT-5.6 Sol Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning" }, // 2026-07-09 Sol Pro (reasoning.mode=pro) — supersedes GPT-5.5 Pro (kept below, deprecated).
   { id: "openai/gpt-5.5-pro",                       label: "GPT-5.5 Pro",          provider: "OpenAI",    class: "premium",  category: "reasoning", status: "deprecated" },
   // Fable 5 launched 2026-06: Anthropic's tier above Opus ($10/$50 per 1M —
   // 2× Opus 4.8). First Anthropic model in the Premium class.
@@ -219,7 +219,7 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
 // p50 ~20s / tail ~140s dragged every default comparison). 2.5 Pro is still in
 // the catalog and selectable; it's just no longer auto-selected.
 // Premium defaults (2026-07-29) = five VISION-CAPABLE generalists, one per provider
-// (Anthropic Opus 5 · OpenAI GPT-5.6 · Google Gemini 3.6 Flash · xAI Grok 4.5 ·
+// (Anthropic Opus 5 · OpenAI GPT-5.6 Sol · Google Gemini 3.6 Flash · xAI Grok 4.5 ·
 // Mistral Large), so an image ask compares the whole grid instead of skipping most
 // of it. Replaced the text-only reasoning specialists (Kimi K2 Thinking / DeepSeek
 // v4 Pro / GLM-5.2) + Grok 4.20 Multi-Agent: model_runs showed them scoring no higher
@@ -228,7 +228,7 @@ export const TIERS: Record<Tier, { maxModels: number; catalog: "basic" | "standa
 // mirror backend TIER_DEFAULTS.
 export const TIER_DEFAULTS: Record<Tier, string[]> = {
   free:    ["anthropic/claude-haiku-4-5", "openai/gpt-4o-mini", "google/gemini-2.5-flash"],
-  // 2026-07-22: OpenAI slot restored with GPT-5.6 (Sol); trio = Sonnet 5 · GPT-5.6
+  // 2026-07-22: OpenAI slot restored with GPT-5.6 Sol (Sol); trio = Sonnet 5 · GPT-5.6 Sol
   // · Kimi K3. Gemini 3.6 Flash steps out of the pre-selection (still pickable).
   pro:     ["anthropic/claude-sonnet-5", "openai/gpt-5.6-sol", "moonshotai/kimi-k3"],
   premium: ["anthropic/claude-opus-5", "openai/gpt-5.6-sol", "google/gemini-3.6-flash",
