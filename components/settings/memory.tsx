@@ -128,12 +128,13 @@ export function MemorySettings() {
       {/* Master switch */}
       <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-surface-1 px-4 py-3">
         <div className="min-w-0">
-          <div className="text-sm font-medium text-white/85">Use memory</div>
+          <div className="text-sm font-medium text-white/85">Tailor answers to me</div>
           <div className="text-xs text-white/55">
-            Tailors answers as you continue a conversation. Your first question in a thread stays neutral.
+            Applies to every question, including the first one in a conversation. The models see a
+            short note about you; it never appears in your answers.
           </div>
         </div>
-        <Switch checked={enabled} onChange={mark(setEnabled)} label="Use memory" />
+        <Switch checked={enabled} onChange={mark(setEnabled)} label="Tailor answers to me" />
       </div>
 
       {enabled && (
@@ -181,18 +182,20 @@ export function MemorySettings() {
       <div className="space-y-3 rounded-xl border border-white/10 bg-surface-1 p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-sm font-medium text-white/85">Learn from my conversations</div>
+            <div className="text-sm font-medium text-white/85">Fill this in for me</div>
             <div className="text-xs text-white/55">
-              Off by default. When on, aggrai periodically notes durable preferences from your chats — you can review and clear them below.
+              Off unless you turn it on. Rather than typing the above yourself, let aggrai notice
+              recurring details from questions you&apos;ve already asked. Everything it picks up is
+              listed below for you to review or delete.
             </div>
           </div>
-          <Switch checked={implicitEnabled} onChange={mark(setImplicitEnabled)} label="Learn from my conversations" />
+          <Switch checked={implicitEnabled} onChange={mark(setImplicitEnabled)} label="Fill this in for me" />
         </div>
 
         {facts.length > 0 && (
           <div className="rounded-lg border border-white/10 bg-surface-1 p-3">
             <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-white/55">
-              Learned about you
+              What aggrai has picked up
             </div>
             <ul className="space-y-1.5">
               {facts.map((f, i) => (
@@ -208,7 +211,7 @@ export function MemorySettings() {
               disabled={clearing}
               className="mt-3 rounded-lg border border-white/15 px-3 py-1.5 text-xs text-white/70 transition hover:bg-white/10 disabled:opacity-50"
             >
-              {clearing ? "Clearing…" : "Clear learned facts"}
+              {clearing ? "Forgetting…" : "Forget all of these"}
             </button>
           </div>
         )}

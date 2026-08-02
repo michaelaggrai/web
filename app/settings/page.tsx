@@ -405,11 +405,16 @@ function Settings() {
           </Section>
         )}
 
-        {/* Memory — tailors conversation follow-ups (Phase 5c) */}
-        <Section icon={Brain} title="Memory">
+        {/* Personalisation — was "Memory". Renamed because users read that as
+            "remembers my questions", which is what Recents already does; the
+            actual benefit is not having to re-explain yourself. (Phase 5c) */}
+        <Section icon={Brain} title="Personalisation">
           <p className="text-sm text-white/50 leading-relaxed mb-4">
-            Tell aggrai how you like your answers, and it will apply this as you continue a conversation.
-            Used only for you; included in your data export and deleted with your account.
+            Stop re-explaining yourself. Tell aggrai who you are and how you like your answers,
+            and it passes that to the models with every question you ask — so you don&apos;t have
+            to type it out each time. This is separate from your history: your past questions are
+            always in the sidebar either way. Used only for you, included in your data export,
+            and deleted with your account.
           </p>
           <MemorySettings />
         </Section>
