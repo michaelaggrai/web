@@ -98,7 +98,19 @@ interface Run {
   model: string;
   role: string;
   total_tokens: number | null;
+  runtime_ms: number | null;
+  from_cache: boolean | null;
   scores: { overall?: number } | null;
+}
+
+// Minimum scored runs before a model earns a dot on the quality-vs-speed chart.
+// Below this the median is noise dressed as insight.
+const MIN_RUNS_FOR_CHART = 3;
+
+function percentile(sorted: number[], p: number): number {
+  if (!sorted.length) return 0;
+  const i = Math.min(sorted.length - 1, Math.floor(p * sorted.length));
+  return sorted[i];
 }
 
 export async function GET(req: NextRequest) {
@@ -130,7 +142,7 @@ export async function GET(req: NextRequest) {
   for (const c of chunk(ids, 200)) {
     const { data } = await supabase
       .from("model_runs")
-      .select("question_id, model, role, total_tokens, scores")
+      .select("question_id, model, role, total_tokens, runtime_ms, from_cache, scores")
       .in("question_id", c);
     runs.push(...((data ?? []) as Run[]));
   }
@@ -173,6 +185,58 @@ export async function GET(req: NextRequest) {
       scoredCount: v.scoreN,
     }))
     .sort((a, b) => b.questions - a.questions);
+
+  // --- Quality vs speed (the Models-tab scatter) ------------------------------
+  // Answers the question the score-only leaderboard can't: "is the model I wait
+  // longest for actually better?" Deliberately stricter than the tally above:
+  //
+  //  - COMPARISON RUNS ONLY. A model is only counted on questions where at least
+  //    two models were scored, i.e. it actually faced peers. Without this we'd be
+  //    averaging each model over whatever subset of questions the user happened to
+  //    pick it for, and calling that a comparison.
+  //  - `vsPeers` normalises for question difficulty: per question we take the mean
+  //    score of everyone who answered it, and average each model's distance from
+  //    that. A model that only ever gets hard questions isn't punished for it.
+  //  - MEDIAN latency, not mean — response times are long-tailed (a single 99s
+  //    outlier would drag an average and misdescribe the typical wait).
+  //  - Cached runs are excluded from timings; they'd read as implausibly fast.
+  const scoredByQuestion = new Map<string, { model: string; overall: number; ms: number | null }[]>();
+  for (const r of runs) {
+    if (r.role !== "answer") continue;
+    const ov = r.scores?.overall;
+    if (typeof ov !== "number") continue;
+    const list = scoredByQuestion.get(r.question_id) ?? [];
+    list.push({ model: r.model, overall: ov, ms: r.from_cache ? null : (Number(r.runtime_ms) || null) });
+    scoredByQuestion.set(r.question_id, list);
+  }
+
+  const perModel = new Map<string, { scores: number[]; deltas: number[]; times: number[] }>();
+  for (const entries of scoredByQuestion.values()) {
+    if (entries.length < 2) continue; // not a comparison — nothing to be better *than*
+    const mean = entries.reduce((s, e) => s + e.overall, 0) / entries.length;
+    for (const e of entries) {
+      const acc = perModel.get(e.model) ?? { scores: [], deltas: [], times: [] };
+      acc.scores.push(e.overall);
+      acc.deltas.push(e.overall - mean);
+      if (e.ms && e.ms > 0) acc.times.push(e.ms);
+      perModel.set(e.model, acc);
+    }
+  }
+
+  const scoreVsSpeed = [...perModel.entries()]
+    .filter(([, v]) => v.scores.length >= MIN_RUNS_FOR_CHART && v.times.length > 0)
+    .map(([model, v]) => {
+      const times = [...v.times].sort((a, b) => a - b);
+      return {
+        model,
+        n: v.scores.length,
+        avgScore: Math.round((v.scores.reduce((s, x) => s + x, 0) / v.scores.length) * 10) / 10,
+        vsPeers: Math.round((v.deltas.reduce((s, x) => s + x, 0) / v.deltas.length) * 100) / 100,
+        medianMs: Math.round(percentile(times, 0.5)),
+        p90Ms: Math.round(percentile(times, 0.9)),
+      };
+    })
+    .sort((a, b) => b.avgScore - a.avgScore);
 
   const dailyActivity = [...dayCounts.entries()]
     .map(([date, count]) => ({ date, count }))
@@ -295,6 +359,7 @@ export async function GET(req: NextRequest) {
         funFact: funFact(totalTokens),
       },
       models,
+      scoreVsSpeed,
       insights: { topicBreakdown, bestPerTopic, scoreTrend, tagged, totalQuestions: qs.length },
     },
     { headers: { "Cache-Control": "no-store" } },
