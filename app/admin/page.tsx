@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/server-admin";
 import { currentAdminEmail, listAdmins } from "@/lib/admin";
 import { addAdmin, removeAdmin } from "./actions";
+import { WeeklyBars, StackedUserBars } from "./charts";
 
 // Internal dashboard — the handful of numbers worth glancing at daily. Ad-hoc
 // exploration is deliberately NOT this page's job (see AGG-55: Metabase, deferred).
@@ -17,11 +18,20 @@ type Row = Record<string, string | number | null>;
 interface Metrics {
   days: number;
   spend_total: number; spend_user: number;
-  spend_by_role: Row[] | null; spend_by_day: Row[] | null;
+  spend_by_role: Row[] | null;
   asks_total: number; asks_user: number; asks_by_source: Row[] | null;
   active_users: number; signups: number; profiles_total: number; by_tier: Row[] | null;
   top_models: Row[] | null;
   summariser_p50_s: number | null; answer_p50_s: number | null;
+  // User-facing speed. Measured over REAL user asks only — aggregate timings are
+  // swamped by synthetic (p50 ~1s) and warm (~29s) traffic and describe nobody.
+  user_ttft_p50_s: number | null;
+  user_total_p50_s: number | null;
+  user_total_p90_s: number | null;
+  ttft_coverage: { with: number; of: number } | null;
+  weekly_spend: { w: string; spend: number }[] | null;
+  weekly_speed: { w: string; asks: number; ttft_s: number | null; total_s: number | null }[] | null;
+  weekly_users: { w: string; free: number; pro: number; premium: number; total: number }[] | null;
 }
 
 const usd = (n: number) => `$${(Number(n) || 0).toFixed(2)}`;
@@ -78,7 +88,6 @@ async function OverviewTab({ days }: { days: number }) {
   const m = data as unknown as Metrics;
   const costPerUserAsk = m.asks_user > 0 ? m.spend_user / m.asks_user : 0;
   const overheadPct = m.spend_total > 0 ? (1 - m.spend_user / m.spend_total) * 100 : 0;
-  const maxDay = Math.max(1, ...(m.spend_by_day ?? []).map((d) => Number(d.spend) || 0));
 
   return (
     <div className="space-y-4">
@@ -113,12 +122,40 @@ async function OverviewTab({ days }: { days: number }) {
         </Card>
       </div>
 
-      <Card title="Speed">
-        <div className="grid grid-cols-2 gap-3">
+      <Card title="Speed — what real users actually wait"
+        note={`Real user asks only: synthetic (p50 ~1s) and warm (~29s) traffic would otherwise swamp these and describe nobody's experience.${
+          m.ttft_coverage ? ` First-answer timing covers ${m.ttft_coverage.with} of ${m.ttft_coverage.of} asks — TTFT has only been recorded since the P3a instrument fix.` : ""
+        }`}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Ask → first answer" value={m.user_ttft_p50_s != null ? `${m.user_ttft_p50_s}s` : "—"} sub="p50, fastest model" />
+          <Stat label="Ask → complete" value={m.user_total_p50_s != null ? `${m.user_total_p50_s}s` : "—"}
+            sub={m.user_total_p90_s != null ? `p50 · p90 ${m.user_total_p90_s}s` : "p50"}
+            tone={Number(m.user_total_p50_s) > 30 ? "warn" : undefined} />
           <Stat label="Summariser p50" value={m.summariser_p50_s != null ? `${m.summariser_p50_s}s` : "—"}
             sub="last, serial, blocking" tone={Number(m.summariser_p50_s) > 32 ? "warn" : undefined} />
           <Stat label="Answer p50" value={m.answer_p50_s != null ? `${m.answer_p50_s}s` : "—"} sub="per model, parallel" />
         </div>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card title="Ask → complete, weekly" note="p50 seconds for real user asks. The gap to first-answer is the summariser.">
+          <WeeklyBars label="ask time"
+            data={(m.weekly_speed ?? []).filter((d) => d.total_s != null).map((d) => ({
+              w: d.w, v: Number(d.total_s), extra: `${d.asks} asks`,
+            }))}
+            fmt={(n) => `${n.toFixed(n < 10 ? 1 : 0)}s`} />
+        </Card>
+        <Card title="Ask → first answer, weekly" note="p50 seconds. Only weeks with TTFT recorded appear.">
+          <WeeklyBars label="time to first answer"
+            data={(m.weekly_speed ?? []).filter((d) => d.ttft_s != null).map((d) => ({
+              w: d.w, v: Number(d.ttft_s), extra: `${d.asks} asks`,
+            }))}
+            fmt={(n) => `${n.toFixed(1)}s`} />
+        </Card>
+      </div>
+
+      <Card title="Active users, weekly" note="Distinct signed-in askers, stacked by the tier they were on at the time.">
+        <StackedUserBars data={m.weekly_users ?? []} />
       </Card>
 
       <Card title="Top models by spend">
@@ -134,14 +171,10 @@ async function OverviewTab({ days }: { days: number }) {
         </div>
       </Card>
 
-      <Card title={`Daily spend · ${days}d`}>
-        <div className="flex h-24 items-end gap-[3px]">
-          {(m.spend_by_day ?? []).map((d) => (
-            <div key={String(d.d)} className="flex-1 rounded-t bg-teal-400/45"
-              style={{ height: `${Math.max(3, (Number(d.spend) / maxDay) * 100)}%` }}
-              title={`${d.d} — ${usd(Number(d.spend))}`} />
-          ))}
-        </div>
+      <Card title={`Weekly spend · ${days}d`}>
+        <WeeklyBars label="spend"
+          data={(m.weekly_spend ?? []).map((d) => ({ w: d.w, v: Number(d.spend) }))}
+          fmt={(n) => `$${n.toFixed(n < 10 ? 2 : 0)}`} />
       </Card>
 
       <Card title="Accounts by tier">

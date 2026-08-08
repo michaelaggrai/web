@@ -1,0 +1,160 @@
+"use client";
+
+import { useState } from "react";
+
+// Charts for /admin. Client components purely so hover works — the page itself
+// stays server-rendered. Native title="" tooltips were tried on the first pass
+// and are not good enough: they need a long dwell, and give no y-axis context.
+// Each chart therefore draws real axis labels and prints the hovered value in a
+// fixed-height row (no layout shift, nothing clipped at the edges).
+
+const TIER_COLOURS: Record<string, string> = {
+  free: "rgba(255,255,255,.28)",
+  pro: "#60A5FA",
+  premium: "#2DD4BF",
+};
+
+function niceMax(v: number): number {
+  if (v <= 0) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(v)));
+  return Math.ceil(v / mag) * mag;
+}
+
+const shortDate = (d: string) => {
+  const [, m, day] = d.split("-");
+  return `${day} ${["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][Number(m)]}`;
+};
+
+/** Single-series weekly bars with a y-axis. `fmt` renders both axis + tooltip. */
+export function WeeklyBars({
+  data, fmt, label, height = 120,
+}: {
+  data: { w: string; v: number; extra?: string }[];
+  fmt: (n: number) => string;
+  label: string;
+  height?: number;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  if (!data.length) return <Empty />;
+  const max = niceMax(Math.max(...data.map((d) => d.v)));
+  const cur = hover != null ? data[hover] : null;
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        {/* y-axis */}
+        <div className="flex shrink-0 flex-col justify-between text-right text-[10px] tabular-nums text-white/35"
+          style={{ height }}>
+          <span>{fmt(max)}</span>
+          <span>{fmt(max / 2)}</span>
+          <span>0</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="relative" style={{ height }}>
+            {[0, 0.5, 1].map((f) => (
+              <div key={f} className="absolute inset-x-0 border-t border-white/[0.07]" style={{ top: `${f * 100}%` }} />
+            ))}
+            <div className="absolute inset-0 flex items-end gap-[3px]">
+              {data.map((d, i) => (
+                <button key={d.w} type="button"
+                  onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+                  onFocus={() => setHover(i)} onBlur={() => setHover(null)}
+                  aria-label={`${shortDate(d.w)}: ${fmt(d.v)}`}
+                  className="group relative flex-1 rounded-t transition-colors"
+                  style={{
+                    height: `${Math.max(2, (d.v / max) * 100)}%`,
+                    background: hover === i ? "#2DD4BF" : "rgba(45,212,191,.45)",
+                  }} />
+              ))}
+            </div>
+          </div>
+          <div className="mt-1 flex justify-between text-[10px] text-white/35">
+            <span>{shortDate(data[0].w)}</span>
+            {data.length > 1 && <span>{shortDate(data[data.length - 1].w)}</span>}
+          </div>
+        </div>
+      </div>
+      <Readout>
+        {cur
+          ? <><span className="text-white/85">week of {shortDate(cur.w)}</span> — <span className="font-medium text-white">{fmt(cur.v)}</span>{cur.extra && <span className="text-white/45"> · {cur.extra}</span>}</>
+          : <span className="text-white/40">Hover a bar for the weekly {label}.</span>}
+      </Readout>
+    </div>
+  );
+}
+
+/** Weekly active users, stacked by the tier they were on at ask time. */
+export function StackedUserBars({
+  data, height = 120,
+}: {
+  data: { w: string; free: number; pro: number; premium: number; total: number }[];
+  height?: number;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  if (!data.length) return <Empty />;
+  const max = Math.max(1, ...data.map((d) => d.total));
+  const cur = hover != null ? data[hover] : null;
+  const tiers = ["premium", "pro", "free"] as const;
+
+  return (
+    <div>
+      <div className="mb-2 flex flex-wrap gap-3 text-[11px] text-white/55">
+        {tiers.map((t) => (
+          <span key={t} className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-sm" style={{ background: TIER_COLOURS[t] }} />{t}
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <div className="flex shrink-0 flex-col justify-between text-right text-[10px] tabular-nums text-white/35" style={{ height }}>
+          <span>{max}</span><span>{Math.round(max / 2)}</span><span>0</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="relative" style={{ height }}>
+            {[0, 0.5, 1].map((f) => (
+              <div key={f} className="absolute inset-x-0 border-t border-white/[0.07]" style={{ top: `${f * 100}%` }} />
+            ))}
+            <div className="absolute inset-0 flex items-end gap-[3px]">
+              {data.map((d, i) => (
+                <button key={d.w} type="button"
+                  onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+                  onFocus={() => setHover(i)} onBlur={() => setHover(null)}
+                  aria-label={`${shortDate(d.w)}: ${d.total} active`}
+                  className="flex flex-1 flex-col-reverse justify-start"
+                  style={{ height: "100%", opacity: hover == null || hover === i ? 1 : 0.55 }}>
+                  {tiers.map((t) => (
+                    d[t] > 0 ? (
+                      <span key={t} className="w-full first:rounded-t"
+                        style={{ height: `${(d[t] / max) * 100}%`, background: TIER_COLOURS[t] }} />
+                    ) : null
+                  ))}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-1 flex justify-between text-[10px] text-white/35">
+            <span>{shortDate(data[0].w)}</span>
+            {data.length > 1 && <span>{shortDate(data[data.length - 1].w)}</span>}
+          </div>
+        </div>
+      </div>
+      <Readout>
+        {cur
+          ? <><span className="text-white/85">week of {shortDate(cur.w)}</span> — <span className="font-medium text-white">{cur.total} active</span> <span className="text-white/45">· {cur.premium} premium · {cur.pro} pro · {cur.free} free</span></>
+          : <span className="text-white/40">Hover a bar for that week&apos;s active users by tier.</span>}
+      </Readout>
+    </div>
+  );
+}
+
+function Readout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-2 min-h-[28px] rounded-lg border border-white/10 bg-surface-2 px-3 py-1.5 text-[11px] leading-relaxed text-white/70">
+      {children}
+    </div>
+  );
+}
+
+function Empty() {
+  return <p className="text-[11px] text-white/40">Not enough data in this range yet.</p>;
+}
