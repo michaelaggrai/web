@@ -7,6 +7,12 @@ import { useState } from "react";
 // and are not good enough: they need a long dwell, and give no y-axis context.
 // Each chart therefore draws real axis labels and prints the hovered value in a
 // fixed-height row (no layout shift, nothing clipped at the edges).
+//
+// EVERY prop here must be JSON-serializable: /admin is a Server Component, so
+// React serializes these props across the RSC boundary. A formatter was first
+// passed in as a `fmt` callback — tsc and the build both accepted it, and the
+// page then 500'd on every request ("Functions cannot be passed directly to
+// Client Components"). Hence `unit`, a plain string the client resolves itself.
 
 const TIER_COLOURS: Record<string, string> = {
   free: "rgba(255,255,255,.28)",
@@ -25,12 +31,21 @@ const shortDate = (d: string) => {
   return `${day} ${["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][Number(m)]}`;
 };
 
-/** Single-series weekly bars with a y-axis. `fmt` renders both axis + tooltip. */
+/** Drops the decimals once a value is big enough not to need them. */
+function fmtValue(n: number, unit: Unit): string {
+  return unit === "usd"
+    ? `$${n.toFixed(n < 10 ? 2 : 0)}`
+    : `${n.toFixed(n < 10 ? 1 : 0)}s`;
+}
+
+type Unit = "usd" | "s";
+
+/** Single-series weekly bars with a y-axis. `unit` renders both axis + readout. */
 export function WeeklyBars({
-  data, fmt, label, height = 120,
+  data, unit, label, height = 120,
 }: {
   data: { w: string; v: number; extra?: string }[];
-  fmt: (n: number) => string;
+  unit: Unit;
   label: string;
   height?: number;
 }) {
@@ -45,8 +60,8 @@ export function WeeklyBars({
         {/* y-axis */}
         <div className="flex shrink-0 flex-col justify-between text-right text-[10px] tabular-nums text-white/35"
           style={{ height }}>
-          <span>{fmt(max)}</span>
-          <span>{fmt(max / 2)}</span>
+          <span>{fmtValue(max, unit)}</span>
+          <span>{fmtValue(max / 2, unit)}</span>
           <span>0</span>
         </div>
         <div className="min-w-0 flex-1">
@@ -59,7 +74,7 @@ export function WeeklyBars({
                 <button key={d.w} type="button"
                   onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
                   onFocus={() => setHover(i)} onBlur={() => setHover(null)}
-                  aria-label={`${shortDate(d.w)}: ${fmt(d.v)}`}
+                  aria-label={`${shortDate(d.w)}: ${fmtValue(d.v, unit)}`}
                   className="group relative flex-1 rounded-t transition-colors"
                   style={{
                     height: `${Math.max(2, (d.v / max) * 100)}%`,
@@ -76,7 +91,7 @@ export function WeeklyBars({
       </div>
       <Readout>
         {cur
-          ? <><span className="text-white/85">week of {shortDate(cur.w)}</span> — <span className="font-medium text-white">{fmt(cur.v)}</span>{cur.extra && <span className="text-white/45"> · {cur.extra}</span>}</>
+          ? <><span className="text-white/85">week of {shortDate(cur.w)}</span> — <span className="font-medium text-white">{fmtValue(cur.v, unit)}</span>{cur.extra && <span className="text-white/45"> · {cur.extra}</span>}</>
           : <span className="text-white/40">Hover a bar for the weekly {label}.</span>}
       </Readout>
     </div>

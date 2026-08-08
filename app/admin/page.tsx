@@ -139,18 +139,16 @@ async function OverviewTab({ days }: { days: number }) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Ask → complete, weekly" note="p50 seconds for real user asks. The gap to first-answer is the summariser.">
-          <WeeklyBars label="ask time"
+          <WeeklyBars label="ask time" unit="s"
             data={(m.weekly_speed ?? []).filter((d) => d.total_s != null).map((d) => ({
               w: d.w, v: Number(d.total_s), extra: `${d.asks} asks`,
-            }))}
-            fmt={(n) => `${n.toFixed(n < 10 ? 1 : 0)}s`} />
+            }))} />
         </Card>
         <Card title="Ask → first answer, weekly" note="p50 seconds. Only weeks with TTFT recorded appear.">
-          <WeeklyBars label="time to first answer"
+          <WeeklyBars label="time to first answer" unit="s"
             data={(m.weekly_speed ?? []).filter((d) => d.ttft_s != null).map((d) => ({
               w: d.w, v: Number(d.ttft_s), extra: `${d.asks} asks`,
-            }))}
-            fmt={(n) => `${n.toFixed(1)}s`} />
+            }))} />
         </Card>
       </div>
 
@@ -172,9 +170,8 @@ async function OverviewTab({ days }: { days: number }) {
       </Card>
 
       <Card title={`Weekly spend · ${days}d`}>
-        <WeeklyBars label="spend"
-          data={(m.weekly_spend ?? []).map((d) => ({ w: d.w, v: Number(d.spend) }))}
-          fmt={(n) => `$${n.toFixed(n < 10 ? 2 : 0)}`} />
+        <WeeklyBars label="spend" unit="usd"
+          data={(m.weekly_spend ?? []).map((d) => ({ w: d.w, v: Number(d.spend) }))} />
       </Card>
 
       <Card title="Accounts by tier">
