@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/server-admin";
 import { currentAdminEmail, listAdmins } from "@/lib/admin";
 import { addAdmin, removeAdmin } from "./actions";
-import { WeeklyBars, StackedUserBars, SplitTimeBars } from "./charts";
+import { WeeklyBars, StackedUserBars } from "./charts";
 
 // Internal dashboard — the handful of numbers worth glancing at daily. Ad-hoc
 // exploration is deliberately NOT this page's job (see AGG-55: Metabase, deferred).
@@ -18,6 +18,7 @@ type Row = Record<string, string | number | null>;
 interface Metrics {
   days: number;
   spend_total: number; spend_user: number;
+  tokens_total: number; tokens_user: number;
   spend_by_role: Row[] | null;
   asks_total: number; asks_user: number; asks_by_source: Row[] | null;
   active_users: number; signups: number; profiles_total: number; by_tier: Row[] | null;
@@ -33,9 +34,27 @@ interface Metrics {
   weekly_speed: {
     w: string; asks: number; compare_asks: number;
     ttft_s: number | null; total_s: number | null;
-    // The ask → complete total split into its two serial halves. Computed over
-    // compare asks only, so both medians describe the same population.
     ans_s: number | null; sum_s: number | null;
+  }[] | null;
+  // The summariser: the only part of the wait that is OURS. Ask → complete is
+  // mostly a model-choice metric (the slowest model picked sets the floor), so it
+  // cannot show engineering work. These can.
+  summ_ttft_p50_s: number | null;
+  summ_ms_per_token: number | null;
+  summ_out_tokens: number | null;
+  weekly_summariser: {
+    w: string; n: number;
+    ttft_s: number | null; ms_per_token: number | null; out_tokens: number | null;
+  }[] | null;
+  engagement: {
+    conversations: number; people: number;
+    convs_per_person: number | null; q_per_conv: number | null;
+    pct_followup: number | null; deepest: number | null;
+  } | null;
+  conv_coverage: { with: number; of: number } | null;
+  weekly_engagement: {
+    w: string; conversations: number; people: number;
+    convs_per_person: number | null; q_per_conv: number | null; pct_followup: number | null;
   }[] | null;
   weekly_users: { w: string; free: number; pro: number; premium: number; total: number }[] | null;
 }
@@ -92,11 +111,30 @@ async function OverviewTab({ days }: { days: number }) {
     return <Card><p className="text-sm text-red-300">Could not load metrics{error ? `: ${error.message}` : ""}.</p></Card>;
   }
   const m = data as unknown as Metrics;
-  const costPerUserAsk = m.asks_user > 0 ? m.spend_user / m.asks_user : 0;
+  const costPerHumanAsk = m.asks_user > 0 ? m.spend_user / m.asks_user : 0;
   const overheadPct = m.spend_total > 0 ? (1 - m.spend_user / m.spend_total) * 100 : 0;
+  // Per MILLION tokens — the per-token figure is ~$0.000003 and renders as $0.00.
+  const perMTok = (usdSpend: number, tokens: number) => (tokens > 0 ? (usdSpend / tokens) * 1e6 : null);
+  const usdPerMTokHuman = perMTok(m.spend_user, m.tokens_user);
+  const usdPerMTokAll = perMTok(m.spend_total, m.tokens_total);
+
+  const eng = m.engagement;
+  const summ = m.weekly_summariser ?? [];
+  const convCov = m.conv_coverage;
+
+  // The ms/token bars are zero-baselined (truncating the axis would exaggerate a
+  // narrow range), which makes a real 25% gain look flat. State the magnitude in
+  // words instead. Only compares weeks with a usable sample at both ends.
+  const solid = summ.filter((d) => d.ms_per_token != null && d.n >= 5);
+  const msPerTokDelta = solid.length >= 2
+    ? (() => {
+        const from = Number(solid[0].ms_per_token), to = Number(solid[solid.length - 1].ms_per_token);
+        return { from: from.toFixed(1), to: to.toFixed(1), pct: Math.round((1 - to / from) * 100) };
+      })()
+    : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <div className="flex gap-1">
         {[7, 30, 90].map((d) => (
           <Link key={d} href={`/admin?days=${d}`}
@@ -106,84 +144,145 @@ async function OverviewTab({ days }: { days: number }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label={`Spend · ${days}d`} value={usd(m.spend_total)} />
-        <Stat label="Serving real users" value={usd(m.spend_user)} sub={`${overheadPct.toFixed(0)}% is overhead`} tone={overheadPct > 80 ? "warn" : undefined} />
-        <Stat label="Cost per real ask" value={`$${costPerUserAsk.toFixed(3)}`} sub={`${num(m.asks_user)} real asks`} />
-        <Stat label="Active users" value={num(m.active_users)} sub={`${num(m.profiles_total)} accounts · ${num(m.signups)} new`} />
-      </div>
+      {/* ─────────────────────────── MONEY ─────────────────────────── */}
+      <Section title="Money" note="What we spend, and how little of it reaches a person.">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label={`Spend · ${days}d`} value={usd(m.spend_total)} />
+          <Stat label="On human asks" value={usd(m.spend_user)} sub={`${overheadPct.toFixed(0)}% is robots`} tone={overheadPct > 80 ? "warn" : undefined} />
+          <Stat label="Cost per human ask" value={`$${costPerHumanAsk.toFixed(3)}`} sub={`${num(m.asks_user)} asks`} />
+          <Stat label="Cost per 1M tokens" value={usdPerMTokHuman != null ? `$${usdPerMTokHuman.toFixed(2)}` : "—"}
+            sub={usdPerMTokAll != null ? `$${usdPerMTokAll.toFixed(2)} all-in` : undefined} />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card title="Where the money goes"
+            note="The summariser runs once per ask but is the priciest component — it reads every answer.">
+            <Bars rows={(m.spend_by_role ?? []).map((r) => ({
+              label: String(r.role), value: Number(r.spend), right: usd(Number(r.spend)), sub: `${num(r.n)} runs`,
+            }))} />
+          </Card>
+          <Card title={`Weekly spend · ${days}d`}>
+            <WeeklyBars label="spend" unit="usd"
+              data={(m.weekly_spend ?? []).map((d) => ({ w: d.w, v: Number(d.spend) }))} />
+          </Card>
+        </div>
+      </Section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Where the money goes"
-          note="The summariser runs once per ask but is the priciest component — it reads every answer.">
-          <Bars rows={(m.spend_by_role ?? []).map((r) => ({
-            label: String(r.role), value: Number(r.spend), right: usd(Number(r.spend)), sub: `${num(r.n)} runs`,
-          }))} />
-        </Card>
-
-        <Card title="Traffic mix" note="Synthetic + warm are our own monitoring and cache-warming, not people.">
-          <Bars rows={(m.asks_by_source ?? []).map((r) => ({
-            label: String(r.source), value: Number(r.n), right: num(r.n),
-          }))} />
-        </Card>
-      </div>
-
-      <Card title="Speed — what real users actually wait"
-        note={`Real user asks only: synthetic (p50 ~1s) and warm (~29s) traffic would otherwise swamp these and describe nobody's experience.${
-          m.ttft_coverage ? ` First-answer timing covers ${m.ttft_coverage.with} of ${m.ttft_coverage.of} asks — TTFT has only been recorded since the P3a instrument fix.` : ""
-        }`}>
+      {/* ────────────────────── SPEED: THE USER'S ───────────────────── */}
+      <Section title="Speed — what the user waits"
+        note="Human asks only (source user + internal); synthetic and warm traffic would swamp these and describe nobody.">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Ask → first answer" value={m.user_ttft_p50_s != null ? `${m.user_ttft_p50_s}s` : "—"} sub="p50, fastest model" />
           <Stat label="Ask → complete" value={m.user_total_p50_s != null ? `${m.user_total_p50_s}s` : "—"}
             sub={m.user_total_p90_s != null ? `p50 · p90 ${m.user_total_p90_s}s` : "p50"}
             tone={Number(m.user_total_p50_s) > 30 ? "warn" : undefined} />
-          <Stat label="Summariser p50" value={m.summariser_p50_s != null ? `${m.summariser_p50_s}s` : "—"}
-            sub="last, serial, blocking" tone={Number(m.summariser_p50_s) > 32 ? "warn" : undefined} />
+          <Stat label="Summariser p50" value={m.summariser_p50_s != null ? `${m.summariser_p50_s}s` : "—"} sub="last, serial" />
           <Stat label="Answer p50" value={m.answer_p50_s != null ? `${m.answer_p50_s}s` : "—"} sub="per model, parallel" />
         </div>
-      </Card>
-
-      <Card title="Ask → complete, weekly — where the wait goes"
-        note="p50 seconds for real user comparisons, split into the two serial halves: the slowest model answering, then the summariser reading all of them. The halves are two independent medians, so they sum close to — not exactly onto — the headline p50 above.">
-        <SplitTimeBars
-          data={(m.weekly_speed ?? [])
-            .filter((d) => d.ans_s != null && d.sum_s != null)
-            .map((d) => ({ w: d.w, ans: Number(d.ans_s), sum: Number(d.sum_s), n: d.compare_asks }))} />
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Ask → first answer, weekly" note="p50 seconds — what the user waits before anything appears. Only weeks with TTFT recorded appear.">
+        <Card title="Ask → first answer, weekly"
+          note={`p50 seconds before anything appears on screen.${
+            m.ttft_coverage ? ` Covers ${m.ttft_coverage.with} of ${m.ttft_coverage.of} asks — TTFT has only been recorded since the P3a instrument fix.` : ""
+          }`}>
           <WeeklyBars label="time to first answer" unit="s"
             data={(m.weekly_speed ?? []).filter((d) => d.ttft_s != null).map((d) => ({
-              w: d.w, v: Number(d.ttft_s), extra: `${d.asks} asks`,
+              w: d.w, v: Number(d.ttft_s), extra: `${d.asks} asks`, n: d.asks,
             }))} />
         </Card>
-        <Card title="Active users, weekly" note="Distinct signed-in askers, stacked by the tier they were on at the time.">
-          <StackedUserBars data={m.weekly_users ?? []} />
-        </Card>
-      </div>
+      </Section>
 
-      <Card title="Top models by spend">
-        <div className="space-y-1.5">
-          {(m.top_models ?? []).map((r) => (
-            <div key={String(r.model)} className="flex items-center justify-between gap-3 text-sm">
-              <span className="min-w-0 truncate text-white/75">{String(r.model)}</span>
-              <span className="shrink-0 text-xs tabular-nums text-white/50">
-                {num(r.n)} runs · {r.p50_s ?? "—"}s · <span className="text-white/80">{usd(Number(r.spend))}</span>
-              </span>
-            </div>
-          ))}
+      {/* ───────────────────── SPEED: THE PART WE OWN ───────────────── */}
+      <Section title="Speed — the part we control"
+        note="Ask → complete is mostly a MODEL-CHOICE metric: answers run in parallel, so whichever model the user picked sets the floor (Opus 5 alone is ~32s). It cannot show engineering work. These two can — the summariser is the only stage we write."
+        tone="accent">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Stat label="Summary first token" value={m.summ_ttft_p50_s != null ? `${m.summ_ttft_p50_s}s` : "—"} sub="p50 — was ~26s of dead air before P3b" />
+          <Stat label="ms per output token" value={m.summ_ms_per_token != null ? `${m.summ_ms_per_token}ms` : "—"} sub="normalised — immune to model mix" />
+          <Stat label="Output tokens" value={m.summ_out_tokens != null ? num(m.summ_out_tokens) : "—"} sub="p50 per summary — fewer is faster" />
         </div>
-      </Card>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card title="ms per output token, weekly"
+            note={`Throughput of the summariser itself, independent of how long its output happens to be. Down = our work${
+              msPerTokDelta ? `: ${msPerTokDelta.from} → ${msPerTokDelta.to}ms, ${msPerTokDelta.pct}% faster per token` : ""
+            }. The bars start at zero so they look flat — the real range is narrow; hover for exact values.`}>
+            <WeeklyBars label="ms per output token" unit="ms"
+              data={summ.filter((d) => d.ms_per_token != null).map((d) => ({
+                w: d.w, v: Number(d.ms_per_token), extra: `${num(d.out_tokens)} tokens`, n: d.n,
+              }))} />
+          </Card>
+          <Card title="Summary first token, weekly"
+            note="What P3b bought: the summary starts streaming instead of landing all at once. Blank before the instrument existed.">
+            <WeeklyBars label="summary first token" unit="s"
+              data={summ.filter((d) => d.ttft_s != null).map((d) => ({
+                w: d.w, v: Number(d.ttft_s), extra: `${d.n} summaries`, n: d.n,
+              }))} />
+          </Card>
+        </div>
+      </Section>
 
-      <Card title={`Weekly spend · ${days}d`}>
-        <WeeklyBars label="spend" unit="usd"
-          data={(m.weekly_spend ?? []).map((d) => ({ w: d.w, v: Number(d.spend) }))} />
-      </Card>
+      {/* ───────────────────────── ENGAGEMENT ───────────────────────── */}
+      <Section title="Engagement"
+        note={`Do people come back, and do they keep going? A conversation counts in the week it STARTED, so the newest week under-reports depth (a Friday conversation can still gain follow-ups).${
+          convCov ? ` Based on ${convCov.with} of ${convCov.of} asks that carry a conversation id — it was only 20–50% populated before 13 Jul, so earlier weeks are thin.` : ""
+        }`}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Conversations" value={eng ? num(eng.conversations) : "—"} sub={eng ? `${num(eng.people)} people` : undefined} />
+          <Stat label="Conversations per person" value={eng?.convs_per_person != null ? String(eng.convs_per_person) : "—"} />
+          <Stat label="Questions per conversation" value={eng?.q_per_conv != null ? String(eng.q_per_conv) : "—"}
+            sub={eng?.deepest != null ? `deepest ${eng.deepest}` : undefined} />
+          <Stat label="Got a follow-up" value={eng?.pct_followup != null ? `${eng.pct_followup}%` : "—"}
+            sub="the honest engagement number" tone={Number(eng?.pct_followup) < 25 ? "warn" : undefined} />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card title="Conversations per person, weekly" note="Conversations started that week ÷ distinct people who started one.">
+            <WeeklyBars label="conversations per person" unit="n"
+              data={(m.weekly_engagement ?? []).filter((d) => d.convs_per_person != null).map((d) => ({
+                w: d.w, v: Number(d.convs_per_person), extra: `${d.conversations} convs · ${d.people} people`, n: d.conversations,
+              }))} />
+          </Card>
+          <Card title="Questions per conversation, weekly"
+            note="1.0 means nobody followed up. The mean is fragile here — one 18-question conversation moves it — so read it beside the follow-up rate.">
+            <WeeklyBars label="questions per conversation" unit="n"
+              data={(m.weekly_engagement ?? []).filter((d) => d.q_per_conv != null).map((d) => ({
+                w: d.w, v: Number(d.q_per_conv), extra: `${d.pct_followup ?? 0}% got a follow-up`, n: d.conversations,
+              }))} />
+          </Card>
+        </div>
+      </Section>
 
-      <Card title="Accounts by tier">
-        <Bars rows={(m.by_tier ?? []).map((r) => ({ label: String(r.tier), value: Number(r.n), right: num(r.n) }))} />
-      </Card>
+      {/* ─────────────────────── USERS & TRAFFIC ────────────────────── */}
+      <Section title="Users & traffic">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Active users" value={num(m.active_users)} sub={`${num(m.profiles_total)} accounts · ${num(m.signups)} new`} />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card title="Active users, weekly" note="Distinct signed-in askers, stacked by the tier they were on at the time.">
+            <StackedUserBars data={m.weekly_users ?? []} />
+          </Card>
+          <Card title="Traffic mix" note="Synthetic + warm are our own monitoring and cache-warming, not people.">
+            <Bars rows={(m.asks_by_source ?? []).map((r) => ({
+              label: String(r.source), value: Number(r.n), right: num(r.n),
+            }))} />
+          </Card>
+        </div>
+        <Card title="Accounts by tier">
+          <Bars rows={(m.by_tier ?? []).map((r) => ({ label: String(r.tier), value: Number(r.n), right: num(r.n) }))} />
+        </Card>
+      </Section>
+
+      {/* ────────────────────────── MODELS ─────────────────────────── */}
+      <Section title="Models">
+        <Card title="Top models by spend">
+          <div className="space-y-1.5">
+            {(m.top_models ?? []).map((r) => (
+              <div key={String(r.model)} className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate text-white/75">{String(r.model)}</span>
+                <span className="shrink-0 text-xs tabular-nums text-white/50">
+                  {num(r.n)} runs · {r.p50_s ?? "—"}s · <span className="text-white/80">{usd(Number(r.spend))}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </Section>
     </div>
   );
 }
@@ -249,6 +348,25 @@ function Tab({ href, active, children }: { href: string; active: boolean; childr
       className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${active ? "bg-white/10 text-white" : "text-white/55 hover:text-white"}`}>
       {children}
     </Link>
+  );
+}
+
+/**
+ * A titled band of the dashboard. The page is a list of unrelated numbers
+ * otherwise; the heading says what question this block answers, and `note`
+ * carries the caveat that would otherwise have to live on every card inside it.
+ */
+function Section({ title, note, tone, children }: {
+  title: string; note?: string; tone?: "accent"; children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <div className={`border-l-2 pl-3 ${tone === "accent" ? "border-teal-400/60" : "border-white/15"}`}>
+        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-white/80">{title}</h2>
+        {note && <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-white/45">{note}</p>}
+      </div>
+      {children}
+    </section>
   );
 }
 
