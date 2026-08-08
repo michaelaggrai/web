@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/server-admin";
 import { currentAdminEmail, listAdmins } from "@/lib/admin";
 import { addAdmin, removeAdmin } from "./actions";
-import { WeeklyBars, StackedUserBars } from "./charts";
+import { WeeklyBars, StackedUserBars, SplitTimeBars } from "./charts";
 
 // Internal dashboard — the handful of numbers worth glancing at daily. Ad-hoc
 // exploration is deliberately NOT this page's job (see AGG-55: Metabase, deferred).
@@ -30,7 +30,13 @@ interface Metrics {
   user_total_p90_s: number | null;
   ttft_coverage: { with: number; of: number } | null;
   weekly_spend: { w: string; spend: number }[] | null;
-  weekly_speed: { w: string; asks: number; ttft_s: number | null; total_s: number | null }[] | null;
+  weekly_speed: {
+    w: string; asks: number; compare_asks: number;
+    ttft_s: number | null; total_s: number | null;
+    // The ask → complete total split into its two serial halves. Computed over
+    // compare asks only, so both medians describe the same population.
+    ans_s: number | null; sum_s: number | null;
+  }[] | null;
   weekly_users: { w: string; free: number; pro: number; premium: number; total: number }[] | null;
 }
 
@@ -137,24 +143,25 @@ async function OverviewTab({ days }: { days: number }) {
         </div>
       </Card>
 
+      <Card title="Ask → complete, weekly — where the wait goes"
+        note="p50 seconds for real user comparisons, split into the two serial halves: the slowest model answering, then the summariser reading all of them. The halves are two independent medians, so they sum close to — not exactly onto — the headline p50 above.">
+        <SplitTimeBars
+          data={(m.weekly_speed ?? [])
+            .filter((d) => d.ans_s != null && d.sum_s != null)
+            .map((d) => ({ w: d.w, ans: Number(d.ans_s), sum: Number(d.sum_s), n: d.compare_asks }))} />
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Ask → complete, weekly" note="p50 seconds for real user asks. The gap to first-answer is the summariser.">
-          <WeeklyBars label="ask time" unit="s"
-            data={(m.weekly_speed ?? []).filter((d) => d.total_s != null).map((d) => ({
-              w: d.w, v: Number(d.total_s), extra: `${d.asks} asks`,
-            }))} />
-        </Card>
-        <Card title="Ask → first answer, weekly" note="p50 seconds. Only weeks with TTFT recorded appear.">
+        <Card title="Ask → first answer, weekly" note="p50 seconds — what the user waits before anything appears. Only weeks with TTFT recorded appear.">
           <WeeklyBars label="time to first answer" unit="s"
             data={(m.weekly_speed ?? []).filter((d) => d.ttft_s != null).map((d) => ({
               w: d.w, v: Number(d.ttft_s), extra: `${d.asks} asks`,
             }))} />
         </Card>
+        <Card title="Active users, weekly" note="Distinct signed-in askers, stacked by the tier they were on at the time.">
+          <StackedUserBars data={m.weekly_users ?? []} />
+        </Card>
       </div>
-
-      <Card title="Active users, weekly" note="Distinct signed-in askers, stacked by the tier they were on at the time.">
-        <StackedUserBars data={m.weekly_users ?? []} />
-      </Card>
 
       <Card title="Top models by spend">
         <div className="space-y-1.5">
