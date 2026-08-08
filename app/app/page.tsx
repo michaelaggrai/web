@@ -15,7 +15,7 @@ import { appendMessage, bumpConversation, type ConvMessage } from "@/lib/message
 import { listThread } from "@/lib/thread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, Paperclip, X, AlertTriangle, Loader2, Image as ImageIcon, FileText } from "lucide-react";
+import { ArrowRight, Layers, BarChart3, Menu, ChevronDown, Trophy, Square, Plus, Minus, Check, Globe, Share2, Paperclip, X, AlertTriangle, Loader2, Image as ImageIcon, FileText, Shuffle } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ScoreRadar } from "@/components/score-radar";
@@ -1097,6 +1097,12 @@ function Home() {
   // the loading skeleton, matching the loaded result header.
   const [pendingQuestion, setPendingQuestion] = useState("");
   const [allModels, setAllModels] = useState<ModelEntry[]>(FALLBACK_MODELS);
+  // Sample questions for the empty composer. The landing page's example chips are
+  // the main "what is this even for" affordance, and they become unreachable the
+  // moment someone signs in and lands here instead — so a signed-in user staring
+  // at a blank box has nothing to try. Same pool as the landing (/api/prompts).
+  const [samplePrompts, setSamplePrompts] = useState<string[]>([]);
+  const [sampleIdx, setSampleIdx] = useState(0);
   // Backend-authored defaults (delisted models already swapped for siblings).
   // Static TIER_DEFAULTS is the pre-fetch fallback; /api/models overrides it.
   const [tierDefaults, setTierDefaults] = useState<Record<Tier, string[]>>(TIER_DEFAULTS);
@@ -1580,6 +1586,24 @@ function Home() {
 
   const maxModels = maxModelsForTier(tier);
   const lockedIds = lockedModelIds(tier, allModels);
+
+  // Sample-question pool. Deliberately NOT pre-warmed against the answer cache:
+  // a cache hit needs the exact question AND the exact model set, and a signed-in
+  // user's selection almost never matches the free trio the pool is warmed for.
+  // So this is purely a "here's something to try" prompt — a free user on the
+  // default models still gets the instant cached answer, everyone else runs live.
+  useEffect(() => {
+    let off = false;
+    fetch("/api/prompts?all=1")
+      .then(r => r.json())
+      .then((d: { prompts?: string[] }) => {
+        if (off || !Array.isArray(d.prompts) || !d.prompts.length) return;
+        setSamplePrompts(d.prompts);
+        setSampleIdx(Math.floor(Math.random() * d.prompts.length));
+      })
+      .catch(() => { /* best-effort — the composer just shows no suggestion */ });
+    return () => { off = true; };
+  }, []);
 
   useEffect(() => {
     fetch("/api/models")
@@ -2963,6 +2987,39 @@ function Home() {
               lockedIds={lockedIds}
               imagesAttached={attachments.some(a => a.kind === "image")}
             />
+
+            {/* A sample question for an empty composer — the signed-in equivalent
+                of the landing page's example chips, which a logged-in user never
+                sees. Only in the blank state (no text, no result, no attachment)
+                so it never competes with the user's own work. Clicking FILLS the
+                box rather than submitting: they keep control, and can edit it
+                into their own question, which is the more useful nudge. */}
+            {samplePrompts.length > 0 && !question.trim() && !result && !loading && attachments.length === 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] text-white/40">Need a starting point?</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuestion(samplePrompts[sampleIdx % samplePrompts.length]);
+                    questionInputRef.current?.focus();
+                  }}
+                  className="inline-flex items-center text-sm text-white/60 hover:text-white/85 px-4 py-2 min-h-11 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
+                >
+                  {samplePrompts[sampleIdx % samplePrompts.length]}
+                </button>
+                {samplePrompts.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setSampleIdx(i => (i + 1) % samplePrompts.length)}
+                    aria-label="Show a different sample question"
+                    title="Show a different sample question"
+                    className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-teal-300 px-3 py-2 min-h-11 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all"
+                  >
+                    <Shuffle className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* AGG-14: warn at submit time when the selection includes models that
                 can't read the attached image — they'd be skipped. Offer one-tap removal. */}
