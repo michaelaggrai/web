@@ -3031,6 +3031,16 @@ function Home() {
               </div>
             )}
 
+            {/* Model selector */}
+            <ModelPicker
+              all={allModels}
+              selected={selected}
+              onChange={handleSelectionChange}
+              max={maxModels}
+              lockedIds={lockedIds}
+              imagesAttached={attachments.some(a => a.kind === "image")}
+            />
+
             {/* AGG-14: warn at submit time when the selection includes models that
                 can't read the attached image — they'd be skipped. Offer one-tap removal. */}
             {attachments.some(a => a.kind === "image") && (() => {
