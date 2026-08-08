@@ -286,62 +286,127 @@ function Heatmap({ data, range }: { data: { date: string; count: number }[]; ran
 // Fast+good is the TOP-LEFT corner; the caption says so, since "better = right"
 // is the more common reflex.
 function ScoreSpeedChart({ points }: { points: ScoreSpeedPoint[] }) {
+  // Hovered/tapped model id. Native SVG <title> tooltips were tried first and are
+  // a poor fit — they need a long dwell, can silently not fire, and never work on
+  // touch. Real state instead: highlight the dot and print detail in a fixed row
+  // below, so there's no layout shift and no tooltip clipping at the edges.
+  const [active, setActive] = useState<string | null>(null);
   if (points.length < 2) return null;
-  const W = 520, H = 210, L = 34, R = 12, T = 12, B = 30;
+
+  const W = 560, H = 290, L = 40, R = 14, T = 14, B = 52;
   const secs = points.map((p) => p.medianMs / 1000);
-  const xMax = Math.max(...secs) * 1.12;
+  const xMax = Math.max(...secs) * 1.15;
   const lo = Math.min(...points.map((p) => p.avgScore));
   const hi = Math.max(...points.map((p) => p.avgScore));
-  const yLo = Math.max(0, lo - 0.4), yHi = Math.min(10, hi + 0.4);
+  const yLo = Math.max(0, lo - 0.5), yHi = Math.min(10, hi + 0.5);
   const px = (s: number) => L + (s / (xMax || 1)) * (W - L - R);
   const py = (v: number) => T + (1 - (v - yLo) / (yHi - yLo || 1)) * (H - T - B);
   const maxN = Math.max(...points.map((p) => p.n));
-  const best = points.reduce((a, b) => (b.avgScore > a.avgScore ? b : a));
+
+  // Label placement. Labels sit beside their dot, flipping to the left when they'd
+  // run off the right edge. Then a greedy pass per side pushes overlapping labels
+  // apart vertically — without it a dozen models in a tight score band produce an
+  // unreadable pile. Each label keeps a leader line back to its dot.
+  const laid = points
+    .map((p) => {
+      const label = modelLabel(p.model);
+      const cx = px(p.medianMs / 1000), cy = py(p.avgScore);
+      const w = label.length * 4.5;
+      const r = 3.5 + (p.n / maxN) * 4.5;
+      const right = cx + r + 5 + w < W - R;
+      return { p, label, cx, cy, r, right, lx: right ? cx + r + 5 : cx - r - 5, ly: cy + 3 };
+    });
+  for (const side of [true, false]) {
+    const col = laid.filter((d) => d.right === side).sort((a, b) => a.ly - b.ly);
+    let prev = -99;
+    for (const d of col) {
+      if (d.ly - prev < 11) d.ly = prev + 11;
+      prev = d.ly;
+    }
+  }
+
+  const cur = active ? points.find((p) => p.model === active) ?? null : null;
 
   return (
     <div className="rounded-xl border border-white/10 bg-surface-1 p-4">
       <div className="mb-1 text-sm font-medium text-white">Quality vs speed</div>
-      <p className="mb-3 text-[11px] leading-relaxed text-white/55">
+      <p className="mb-2 text-[11px] leading-relaxed text-white/55">
         From comparisons where each model answered the same question as at least one rival.
         Top-left is best: high score, short wait. Bubble size = number of answers.
       </p>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img"
-        aria-label={`Quality versus speed for ${points.length} models. Best scoring: ${modelLabel(best.model)} at ${best.avgScore.toFixed(1)} out of 10 in ${(best.medianMs / 1000).toFixed(1)} seconds.`}>
-        {[0, 0.5, 1].map((f) => {
+        aria-label={`Quality versus speed for ${points.length} models. ${points.map((p) => `${modelLabel(p.model)} ${p.avgScore.toFixed(1)} out of 10 in ${(p.medianMs / 1000).toFixed(1)} seconds`).join("; ")}.`}>
+        {[0, 0.25, 0.5, 0.75, 1].map((f) => {
           const v = yLo + f * (yHi - yLo);
           return (
             <g key={f}>
-              <line x1={L} y1={py(v)} x2={W - R} y2={py(v)} stroke="rgba(255,255,255,.08)" strokeWidth="1" />
+              <line x1={L} y1={py(v)} x2={W - R} y2={py(v)} stroke="rgba(255,255,255,.07)" strokeWidth="1" />
               <text x={L - 6} y={py(v) + 3} textAnchor="end" fontSize="9" fill="rgba(255,255,255,.45)">{v.toFixed(1)}</text>
             </g>
           );
         })}
-        {[0, 0.5, 1].map((f) => {
-          const s = f * xMax;
+        {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+          <text key={f} x={px(f * xMax)} y={H - B + 15} textAnchor="middle" fontSize="9" fill="rgba(255,255,255,.45)">
+            {(f * xMax).toFixed(0)}s
+          </text>
+        ))}
+
+        {/* Axis titles */}
+        <text x={L + (W - L - R) / 2} y={H - 8} textAnchor="middle" fontSize="10" fill="rgba(255,255,255,.6)">
+          Median time to answer  ·  ← faster
+        </text>
+        <text x={11} y={T + (H - T - B) / 2} textAnchor="middle" fontSize="10" fill="rgba(255,255,255,.6)"
+          transform={`rotate(-90 11 ${T + (H - T - B) / 2})`}>
+          Aggr-Score /10  ·  better ↑
+        </text>
+
+        {laid.map((d) => {
+          const dead = DEPRECATED_MODELS.has(d.p.model);
+          const on = active === d.p.model;
           return (
-            <text key={f} x={px(s)} y={H - B + 14} textAnchor="middle" fontSize="9" fill="rgba(255,255,255,.45)">
-              {s.toFixed(0)}s
-            </text>
+            <g key={d.p.model}
+              onMouseEnter={() => setActive(d.p.model)}
+              onMouseLeave={() => setActive(null)}
+              onClick={() => setActive(on ? null : d.p.model)}
+              style={{ cursor: "pointer" }}>
+              {/* Leader line to the nudged label */}
+              <line x1={d.cx + (d.right ? d.r : -d.r)} y1={d.cy} x2={d.lx - (d.right ? 2 : -2)} y2={d.ly - 3}
+                stroke="rgba(255,255,255,.18)" strokeWidth="0.75" />
+              {/* Generous invisible hit area — the dots are only a few px across */}
+              <circle cx={d.cx} cy={d.cy} r={Math.max(11, d.r + 7)} fill="transparent" />
+              <circle cx={d.cx} cy={d.cy} r={on ? d.r + 2 : d.r}
+                fill={dead ? "rgba(255,255,255,.18)" : "rgba(45,212,191,.55)"}
+                stroke={dead ? "rgba(255,255,255,.5)" : "#2DD4BF"} strokeWidth={on ? 2 : 1.25} />
+              <text x={d.lx} y={d.ly} textAnchor={d.right ? "start" : "end"} fontSize="9"
+                fill={on ? "#fff" : dead ? "rgba(255,255,255,.4)" : "rgba(255,255,255,.62)"}>
+                {d.label}
+              </text>
+            </g>
           );
         })}
-        {points.map((p) => {
-          const dead = DEPRECATED_MODELS.has(p.model);
-          const r = 3.5 + (p.n / maxN) * 4.5;
-          return (
-            <circle key={p.model} cx={px(p.medianMs / 1000)} cy={py(p.avgScore)} r={r}
-              fill={dead ? "rgba(255,255,255,.18)" : "rgba(45,212,191,.55)"}
-              stroke={dead ? "rgba(255,255,255,.45)" : "#2DD4BF"} strokeWidth="1.25">
-              <title>
-                {`${modelLabel(p.model)}${dead ? " (retired)" : ""} — ${p.avgScore.toFixed(1)}/10 in ${(p.medianMs / 1000).toFixed(1)}s median (p90 ${(p.p90Ms / 1000).toFixed(1)}s), ${p.n} answers, ${p.vsPeers >= 0 ? "+" : ""}${p.vsPeers.toFixed(2)} vs rivals`}
-              </title>
-            </circle>
-          );
-        })}
-        <text x={L} y={H - B + 26} fontSize="9" fill="rgba(255,255,255,.35)">← faster</text>
       </svg>
+
+      {/* Fixed-height detail row: no layout shift as you move between dots. */}
+      <div className="mt-1 min-h-[34px] rounded-lg border border-white/10 bg-surface-2 px-3 py-2 text-[11px] leading-relaxed">
+        {cur ? (
+          <span className="text-white/80">
+            <span className="font-medium text-white">{modelLabel(cur.model)}</span>
+            {DEPRECATED_MODELS.has(cur.model) && <span className="text-white/45"> · retired</span>}
+            {" — "}{cur.avgScore.toFixed(1)}/10 · {(cur.medianMs / 1000).toFixed(1)}s typical
+            <span className="text-white/50"> (slowest 10% ≥ {(cur.p90Ms / 1000).toFixed(1)}s)</span>
+            {" · "}{cur.n} answers ·{" "}
+            <span className={cur.vsPeers >= 0 ? "text-teal-300" : "text-amber-300/90"}>
+              {cur.vsPeers >= 0 ? "+" : ""}{cur.vsPeers.toFixed(2)} vs rivals
+            </span>
+          </span>
+        ) : (
+          <span className="text-white/45">Hover or tap a dot for detail — including how it scored against the models it was compared with.</span>
+        )}
+      </div>
+
       {points.some((p) => DEPRECATED_MODELS.has(p.model)) && (
         <p className="mt-2 text-[11px] text-white/45">
-          Hollow dots are models that have since been retired — kept here so your history still makes sense, but you can no longer pick them.
+          Grey dots are models that have since been retired — kept here so your history still makes sense, but you can no longer pick them.
         </p>
       )}
     </div>
