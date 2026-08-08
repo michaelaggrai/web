@@ -1101,7 +1101,11 @@ function Home() {
   // the main "what is this even for" affordance, and they become unreachable the
   // moment someone signs in and lands here instead — so a signed-in user staring
   // at a blank box has nothing to try. Same pool as the landing (/api/prompts).
+  // Prefers the TOPICAL tier (D8): current-events questions regenerated daily and
+  // web-search-grounded, so the suggestion shows off live retrieval rather than a
+  // timeless think-piece. Falls back to the evergreen pool when topical is empty.
   const [samplePrompts, setSamplePrompts] = useState<string[]>([]);
+  const [sampleTopical, setSampleTopical] = useState(false);
   const [sampleIdx, setSampleIdx] = useState(0);
   // Backend-authored defaults (delisted models already swapped for siblings).
   // Static TIER_DEFAULTS is the pre-fetch fallback; /api/models overrides it.
@@ -1596,10 +1600,14 @@ function Home() {
     let off = false;
     fetch("/api/prompts?all=1")
       .then(r => r.json())
-      .then((d: { prompts?: string[] }) => {
-        if (off || !Array.isArray(d.prompts) || !d.prompts.length) return;
-        setSamplePrompts(d.prompts);
-        setSampleIdx(Math.floor(Math.random() * d.prompts.length));
+      .then((d: { prompts?: string[]; topical?: string[] }) => {
+        if (off) return;
+        const topical = Array.isArray(d.topical) ? d.topical : [];
+        const pool = topical.length ? topical : (Array.isArray(d.prompts) ? d.prompts : []);
+        if (!pool.length) return;
+        setSamplePrompts(pool);
+        setSampleTopical(topical.length > 0);
+        setSampleIdx(Math.floor(Math.random() * pool.length));
       })
       .catch(() => { /* best-effort — the composer just shows no suggestion */ });
     return () => { off = true; };
@@ -2978,25 +2986,27 @@ function Home() {
               <kbd className="font-mono">Shift+Enter</kbd> for new line
             </p>
 
-            {/* Model selector */}
-            <ModelPicker
-              all={allModels}
-              selected={selected}
-              onChange={handleSelectionChange}
-              max={maxModels}
-              lockedIds={lockedIds}
-              imagesAttached={attachments.some(a => a.kind === "image")}
-            />
-
             {/* A sample question for an empty composer — the signed-in equivalent
                 of the landing page's example chips, which a logged-in user never
-                sees. Only in the blank state (no text, no result, no attachment)
-                so it never competes with the user's own work. Clicking FILLS the
-                box rather than submitting: they keep control, and can edit it
-                into their own question, which is the more useful nudge. */}
+                sees. Sits directly under the composer, ABOVE the model chips: it's
+                about what to ask, so it belongs next to the box you type in, not
+                buried under the model selection. Only in the blank state (no text,
+                no result, no attachment) so it never competes with the user's own
+                work. Clicking FILLS the box rather than submitting: they keep
+                control, and can edit it into their own question. */}
             {samplePrompts.length > 0 && !question.trim() && !result && !loading && attachments.length === 0 && (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] text-white/40">Need a starting point?</span>
+                {sampleTopical ? (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-teal-300/75">
+                    <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400/70" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-teal-400" />
+                    </span>
+                    In the news
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-white/40">Need a starting point?</span>
+                )}
                 <button
                   type="button"
                   onClick={() => {
