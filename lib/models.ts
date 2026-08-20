@@ -151,7 +151,8 @@ export const FALLBACK_MODELS: ModelEntry[] = [
 
   // Multimodal
   { id: "google/gemini-2.5-pro",                    label: "Gemini 2.5 Pro",       provider: "Google",    class: "flagship", category: "multimodal" },
-  { id: "google/gemini-3.6-flash",                  label: "Gemini 3.6 Flash",     provider: "Google",    class: "flagship", category: "multimodal" }, // 2026-07-21 — replaces the degraded 3.5 Flash below
+  { id: "google/gemini-3.7-flash",                  label: "Gemini 3.7 Flash",     provider: "Google",    class: "flagship", category: "multimodal" }, // 2026-08-20 — supersedes 3.6 Flash below
+  { id: "google/gemini-3.6-flash",                  label: "Gemini 3.6 Flash",     provider: "Google",    class: "flagship", category: "multimodal", status: "deprecated" },
   { id: "google/gemini-3.5-flash",                  label: "Gemini 3.5 Flash",     provider: "Google",    class: "flagship", category: "multimodal", status: "deprecated" },
   { id: "google/gemini-3.1-pro-preview",            label: "Gemini 3.1 Pro",       provider: "Google",    class: "flagship", category: "multimodal" },
   { id: "google/gemini-3-flash-preview",            label: "Gemini 3 Flash",       provider: "Google",    class: "flagship", category: "multimodal" },
@@ -185,7 +186,7 @@ const VISION_MODEL_IDS = new Set<string>([
   "openai/gpt-5.5-pro", "anthropic/claude-fable-5", "anthropic/claude-opus-5",
   "anthropic/claude-opus-5-fast", "anthropic/claude-opus-4.8",
   "anthropic/claude-opus-4.7", "openai/gpt-5.3-codex", "openai/gpt-5.1-codex-mini",
-  "google/gemini-2.5-pro", "google/gemini-3.6-flash", "google/gemini-3.5-flash",
+  "google/gemini-2.5-pro", "google/gemini-3.7-flash", "google/gemini-3.6-flash", "google/gemini-3.5-flash",
   "google/gemini-3.1-pro-preview", "google/gemini-3-flash-preview", "xiaomi/mimo-v2.5",
   "stepfun/step-3.7-flash", "minimax/minimax-m3", "anthropic/claude-opus-4.8-fast",
   "anthropic/claude-opus-4.7-fast", "x-ai/grok-4.5", "moonshotai/kimi-k3", "x-ai/grok-4.20",
@@ -231,7 +232,7 @@ export const TIER_DEFAULTS: Record<Tier, string[]> = {
   // 2026-07-22: OpenAI slot restored with GPT-5.6 Sol (Sol); trio = Sonnet 5 · GPT-5.6 Sol
   // · Kimi K3. Gemini 3.6 Flash steps out of the pre-selection (still pickable).
   pro:     ["anthropic/claude-sonnet-5", "openai/gpt-5.6-sol", "moonshotai/kimi-k3"],
-  premium: ["anthropic/claude-opus-5", "openai/gpt-5.6-sol", "google/gemini-3.6-flash",
+  premium: ["anthropic/claude-opus-5", "openai/gpt-5.6-sol", "google/gemini-3.7-flash",
             "x-ai/grok-4.5", "mistralai/mistral-large-2512"],
 }
 
